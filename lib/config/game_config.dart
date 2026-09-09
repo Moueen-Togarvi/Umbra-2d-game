@@ -48,8 +48,15 @@ abstract final class GameConfig {
   /// Height of the whole test room.
   static const double roomHeight = 7.0;
 
-  /// Thickness of the invisible walls that keep the player inside the room.
-  static const double wallThickness = 0.5;
+  /// Thickness of the walls that keep the player inside the room.
+  ///
+  /// Deliberately far thicker than it needs to be for collision. A landscape
+  /// phone is about 2.0-2.2 wide for every 1 tall, while this room is only 1.7,
+  /// so fitting the room's *height* to the screen leaves roughly a metre and a
+  /// half of slack on each side. Thick black walls fill that slack with solid
+  /// silhouette instead of empty grey, which reads as deliberate framing rather
+  /// than as the level running out.
+  static const double wallThickness = 3.0;
 
   // ---------------------------------------------------------------------------
   // Gravity
@@ -162,4 +169,31 @@ abstract final class GameConfig {
   /// the player body, so it sits half the player's height above the floor.
   static Vector2 get playerSpawn =>
       Vector2(1.5, floorSurfaceY - playerHeight / 2);
+
+  // ---------------------------------------------------------------------------
+  // On-screen controls
+  //
+  // WARNING: everything below is in LOGICAL PIXELS, not metres.
+  //
+  // These are the only numbers in this file that are not part of the physics
+  // simulation. Touch controls live in the camera's *viewport*, which is screen
+  // space, so that a button stays the size of a thumb no matter how far the
+  // world is zoomed. Do not feed these into anything that takes a world
+  // coordinate, and do not scale them by [metersToPixels].
+  // ---------------------------------------------------------------------------
+
+  /// Diameter of a control button.
+  ///
+  /// Material's minimum touch target is 48dp; a game that is held in both hands
+  /// and played with thumbs wants considerably more than the minimum.
+  static const double controlButtonDiameterPx = 88.0;
+
+  /// Gap between the screen edge and the nearest button.
+  static const double controlEdgeMarginPx = 28.0;
+
+  /// Gap between the two walk buttons.
+  static const double controlGapPx = 20.0;
+
+  /// Size of the arrow glyph inside a button, as a fraction of its radius.
+  static const double controlGlyphScale = 0.46;
 }

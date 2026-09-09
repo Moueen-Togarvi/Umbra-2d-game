@@ -7,6 +7,7 @@ import '../config/game_config.dart';
 import '../config/palette.dart';
 import '../input/keyboard_input.dart';
 import '../input/player_intent.dart';
+import '../input/touch_controls.dart';
 import '../world/checkpoint_service.dart';
 import '../world/test_room.dart';
 
@@ -41,6 +42,10 @@ class UmbraGame extends Forge2DGame with HasKeyboardHandlerComponents {
   /// The shared intent object that input writes to and the player reads from.
   final PlayerIntent _intent = PlayerIntent();
 
+  /// Owns the held-state of the on-screen walk buttons. Held as a field because
+  /// the button callbacks close over it and it has to outlive [onLoad].
+  late final TouchControls _touchControls = TouchControls(_intent);
+
   /// Respawn state. Created in [onLoad] so it can be replaced per level later.
   ///
   /// Deliberately `late` rather than `late final`: a hot restart re-runs
@@ -73,7 +78,19 @@ class UmbraGame extends Forge2DGame with HasKeyboardHandlerComponents {
     // The keyboard listener lives on the game, not in the world: it is not a
     // thing in the room, it is a source of events. HasKeyboardHandlerComponents
     // walks the component tree and delivers key events to any KeyboardHandler.
+    //
+    // Kept even though Umbra ships on Android, where there is no keyboard: it
+    // costs nothing at runtime, it is what the test suite drives the player
+    // with, and it means the game is still playable on a desktop while
+    // developing.
     await add(KeyboardInput(_intent));
+
+    // Touch controls go in the camera's *viewport*, not in the world. The
+    // viewport is screen space, so the buttons keep a constant thumb-sized
+    // footprint in pixels and never scale or pan with the camera. They must be
+    // added directly to it, because Flame positions them by a margin measured
+    // against their immediate parent's size.
+    await camera.viewport.addAll(_touchControls.buildButtons());
 
     // Everything physical goes into the physics world.
     await world.add(TestRoom(intent: _intent, checkpoints: checkpoints));
