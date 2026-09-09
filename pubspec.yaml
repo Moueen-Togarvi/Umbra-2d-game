@@ -1,0 +1,29 @@
+name: umbra
+description: A Limbo-inspired atmospheric 2D platformer built with Flutter and Flame.
+publish_to: "none"
+version: 0.1.0
+
+environment:
+  sdk: ^3.12.0
+  flutter: ">=3.44.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  # Flame is the game loop, component tree and rendering layer.
+  flame: ^1.38.0
+
+  # flame_forge2d bridges Flame to Forge2D, which as of 0.20.0 is a binding for
+  # Box2D v3 (native FFI on desktop/mobile, WebAssembly on web). This is a full
+  # rewrite of the old pure-Dart Box2D 2.x port: FixtureDef and PolygonShape no
+  # longer exist. See STEP1_NOTES.md for the API differences that matter.
+  flame_forge2d: ^0.20.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+
+flutter:
+  uses-material-design: true
