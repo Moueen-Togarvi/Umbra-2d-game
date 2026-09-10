@@ -8,3 +8,12 @@ pubspec.lock
 .idea/
 .vscode/
 .DS_Store
+
+# Secrets — never commit API keys
+.env
+*.key
+secrets.json
+
+# Python bytecode from tools/
+__pycache__/
+*.pyc
