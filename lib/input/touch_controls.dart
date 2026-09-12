@@ -155,6 +155,16 @@ class _ControlFace extends PositionComponent {
       radius,
       Paint()..color = isPressed ? Palette.controlPressed : Palette.control,
     );
+    // A thin ring, so the button is findable by feel against a black floor
+    // without becoming a bright disc that competes with the scene.
+    canvas.drawCircle(
+      center,
+      radius - 1,
+      Paint()
+        ..color = Palette.controlRing
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 1.5,
+    );
 
     // An equilateral triangle: three points spaced a third of a turn apart on a
     // circle, with [glyphAngle] deciding which way the first point faces.

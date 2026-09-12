@@ -1,3 +1,4 @@
+import 'dart:math' as math;
 import 'dart:ui';
 
 import 'package:flame_forge2d/flame_forge2d.dart';
@@ -13,17 +14,18 @@ import 'player.dart';
 /// the engine reports the overlap, which is exactly what a trigger volume
 /// needs. The same mechanism will carry the water zone in Step 4.
 ///
-/// The hazard is invisible in the world — it is drawn as black like everything
-/// else, so in the test room it reads as the dark floor of the pit.
+/// Drawn as the floor of a pit bristling with spikes: black like everything
+/// else, but with a jagged top edge that reads as "do not land here" from
+/// across the screen.
 class Hazard extends BodyComponent with ContactCallbacks {
   Hazard({
     required Vector2 center,
     required Vector2 size,
     required this._checkpoints,
-  }) : super(
-         // BodyComponent paints white by default, which would be invisible
-         // against the light-grey background.
+  }) : _size = size.clone(),
+       super(
          paint: Paint()..color = Palette.silhouette,
+         renderBody: false,
          bodyDef: BodyDef(type: BodyType.static, position: center.clone()),
          shapeSpecs: [
            ShapeSpec(
@@ -40,6 +42,41 @@ class Hazard extends BodyComponent with ContactCallbacks {
   }
 
   final CheckpointService _checkpoints;
+  final Vector2 _size;
+
+  /// The spiked floor, built once in body-local metres.
+  late final Path _spikes = _buildSpikes();
+
+  Path _buildSpikes() {
+    final double hw = _size.x / 2;
+    final double hh = _size.y / 2;
+    const double spikeHeight = 0.55;
+    const double spikeWidth = 0.28;
+    final Path path = Path()..moveTo(-hw, hh);
+    path.lineTo(-hw, -hh + spikeHeight);
+    double x = -hw;
+    var i = 0;
+    while (x < hw) {
+      // Alternate tall and short spikes, leaning slightly, so the row does
+      // not look machine-made.
+      final double h = spikeHeight * (i.isEven ? 1.0 : 0.62);
+      final double lean = (i % 3 - 1) * 0.04;
+      final double tip = math.min(hw, x + spikeWidth / 2 + lean);
+      final double base = math.min(hw, x + spikeWidth);
+      path.lineTo(tip, -hh + spikeHeight - h);
+      path.lineTo(base, -hh + spikeHeight);
+      x = base;
+      i++;
+    }
+    path.lineTo(hw, hh);
+    path.close();
+    return path;
+  }
+
+  @override
+  void render(Canvas canvas) {
+    canvas.drawPath(_spikes, paint);
+  }
 
   /// Builds a hazard from its edges, matching the way ground slabs are
   /// described in the test room.
