@@ -138,18 +138,13 @@ class UmbraGame extends Forge2DGame with HasKeyboardHandlerComponents {
 
   bool _artLoaded = false;
 
-  static const List<String> _art = [
+  /// Everything the renderers pull from the image cache. The scenery's
+  /// files are derived from [GameConfig.scenery] so adding a prop there is
+  /// enough.
+  static final List<String> _art = [
     'grain.png',
     'props/grass_tall.png',
-    'props/prop_tree_a.png',
-    'props/prop_tree_a_soft.png',
-    'props/prop_tree_b.png',
-    'props/prop_tree_b_soft.png',
-    'props/prop_ladder.png',
-    'props/prop_gallows.png',
-    'props/prop_tower_soft.png',
-    'props/prop_watchtower_soft.png',
-    'props/prop_fence.png',
+    ...{for (final prop in GameConfig.scenery) 'props/${prop.imageFile}'},
   ];
 
   Future<void> _loadArt() async {

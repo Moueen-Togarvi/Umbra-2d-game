@@ -3,6 +3,7 @@ import 'dart:ui';
 
 import 'package:flame_forge2d/flame_forge2d.dart';
 
+import '../config/game_config.dart';
 import '../config/palette.dart';
 import '../world/checkpoint_service.dart';
 import 'player.dart';
@@ -73,8 +74,24 @@ class Hazard extends BodyComponent with ContactCallbacks {
     return path;
   }
 
+  final Paint _shadowPaint = Paint();
+
   @override
   void render(Canvas canvas) {
+    // The drop above the spikes: fog at the lip, black by the time it
+    // reaches them. Without this a pit shows bright fog all the way down to
+    // a hard black block at the bottom, which reads as a slab floating in
+    // mid-air rather than as a hole in the ground.
+    final double hw = _size.x / 2;
+    final double hh = _size.y / 2;
+    final double lip = -hh - GameConfig.pitDepth;
+    _shadowPaint.shader = Gradient.linear(
+      Offset(0, lip),
+      Offset(0, -hh + 0.2),
+      const [Color(0x59000000), Color(0xD9000000), Color(0xFF000000)],
+      const [0.0, 0.4, 1.0],
+    );
+    canvas.drawRect(Rect.fromLTRB(-hw, lip, hw, -hh + 0.3), _shadowPaint);
     canvas.drawPath(_spikes, paint);
   }
 

@@ -344,4 +344,13 @@ class SceneryProp {
 
   /// Hang from [y] instead of standing on it, for ladders and ropes.
   final bool hangs;
+
+  /// The art to draw, chosen by depth: crisp up close, `_soft` further in,
+  /// `_far` deep in the fog where the base has dissolved entirely. All three
+  /// are baked by `tools/bake_props.py`.
+  String get imageFile {
+    if (depth > 0.62) return '${image}_far.png';
+    if (depth > 0.32) return '${image}_soft.png';
+    return '$image.png';
+  }
 }

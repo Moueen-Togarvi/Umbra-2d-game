@@ -1,4 +1,5 @@
 import 'dart:math' as math;
+import 'dart:typed_data';
 import 'dart:ui';
 
 import 'package:flame/components.dart';
@@ -24,8 +25,12 @@ import '../config/palette.dart';
 ///     darkening gently towards the top and the bottom;
 ///  2. the placed scenery from [GameConfig.scenery], each prop scrolling and
 ///     fading by its own depth, so things arrive one at a time as the player
-///     walks;
-///  3. a couple of faint shafts of light.
+///     walks — deep ones drawn from blurred art whose base has already
+///     dissolved into mist;
+///  3. the fog *itself*: a band of mist lying along the ground and a few
+///     large, slow wisps drifting across, drawn in front of the scenery so
+///     that things really are seen through it;
+///  4. a couple of faint shafts of light.
 class AtmosphereBackdrop extends Component {
   AtmosphereBackdrop({required this.camera});
 
@@ -44,14 +49,16 @@ class AtmosphereBackdrop extends Component {
 
     _props = [
       for (final prop in GameConfig.scenery)
-        _PlacedProp(
-          prop,
-          images.fromCache(
-            'props/${prop.image}${prop.depth > 0.4 ? '_soft' : ''}.png',
-          ),
-        ),
+        _PlacedProp(prop, images.fromCache('props/${prop.imageFile}')),
     ];
+
+    final random = math.Random(11);
+    for (var i = 0; i < 7; i++) {
+      _wisps.add(_Wisp.random(random, i));
+    }
   }
+
+  final List<_Wisp> _wisps = [];
 
   @override
   void update(double dt) {
@@ -72,11 +79,48 @@ class AtmosphereBackdrop extends Component {
     final Vector2 cameraWorld = camera.viewfinder.position;
 
     _renderFog(canvas, viewport);
-    _renderLightShafts(canvas, viewport);
 
     // Far props first, so a near one can stand in front of a far one.
     for (final placed in _props) {
       placed.render(canvas, viewport, cameraWorld, pixelsPerMetre);
+    }
+
+    _renderMist(canvas, viewport, cameraWorld, pixelsPerMetre);
+    _renderLightShafts(canvas, viewport);
+  }
+
+  /// The fog that things are seen *through*: a band of mist along the
+  /// ground, thickest just above the surface and thinning upward, and a
+  /// handful of big soft wisps that drift slowly across and scroll at a
+  /// middle depth. Both are pale, not dark: fog is lit, and it hides a shape
+  /// by washing it out towards the light, never by darkening it.
+  void _renderMist(
+    Canvas canvas,
+    Vector2 viewport,
+    Vector2 cameraWorld,
+    double pixelsPerMetre,
+  ) {
+    // The ground line on screen, from the camera's resting offset above the
+    // player. Mist sits on it.
+    final double groundY =
+        viewport.y / 2 +
+        (GameConfig.cameraLookUp + GameConfig.playerHeight / 2) *
+            pixelsPerMetre;
+    final double bandTop = groundY - viewport.y * 0.38;
+    _fogPaint.shader = Gradient.linear(
+      Offset(0, bandTop),
+      Offset(0, groundY + viewport.y * 0.04),
+      [
+        Palette.fogGlow.withValues(alpha: 0),
+        Palette.fogGlow.withValues(alpha: 0.26),
+        Palette.fogGlow.withValues(alpha: 0.48),
+      ],
+      const [0.0, 0.7, 1.0],
+    );
+    canvas.drawRect(Rect.fromLTWH(0, 0, viewport.x, viewport.y), _fogPaint);
+
+    for (final wisp in _wisps) {
+      wisp.render(canvas, viewport, cameraWorld, pixelsPerMetre, _time);
     }
   }
 
@@ -221,6 +265,102 @@ class _PlacedProp {
       image,
       Rect.fromLTWH(0, 0, image.width.toDouble(), image.height.toDouble()),
       Rect.fromLTWH(left, top, w, h),
+      _paint,
+    );
+  }
+}
+
+/// One drifting patch of fog: a large, very soft, pale ellipse.
+///
+/// Wisps live in world space at a middle depth, so they scroll against the
+/// scenery like something between it and the camera, and they drift on their
+/// own so the fog is never still. They repeat every [_span] metres, which is
+/// why a level of any length has fog all the way along it.
+class _Wisp {
+  _Wisp({
+    required this.x,
+    required this.y,
+    required this.width,
+    required this.height,
+    required this.alpha,
+    required this.drift,
+    required this.depth,
+    required this.phase,
+  });
+
+  factory _Wisp.random(math.Random r, int index) {
+    return _Wisp(
+      // Spread evenly along the span, then jittered.
+      x: index * (_span / 7) + r.nextDouble() * 6,
+      // In metres above the ground line: the fog lies low.
+      y: 0.4 + r.nextDouble() * 2.6,
+      width: 9 + r.nextDouble() * 9,
+      height: 2.2 + r.nextDouble() * 2.4,
+      alpha: 0.16 + r.nextDouble() * 0.16,
+      drift: 0.12 + r.nextDouble() * 0.16,
+      depth: 0.25 + r.nextDouble() * 0.35,
+      phase: r.nextDouble() * math.pi * 2,
+    );
+  }
+
+  static const double _span = 48.0;
+
+  final double x, y, width, height, alpha, drift, depth, phase;
+  final Paint _paint = Paint();
+
+  void render(
+    Canvas canvas,
+    Vector2 viewport,
+    Vector2 cameraWorld,
+    double pixelsPerMetre,
+    double time,
+  ) {
+    final double speed = 1 - 0.85 * depth;
+    final double groundY =
+        viewport.y / 2 +
+        (GameConfig.cameraLookUp + GameConfig.playerHeight / 2) *
+            pixelsPerMetre;
+    final double breathe = 1 + 0.08 * math.sin(time * 0.21 + phase);
+    final double w = width * pixelsPerMetre * breathe;
+    final double h = height * pixelsPerMetre;
+    final double cy =
+        groundY -
+        y * pixelsPerMetre +
+        math.sin(time * 0.17 + phase) * 0.3 * pixelsPerMetre;
+
+    // World x, drifting, wrapped into the repeating span and then placed
+    // relative to the camera like any other parallax prop.
+    final double worldX = (x + time * drift) % _span;
+    final double camWrapped = cameraWorld.x % _span;
+    // Nearest repeat of this wisp to the camera.
+    double dx = worldX - camWrapped;
+    if (dx > _span / 2) dx -= _span;
+    if (dx < -_span / 2) dx += _span;
+    final double cx = viewport.x / 2 + dx * speed * pixelsPerMetre;
+
+    if (cx + w < 0 || cx - w > viewport.x) return;
+
+    _paint.shader = Gradient.radial(
+      Offset(cx, cy),
+      w / 2,
+      [
+        Palette.fogGlow.withValues(alpha: alpha),
+        Palette.fogGlow.withValues(alpha: alpha * 0.55),
+        Palette.fogGlow.withValues(alpha: 0),
+      ],
+      const [0.0, 0.5, 1.0],
+      TileMode.clamp,
+      // Squash the circle into a low, wide ellipse.
+      Float64List.fromList(
+        (Matrix4.identity()
+              ..translateByDouble(cx, cy, 0, 1)
+              ..scaleByDouble(1, h / w, 1, 1)
+              ..translateByDouble(-cx, -cy, 0, 1))
+            .storage,
+      ),
+    );
+    canvas.drawRect(
+      Rect.fromCenter(center: Offset(cx, cy), width: w, height: h),
       _paint,
     );
   }
