@@ -33,6 +33,7 @@ class Ground extends BodyComponent {
     required Vector2 center,
     required Vector2 size,
     this.style = GroundStyle.earth,
+    this.groundBelow,
   }) : _size = size.clone(),
        super(
          paint: Paint()..color = Palette.silhouette,
@@ -66,16 +67,23 @@ class Ground extends BodyComponent {
     required double top,
     required double thickness,
     GroundStyle style = GroundStyle.earth,
+    double? groundBelow,
   }) {
     return Ground(
       center: Vector2((left + right) / 2, top + thickness / 2),
       size: Vector2(right - left, thickness),
       style: style,
+      groundBelow: groundBelow,
     );
   }
 
   final Vector2 _size;
   final GroundStyle style;
+
+  /// World y of the ground surface underneath a [GroundStyle.log], so the
+  /// log can be drawn resting on a mound of earth rather than floating. Purely
+  /// visual: the physics body is still just the log.
+  final double? groundBelow;
 
   /// The silhouette, built once. Body-local metres, origin at the centre.
   late final Path _outline = _buildOutline();
@@ -169,6 +177,23 @@ class Ground extends BodyComponent {
 
   @override
   void render(Canvas canvas) {
+    // A log lies on a heap of earth that reaches down to the ground, so it
+    // reads as part of the terrain rather than as a bar hanging in the fog.
+    // The heap is drawn narrower than the log and never wider, so the player
+    // meets the log's physics edge before ever overlapping the drawing.
+    final double? ground = groundBelow;
+    if (style == GroundStyle.log && ground != null) {
+      final double hw = _size.x / 2;
+      final double bottom = ground - body.position.y + 0.3;
+      final Path mound = Path()
+        ..moveTo(-hw * 0.85, 0)
+        ..lineTo(hw * 0.85, 0)
+        ..lineTo(hw * 0.7, bottom)
+        ..lineTo(-hw * 0.7, bottom)
+        ..close();
+      canvas.drawPath(mound, paint);
+    }
+
     canvas.drawPath(_outline, paint);
 
     final Image? grass = _grass;

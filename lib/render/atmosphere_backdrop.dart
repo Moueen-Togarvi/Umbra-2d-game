@@ -187,6 +187,10 @@ class _PlacedProp {
   final double speed;
   final double opacity;
 
+  /// How far a standing prop's base is buried below the ground surface, in
+  /// metres. Deeper than the hill's tallest swell (0.14 m).
+  static const double _baseSink = 0.2;
+
   final Paint _paint = Paint()..filterQuality = FilterQuality.low;
 
   void render(
@@ -206,9 +210,16 @@ class _PlacedProp {
 
     final double centreX =
         viewport.x / 2 + (prop.x - cameraWorld.x) * speed * pixelsPerMetre;
+    // Only the *horizontal* motion is parallaxed. A prop stands on the same
+    // ground the player walks on, so vertically it must move exactly with
+    // the world: scaling its height offset by [speed] would lift it off the
+    // ground line by a fraction of its distance from the screen centre. Its
+    // base is also sunk a little below the surface, so the hill's swells and
+    // the grass fringe hide the seam instead of showing a gap under it.
     final double anchorY =
-        viewport.y / 2 + (prop.y - cameraWorld.y) * speed * pixelsPerMetre;
-    final double top = prop.hangs ? anchorY : anchorY - h;
+        viewport.y / 2 + (prop.y - cameraWorld.y) * pixelsPerMetre;
+    final double sink = prop.hangs ? 0 : _baseSink * pixelsPerMetre;
+    final double top = prop.hangs ? anchorY : anchorY + sink - h;
     final double left = centreX - w / 2;
 
     // Off screen: skip. Most props are, most of the time.
