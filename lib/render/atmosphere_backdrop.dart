@@ -6,7 +6,6 @@ import 'package:flame/flame.dart';
 
 import '../config/game_config.dart';
 import '../config/palette.dart';
-import 'parallax_layer.dart';
 
 /// Everything behind the world: the fog, the light in it, and the few
 /// silhouettes standing in it.
@@ -23,17 +22,15 @@ import 'parallax_layer.dart';
 ///
 ///  1. the fog: a soft glow, brightest around the middle of the screen,
 ///     darkening gently towards the top and the bottom;
-///  2. a very faint, very sparse row of far trees, barely there;
-///  3. the placed scenery from [GameConfig.scenery], each prop scrolling and
+///  2. the placed scenery from [GameConfig.scenery], each prop scrolling and
 ///     fading by its own depth, so things arrive one at a time as the player
 ///     walks;
-///  4. a couple of faint shafts of light.
+///  3. a couple of faint shafts of light.
 class AtmosphereBackdrop extends Component {
   AtmosphereBackdrop({required this.camera});
 
   final CameraComponent camera;
 
-  late final ParallaxLayer _mistTrees;
   late final List<_PlacedProp> _props;
 
   double _time = 0;
@@ -44,15 +41,6 @@ class AtmosphereBackdrop extends Component {
   @override
   Future<void> onLoad() async {
     final images = Flame.images;
-
-    _mistTrees = ParallaxLayer(
-      image: images.fromCache('props/mist_trees.png'),
-      speed: 0.10,
-      opacity: 0.20,
-      heightFraction: 0.95,
-      bottomFraction: 0.80,
-      verticalSpeed: 0.05,
-    );
 
     _props = [
       for (final prop in GameConfig.scenery)
@@ -82,13 +70,8 @@ class AtmosphereBackdrop extends Component {
     final Rect visible = camera.visibleWorldRect;
     final double pixelsPerMetre = viewport.y / visible.height;
     final Vector2 cameraWorld = camera.viewfinder.position;
-    final Vector2 cameraPxRel = Vector2(
-      cameraWorld.x * pixelsPerMetre,
-      (cameraWorld.y - GameConfig.cameraVisibleHeight / 2) * pixelsPerMetre,
-    );
 
     _renderFog(canvas, viewport);
-    _mistTrees.render(canvas, viewport, cameraPxRel);
     _renderLightShafts(canvas, viewport);
 
     // Far props first, so a near one can stand in front of a far one.
@@ -104,31 +87,37 @@ class AtmosphereBackdrop extends Component {
     // reach swells and shrinks, so a still scene is never a dead one.
     final double wander = math.sin(_time * 0.11) * 0.04;
     final double swell = 1 + math.sin(_time * 0.07) * 0.05;
+    // The light sits left of centre and a little below the middle, the way
+    // it does in the reference frames, so the right-hand side of the screen
+    // is always the darker, more uncertain one.
     final Offset centre = Offset(
-      viewport.x * (0.48 + wander),
-      viewport.y * 0.42,
+      viewport.x * (0.40 + wander),
+      viewport.y * 0.48,
     );
     _fogPaint.shader = Gradient.radial(
       centre,
-      viewport.x * 0.80 * swell,
+      viewport.x * 0.70 * swell,
       const [Palette.fogGlow, Palette.fogMid, Palette.fogEdge],
-      const [0.0, 0.62, 1.0],
+      const [0.0, 0.55, 1.0],
     );
     canvas.drawRect(full, _fogPaint);
 
     // The top of the world sinks into shadow — the underside of a canopy that
     // is never actually drawn — and the bottom into the ground's darkness.
-    // Both are gentle: the scene stays light in the middle.
+    // Eased with a middle stop: a straight ramp ends in a visible line where
+    // it stops (the eye picks up the kink), an eased one does not.
     _fogPaint.shader = Gradient.linear(
       Offset.zero,
-      Offset(0, viewport.y * 0.30),
-      const [Color(0x8C000000), Color(0x00000000)],
+      Offset(0, viewport.y * 0.45),
+      const [Color(0xD9000000), Color(0x59000000), Color(0x00000000)],
+      const [0.0, 0.45, 1.0],
     );
     canvas.drawRect(full, _fogPaint);
     _fogPaint.shader = Gradient.linear(
-      Offset(0, viewport.y * 0.70),
+      Offset(0, viewport.y * 0.60),
       Offset(0, viewport.y),
-      const [Color(0x00000000), Color(0x7A000000)],
+      const [Color(0x00000000), Color(0x40000000), Color(0xA6000000)],
+      const [0.0, 0.55, 1.0],
     );
     canvas.drawRect(full, _fogPaint);
   }
@@ -146,7 +135,7 @@ class AtmosphereBackdrop extends Component {
       final double widthBottom = viewport.x * (0.09 + 0.02 * math.cos(seed));
       final double bottom = viewport.y * 0.90;
       final double pulse = 0.5 + 0.5 * math.sin(_time * 0.19 + seed * 2.1);
-      final double strength = 0.025 + 0.025 * pulse;
+      final double strength = 0.035 + 0.03 * pulse;
 
       _shaftPaint.shader = Gradient.linear(
         Offset(xTop, 0),

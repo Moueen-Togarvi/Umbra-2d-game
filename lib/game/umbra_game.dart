@@ -140,8 +140,7 @@ class UmbraGame extends Forge2DGame with HasKeyboardHandlerComponents {
 
   static const List<String> _art = [
     'grain.png',
-    'props/mist_trees.png',
-    'props/grass_fine.png',
+    'props/grass_tall.png',
     'props/prop_tree_a.png',
     'props/prop_tree_a_soft.png',
     'props/prop_tree_b.png',
@@ -151,7 +150,6 @@ class UmbraGame extends Forge2DGame with HasKeyboardHandlerComponents {
     'props/prop_tower_soft.png',
     'props/prop_watchtower_soft.png',
     'props/prop_fence.png',
-    'props/prop_boulder.png',
   ];
 
   Future<void> _loadArt() async {

@@ -1,7 +1,9 @@
 import 'dart:math' as math;
 import 'dart:ui';
 
+import 'package:flame/components.dart';
 import 'package:flame/flame.dart';
+import 'package:flame/game.dart' show FlameGame;
 import 'package:flame_forge2d/flame_forge2d.dart';
 
 import '../config/palette.dart';
@@ -33,7 +35,6 @@ class Ground extends BodyComponent {
     required Vector2 center,
     required Vector2 size,
     this.style = GroundStyle.earth,
-    this.groundBelow,
   }) : _size = size.clone(),
        super(
          paint: Paint()..color = Palette.silhouette,
@@ -67,26 +68,35 @@ class Ground extends BodyComponent {
     required double top,
     required double thickness,
     GroundStyle style = GroundStyle.earth,
-    double? groundBelow,
   }) {
     return Ground(
       center: Vector2((left + right) / 2, top + thickness / 2),
       size: Vector2(right - left, thickness),
       style: style,
-      groundBelow: groundBelow,
     );
   }
 
   final Vector2 _size;
   final GroundStyle style;
 
-  /// World y of the ground surface underneath a [GroundStyle.log], so the
-  /// log can be drawn resting on a mound of earth rather than floating. Purely
-  /// visual: the physics body is still just the log.
-  final double? groundBelow;
-
   /// The silhouette, built once. Body-local metres, origin at the centre.
   late final Path _outline = _buildOutline();
+
+  /// Seconds elapsed, for the wind in the grass. A static body never moves,
+  /// so this is the only reason it has an update at all.
+  double _time = 0;
+
+  /// The camera, for culling grass that is off screen. Every slab draws its
+  /// grass in dozens of slices; without this a 64 m level issues a few
+  /// hundred draw calls a frame for grass nobody can see.
+  CameraComponent? _camera;
+
+  @override
+  void update(double dt) {
+    super.update(dt);
+    _time += dt;
+  }
+
   Image? _grass;
   final Paint _grassPaint = Paint()..filterQuality = FilterQuality.low;
 
@@ -94,8 +104,12 @@ class Ground extends BodyComponent {
   Future<void> onLoad() async {
     await super.onLoad();
     if (style == GroundStyle.earth &&
-        Flame.images.containsKey('props/grass_fine.png')) {
-      _grass = Flame.images.fromCache('props/grass_fine.png');
+        Flame.images.containsKey('props/grass_tall.png')) {
+      _grass = Flame.images.fromCache('props/grass_tall.png');
+    }
+    final game = findGame();
+    if (game is FlameGame) {
+      _camera = game.camera;
     }
   }
 
@@ -177,67 +191,79 @@ class Ground extends BodyComponent {
 
   @override
   void render(Canvas canvas) {
-    // A log lies on a heap of earth that reaches down to the ground, so it
-    // reads as part of the terrain rather than as a bar hanging in the fog.
-    // The heap is drawn narrower than the log and never wider, so the player
-    // meets the log's physics edge before ever overlapping the drawing.
-    final double? ground = groundBelow;
-    if (style == GroundStyle.log && ground != null) {
-      final double hw = _size.x / 2;
-      final double bottom = ground - body.position.y + 0.3;
-      final Path mound = Path()
-        ..moveTo(-hw * 0.85, 0)
-        ..lineTo(hw * 0.85, 0)
-        ..lineTo(hw * 0.7, bottom)
-        ..lineTo(-hw * 0.7, bottom)
-        ..close();
-      canvas.drawPath(mound, paint);
-    }
-
     canvas.drawPath(_outline, paint);
 
     final Image? grass = _grass;
     if (grass == null) {
       return;
     }
-    // A low fuzz of grass along the top edge, its roots buried in the slab.
-    // Short: at this scale the reference ground is a soft dark line with a
-    // fine fringe, not a hedge. Clipped to the slab's width, slightly
-    // overhanging so a pit's lip has a few blades leaning out over the drop.
-    const double grassHeight = 0.22;
-    const double overhang = 0.06;
+    // Wild grass along the top edge, its roots buried in the slab. Clipped
+    // to the slab's width, slightly overhanging so a pit's lip has a few
+    // blades leaning out over the drop.
+    const double grassHeight = 0.62;
+    const double overhang = 0.08;
     final double hw = _size.x / 2;
     final double top = -_size.y / 2;
     final double scale = grassHeight / grass.height;
     final double tileW = grass.width * scale;
-    final Rect src = Rect.fromLTWH(
-      0,
-      0,
-      grass.width.toDouble(),
-      grass.height.toDouble(),
-    );
     canvas.save();
     canvas.clipRect(
       Rect.fromLTRB(
         -hw - overhang,
-        top - grassHeight - 0.15,
+        top - grassHeight - 0.3,
         hw + overhang,
         top + 1,
       ),
     );
+
+    // The grass is drawn in narrow vertical slices, each sheared from its
+    // root by its own amount, so a gust can travel along the field: the
+    // shear is a couple of slow waves in world x and time. Shearing about
+    // the root keeps the roots planted and moves only the tips, which is
+    // what wind does to grass.
+    const double sliceW = 0.45;
+    final int slicesPerTile = (tileW / sliceW).ceil();
+    final double srcSliceW = grass.width / slicesPerTile;
+    final double drawSliceW = tileW / slicesPerTile;
+    final double worldLeft = body.position.x - hw;
+
+    // Only the slices the camera can see, in body-local x.
+    final Rect? visible = _camera?.visibleWorldRect;
+    final double visLeft = visible == null
+        ? -hw - overhang
+        : visible.left - body.position.x - sliceW;
+    final double visRight = visible == null
+        ? hw + overhang
+        : visible.right - body.position.x + sliceW;
+
     // Offset the tiling by the slab's world position so two slabs never show
     // the same blade at the same screen x.
     double x = -hw - (body.position.x * 0.37) % tileW;
     while (x < hw + overhang) {
-      // Follow the hill: sample the outline's height at the tile's centre so
-      // the fringe rides the swells instead of cutting straight across them.
-      final double y = _surfaceAt(x + tileW / 2);
-      canvas.drawImageRect(
-        grass,
-        src,
-        Rect.fromLTWH(x, y - grassHeight + 0.06, tileW, grassHeight),
-        _grassPaint,
-      );
+      for (var i = 0; i < slicesPerTile; i++) {
+        final double sx = x + i * drawSliceW;
+        if (sx + drawSliceW < -hw - overhang || sx > hw + overhang) continue;
+        if (sx + drawSliceW < visLeft || sx > visRight) continue;
+        // Each slice is rooted on its own bit of hill, buried a little, so
+        // no fog can show between the roots and a dip in the outline.
+        final double root = _surfaceAt(sx + drawSliceW / 2) + 0.12;
+        final double wx = worldLeft + hw + sx; // world x of this slice
+        final double gust =
+            math.sin(_time * 1.1 - wx * 0.45) * 0.10 +
+            math.sin(_time * 2.3 - wx * 1.7 + 1.0) * 0.045 +
+            math.sin(_time * 0.37 + wx * 0.2) * 0.05;
+        final double lean = 0.10 + gust; // a prevailing breeze, plus gusts
+        canvas.save();
+        canvas.translate(sx, root);
+        canvas.skew(-lean, 0);
+        canvas.drawImageRect(
+          grass,
+          Rect.fromLTWH(i * srcSliceW, 0, srcSliceW, grass.height.toDouble()),
+          Rect.fromLTWH(0, -grassHeight, drawSliceW + 0.004, grassHeight),
+          _grassPaint,
+        );
+        canvas.restore();
+      }
       x += tileW;
     }
     canvas.restore();

@@ -77,9 +77,9 @@ class ForegroundOverlay extends Component {
     final Rect full = Rect.fromLTWH(0, 0, viewport.x, viewport.y);
     _vignettePaint.shader = Gradient.radial(
       Offset(viewport.x * 0.5, viewport.y * 0.42),
-      viewport.x * 0.78,
-      const [Color(0x00000000), Color(0x00000000), Color(0x73000000)],
-      const [0.0, 0.55, 1.0],
+      viewport.x * 0.72,
+      const [Color(0x00000000), Color(0x00000000), Color(0xB3000000)],
+      const [0.0, 0.45, 1.0],
     );
     canvas.drawRect(full, _vignettePaint);
   }

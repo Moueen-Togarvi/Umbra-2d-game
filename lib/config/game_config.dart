@@ -208,18 +208,17 @@ abstract final class GameConfig {
     Slab(left: 51.4, right: levelWidth, top: 5.6),
   ];
 
-  /// Fallen logs lying across the path. Each sits 1.1 m above its floor:
-  /// too tall to walk past, since the player is 1.3 m and the log's underside
-  /// meets the head, but low enough that a hop lands on it with a generous
-  /// timing window. Higher and the hop has to be timed to the frame.
+  /// Fallen logs lying on the ground across the path: half a metre tall,
+  /// so they block walking (the player is a box, and a box does not step
+  /// over things) but are cleared by the smallest hop.
   static const List<Slab> ledges = [
-    Slab(left: 19, right: 21, top: 6.1),
-    Slab(left: 36, right: 38, top: 5.3),
-    Slab(left: 45.5, right: 47.5, top: 4.1),
+    Slab(left: 19, right: 21, top: 6.7),
+    Slab(left: 36, right: 38, top: 5.9),
+    Slab(left: 45.5, right: 47.5, top: 4.7),
   ];
 
   /// Thickness of a ledge.
-  static const double ledgeThickness = 0.3;
+  static const double ledgeThickness = 0.5;
 
   /// How deep below the surrounding ground a pit's deadly floor sits.
   static const double pitDepth = 2.4;
@@ -250,13 +249,16 @@ abstract final class GameConfig {
   /// [SceneryProp.depth] is how far into the fog the thing stands: 0 is right
   /// behind the player, 1 is the horizon. It sets how the prop scrolls, how
   /// faint it is drawn, and whether the soft (blurred) art is used.
+  ///
+  /// A deep prop scrolls slowly, so it is seen over a stretch of ground much
+  /// wider than its own spot; its `y` is the *lowest* surface in that
+  /// stretch, so its base is always buried behind the ground and never hangs
+  /// in the air over a lower slab.
   static const List<SceneryProp> scenery = [
-    SceneryProp('prop_tree_b', x: 4.5, y: 7.5, height: 7.5, depth: 0.55),
-    SceneryProp('prop_fence', x: 9.5, y: 7.5, height: 1.5, depth: 0.12),
-    SceneryProp('prop_tree_a', x: 13.0, y: 7.5, height: 8.5, depth: 0.05),
-    SceneryProp('prop_gallows', x: 21.0, y: 7.2, height: 5.6, depth: 0.22),
-    SceneryProp('prop_tree_a', x: 27.5, y: 6.6, height: 7.0, depth: 0.65),
-    SceneryProp('prop_boulder', x: 34.5, y: 6.4, height: 1.3, depth: 0.15),
+    SceneryProp('prop_tree_b', x: 5.0, y: 7.5, height: 7.5, depth: 0.55),
+    SceneryProp('prop_fence', x: 11.0, y: 7.5, height: 1.5, depth: 0.12),
+    SceneryProp('prop_gallows', x: 21.5, y: 7.2, height: 5.6, depth: 0.22),
+    SceneryProp('prop_tree_a', x: 29.5, y: 7.2, height: 7.5, depth: 0.60),
     SceneryProp(
       'prop_ladder',
       x: 38.5,
@@ -265,10 +267,9 @@ abstract final class GameConfig {
       depth: 0.08,
       hangs: true,
     ),
-    SceneryProp('prop_tower', x: 44.5, y: 5.2, height: 9.0, depth: 0.72),
-    SceneryProp('prop_tree_b', x: 48.5, y: 5.2, height: 7.0, depth: 0.10),
-    SceneryProp('prop_watchtower', x: 56.0, y: 5.6, height: 6.5, depth: 0.55),
-    SceneryProp('prop_tree_a', x: 61.5, y: 5.6, height: 8.0, depth: 0.50),
+    SceneryProp('prop_tower', x: 46.5, y: 6.4, height: 9.5, depth: 0.72),
+    SceneryProp('prop_watchtower', x: 57.0, y: 5.6, height: 6.5, depth: 0.55),
+    SceneryProp('prop_tree_a', x: 62.5, y: 5.6, height: 8.0, depth: 0.10),
   ];
 
   // ---------------------------------------------------------------------------

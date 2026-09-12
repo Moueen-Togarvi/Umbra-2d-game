@@ -21,13 +21,13 @@ abstract final class Palette {
 
   /// The brightest point of the fog: the pale light behind the mist that
   /// everything is silhouetted against.
-  static const Color fogGlow = Color(0xFFEFEFEE);
+  static const Color fogGlow = Color(0xFFA9A9A7);
 
   /// The fog at mid distance from the light.
-  static const Color fogMid = Color(0xFFB0B0AE);
+  static const Color fogMid = Color(0xFF6F6F6D);
 
   /// The fog at the edges of the light, before the vignette takes over.
-  static const Color fogEdge = Color(0xFF7A7A78);
+  static const Color fogEdge = Color(0xFF2A2A29);
 
   /// The colour the world sinks into at the bottom of the screen and in the
   /// corners.
@@ -42,10 +42,10 @@ abstract final class Palette {
   /// curve, because the eye reads fog non-linearly.
   static double depthOpacity(double depth) {
     if (depth <= 0.0) return 1.0;
-    if (depth >= 1.0) return 0.18;
+    if (depth >= 1.0) return 0.30;
     // Ease-out: things stay dark for a while, then fade quickly into the mist.
     final t = depth * depth;
-    return 1.0 - 0.82 * t;
+    return 1.0 - 0.70 * t;
   }
 
   // ---------------------------------------------------------------------------

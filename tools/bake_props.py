@@ -29,8 +29,8 @@ SPECS = {
     "prop_watchtower":("prop_watchtower",(0.08, 0.07, 0.92, 0.884), (70, 160), 1300, True,  False),
     "prop_fence":     ("prop_fence",     (0.03, 0.45, 0.97, 0.945), (60, 120),  700, True,  False),
     "prop_boulder":   ("prop_boulder",   (0.05, 0.20, 0.95, 0.825), (40, 100),  600, True,  False),
-    "mist_trees":     ("mist_trees",     (0.00, 0.06, 1.00, 0.870), (60, 232),  800, False, True),
     "grass_fine":     ("grass_fine_v2",  (0.00, 0.60, 1.00, 0.795), (90, 190),  200, False, True),
+    "grass_tall":     ("grass_tall",     (0.00, 0.30, 1.00, 0.900), (90, 190),  420, False, True),
 }
 
 def key(gray, lo, hi):

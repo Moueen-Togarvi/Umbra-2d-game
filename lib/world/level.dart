@@ -77,11 +77,6 @@ class Level extends Component {
 
     // --- Ledges: logs and branches to jump onto -------------------------------
     for (final ledge in GameConfig.ledges) {
-      // The slab under the log's centre, for the mound it rests on.
-      final double centreX = (ledge.left + ledge.right) / 2;
-      final Slab? under = GameConfig.terrain
-          .where((s) => s.left <= centreX && centreX <= s.right)
-          .firstOrNull;
       pieces.add(
         Ground.slab(
           left: ledge.left,
@@ -89,7 +84,6 @@ class Level extends Component {
           top: ledge.top,
           thickness: GameConfig.ledgeThickness,
           style: GroundStyle.log,
-          groundBelow: under?.top,
         ),
       );
     }
