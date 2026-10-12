@@ -5,6 +5,7 @@ import 'package:flame_forge2d/flame_forge2d.dart';
 
 import '../config/game_config.dart';
 import '../config/palette.dart';
+import '../physics/collision_layers.dart';
 import '../world/checkpoint_service.dart';
 import 'player.dart';
 
@@ -31,7 +32,13 @@ class Hazard extends BodyComponent with ContactCallbacks {
          shapeSpecs: [
            ShapeSpec(
              Polygon.box(size.x / 2, size.y / 2),
-             ShapeDef(isSensor: true),
+             ShapeDef(
+               isSensor: true,
+               filter: Filter(
+                 categoryBits: CollisionLayers.sensor,
+                 maskBits: CollisionLayers.player | CollisionLayers.ragdoll,
+               ),
+             ),
            ),
          ],
        ) {

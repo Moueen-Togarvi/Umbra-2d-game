@@ -7,6 +7,7 @@ import 'package:flame/flame.dart';
 
 import '../config/game_config.dart';
 import '../config/palette.dart';
+import 'raincoat_silhouette.dart';
 
 /// Everything behind the world: the fog, the light in it, and the few
 /// silhouettes standing in it.
@@ -79,14 +80,148 @@ class AtmosphereBackdrop extends Component {
     final Vector2 cameraWorld = camera.viewfinder.position;
 
     _renderFog(canvas, viewport);
+    _renderCurtains(canvas, viewport, cameraWorld, pixelsPerMetre);
+    _renderFarHill(canvas, viewport, cameraWorld, pixelsPerMetre);
 
     // Far props first, so a near one can stand in front of a far one.
     for (final placed in _props) {
       placed.render(canvas, viewport, cameraWorld, pixelsPerMetre);
     }
+    _renderHanged(canvas, viewport, cameraWorld, pixelsPerMetre);
 
     _renderMist(canvas, viewport, cameraWorld, pixelsPerMetre);
     _renderLightShafts(canvas, viewport);
+  }
+
+  /// The screen y of the ground line, from the camera's resting offset
+  /// above the player. Fog and far hills are laid out against it.
+  double _groundLine(Vector2 viewport, double pixelsPerMetre) =>
+      viewport.y / 2 +
+      (GameConfig.cameraLookUp + GameConfig.playerHeight / 2) * pixelsPerMetre;
+
+  /// Tall, faint, soft-edged columns of lighter fog — the far trunks of the
+  /// reference frame, so deep in the mist that only a paler streak is left
+  /// of each. Almost pinned to the horizon, drifting a little.
+  void _renderCurtains(
+    Canvas canvas,
+    Vector2 viewport,
+    Vector2 cameraWorld,
+    double pixelsPerMetre,
+  ) {
+    const int count = 5;
+    const double speed = 0.05;
+    for (var i = 0; i < count; i++) {
+      final double seed = i * 2.13;
+      // Spread across a repeating span, scrolled very slowly.
+      final double spanPx = viewport.x * 1.6;
+      double x =
+          (i * spanPx / count +
+              math.sin(_time * 0.05 + seed) * viewport.x * 0.02 -
+              cameraWorld.x * speed * pixelsPerMetre) %
+          spanPx;
+      if (x > viewport.x + spanPx * 0.2) x -= spanPx;
+      final double halfW = viewport.x * (0.035 + 0.02 * math.sin(seed * 1.7));
+      final double alpha = 0.06 + 0.04 * (0.5 + 0.5 * math.sin(seed * 3.1));
+      _fogPaint.shader = Gradient.linear(
+        Offset(x - halfW, 0),
+        Offset(x + halfW, 0),
+        [
+          Palette.fogGlow.withValues(alpha: 0),
+          Palette.fogGlow.withValues(alpha: alpha),
+          Palette.fogGlow.withValues(alpha: 0),
+        ],
+        const [0.0, 0.5, 1.0],
+      );
+      canvas.drawRect(
+        Rect.fromLTWH(x - halfW, 0, halfW * 2, viewport.y),
+        _fogPaint,
+      );
+    }
+  }
+
+  /// A second, further hill behind the one the boy walks on: a dark grey
+  /// mass with a soft top edge, rolling on its own slower curve. It gives
+  /// the ground a horizon of its own instead of ending at a black line.
+  void _renderFarHill(
+    Canvas canvas,
+    Vector2 viewport,
+    Vector2 cameraWorld,
+    double pixelsPerMetre,
+  ) {
+    const double depth = 0.62;
+    final double speed = 1 - 0.85 * depth;
+    final double groundY = _groundLine(viewport, pixelsPerMetre);
+    final Path hill = Path()..moveTo(0, viewport.y);
+    const double stepPx = 12;
+    double topMost = viewport.y;
+    for (double sx = 0; sx <= viewport.x + stepPx; sx += stepPx) {
+      // The world x this column looks at, at this layer's scroll rate.
+      final double wx =
+          cameraWorld.x + (sx - viewport.x / 2) / (speed * pixelsPerMetre);
+      final double rise =
+          1.1 * math.sin(wx * 0.11 + 0.8) +
+          0.5 * math.sin(wx * 0.27 + 2.1) +
+          0.2 * math.sin(wx * 0.71);
+      final double y = groundY - (1.4 + rise) * pixelsPerMetre;
+      if (y < topMost) topMost = y;
+      hill.lineTo(sx, y);
+    }
+    hill
+      ..lineTo(viewport.x + stepPx, viewport.y)
+      ..close();
+    // Fades in from its crest downward, so the edge is mist, not a line.
+    final double opacity = Palette.depthOpacity(depth) * 0.85;
+    _fogPaint.shader = Gradient.linear(
+      Offset(0, topMost),
+      Offset(0, topMost + 1.6 * pixelsPerMetre),
+      [
+        Color.fromRGBO(0, 0, 0, opacity * 0.25),
+        Color.fromRGBO(0, 0, 0, opacity),
+      ],
+    );
+    canvas.drawPath(hill, _fogPaint);
+  }
+
+  final RaincoatSilhouette _hangedFigure = RaincoatSilhouette(
+    height: GameConfig.playerHeight,
+  );
+  final Paint _ropePaint = Paint()
+    ..color = Palette.silhouette
+    ..style = PaintingStyle.stroke
+    ..strokeCap = StrokeCap.round;
+
+  /// The boy on the gallows, hung from the noose of the gallows prop and
+  /// swinging very slightly. Drawn with the player's own silhouette, so the
+  /// one on the rope is unmistakably the one on the ground.
+  void _renderHanged(
+    Canvas canvas,
+    Vector2 viewport,
+    Vector2 cameraWorld,
+    double pixelsPerMetre,
+  ) {
+    const double depth = GameConfig.hangedDepth;
+    final double speed = 1 - 0.85 * depth;
+    final double sx =
+        viewport.x / 2 +
+        (GameConfig.hangedX - cameraWorld.x) * speed * pixelsPerMetre;
+    final double sy =
+        viewport.y / 2 + (GameConfig.hangedY - cameraWorld.y) * pixelsPerMetre;
+    final double reach = GameConfig.playerHeight * 1.3 * pixelsPerMetre;
+    if (sx + reach < 0 || sx - reach > viewport.x) return;
+
+    final double sway =
+        math.sin(_time * 0.9) * 0.035 + math.sin(_time * 0.37) * 0.02;
+    canvas.save();
+    canvas.translate(sx, sy);
+    canvas.rotate(sway);
+    canvas.scale(pixelsPerMetre, pixelsPerMetre);
+    // A short length of rope from the noose down to the back of the head.
+    _ropePaint.strokeWidth = 0.035;
+    canvas.drawLine(Offset.zero, const Offset(0.0, 0.18), _ropePaint);
+    // The figure hangs by the head: its crown sits just below the noose.
+    canvas.translate(0.02, 0.12 + GameConfig.playerHeight / 2);
+    _hangedFigure.draw(canvas, const RaincoatPose(facing: -1, limp: 1));
+    canvas.restore();
   }
 
   /// The fog that things are seen *through*: a band of mist along the
@@ -102,10 +237,7 @@ class AtmosphereBackdrop extends Component {
   ) {
     // The ground line on screen, from the camera's resting offset above the
     // player. Mist sits on it.
-    final double groundY =
-        viewport.y / 2 +
-        (GameConfig.cameraLookUp + GameConfig.playerHeight / 2) *
-            pixelsPerMetre;
+    final double groundY = _groundLine(viewport, pixelsPerMetre);
     final double bandTop = groundY - viewport.y * 0.38;
     _fogPaint.shader = Gradient.linear(
       Offset(0, bandTop),
@@ -153,15 +285,15 @@ class AtmosphereBackdrop extends Component {
     _fogPaint.shader = Gradient.linear(
       Offset.zero,
       Offset(0, viewport.y * 0.45),
-      const [Color(0xD9000000), Color(0x59000000), Color(0x00000000)],
-      const [0.0, 0.45, 1.0],
+      const [Color(0xF2000000), Color(0x6E000000), Color(0x00000000)],
+      const [0.0, 0.42, 1.0],
     );
     canvas.drawRect(full, _fogPaint);
     _fogPaint.shader = Gradient.linear(
       Offset(0, viewport.y * 0.60),
       Offset(0, viewport.y),
-      const [Color(0x00000000), Color(0x40000000), Color(0xA6000000)],
-      const [0.0, 0.55, 1.0],
+      const [Color(0x00000000), Color(0x59000000), Color(0xCC000000)],
+      const [0.0, 0.5, 1.0],
     );
     canvas.drawRect(full, _fogPaint);
   }

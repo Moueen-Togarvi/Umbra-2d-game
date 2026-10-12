@@ -6,12 +6,13 @@ import 'package:flame/input.dart' show HasKeyboardHandlerComponents;
 import 'package:flame_forge2d/flame_forge2d.dart';
 
 import '../config/game_config.dart';
+import '../audio/ambient_audio.dart';
 import '../config/palette.dart';
 import '../entities/player.dart';
 import '../input/keyboard_input.dart';
 import '../input/player_intent.dart';
 import '../input/touch_controls.dart';
-import '../render/atmosphere_backdrop.dart';
+import '../render/six_areas_backdrop.dart';
 import '../render/debug_hud.dart';
 import '../render/foreground_overlay.dart';
 import '../world/checkpoint_service.dart';
@@ -36,6 +37,7 @@ class UmbraGame extends Forge2DGame with HasKeyboardHandlerComponents {
         // Gravity is handed to the physics world at construction. Positive y is
         // downwards in Flame's coordinate system.
         gravity: GameConfig.gravity,
+        world: _ProfiledWorld(),
 
         // How large a metre is on screen. This is a *rendering* setting: change
         // it and the game looks bigger, but the simulation is bit-for-bit
@@ -47,10 +49,14 @@ class UmbraGame extends Forge2DGame with HasKeyboardHandlerComponents {
 
   /// The shared intent object that input writes to and the player reads from.
   final PlayerIntent _intent = PlayerIntent();
+  final AmbientAudio _audio = AmbientAudio();
 
   /// Owns the held-state of the on-screen walk buttons. Held as a field because
   /// the button callbacks close over it and it has to outlive [onLoad].
-  late final TouchControls _touchControls = TouchControls(_intent);
+  late final TouchControls _touchControls = TouchControls(
+    _intent,
+    debugVisible: () => _debugVisible,
+  );
 
   /// Respawn state. Created in [onLoad] so it can be replaced per level later.
   ///
@@ -64,6 +70,15 @@ class UmbraGame extends Forge2DGame with HasKeyboardHandlerComponents {
   /// Where the camera is heading. Kept separate from the camera's actual
   /// position so it can ease towards it.
   final Vector2 _cameraTarget = Vector2.zero();
+
+  static const double _simulationStep = 1 / 120;
+  double _simulationAccumulator = 0;
+  bool _debugVisible = DebugHud.enabled;
+  double _fps = 0, _frameElapsed = 0;
+  int _displayFrames = 0;
+  double get framesPerSecond => _fps;
+  double get physicsMilliseconds => (world as _ProfiledWorld).stepMilliseconds;
+  bool get debugVisible => _debugVisible;
 
   @override
   Color backgroundColor() => Palette.background;
@@ -86,6 +101,7 @@ class UmbraGame extends Forge2DGame with HasKeyboardHandlerComponents {
     // If the assets are missing — which is the case in a bare test binding —
     // the scenery simply does not draw. The physics does not depend on it.
     await _loadArt();
+    await _audio.start();
 
     // Frame a 16 x 9 m window on the world, in metres. Flame fits it to the
     // screen and keeps it fitted through resizes; a wider phone sees more of
@@ -105,7 +121,7 @@ class UmbraGame extends Forge2DGame with HasKeyboardHandlerComponents {
 
     // The fog and silhouettes behind the world, and the lens in front of it.
     if (_artLoaded) {
-      await camera.backdrop.add(AtmosphereBackdrop(camera: camera));
+      await camera.backdrop.add(SixAreasBackdrop(camera: camera));
       await camera.viewport.add(ForegroundOverlay(camera: camera));
     }
 
@@ -129,11 +145,21 @@ class UmbraGame extends Forge2DGame with HasKeyboardHandlerComponents {
     // Everything physical goes into the physics world.
     final level = Level(intent: _intent, checkpoints: checkpoints);
     await world.add(level);
-    _player = level.children.whereType<Player>().single;
+    _player = level.player;
 
-    if (DebugHud.enabled) {
-      await camera.viewport.add(DebugHud(camera: camera, player: _player!));
-    }
+    _player!.debugEnabled = _debugVisible;
+    await world.add(
+      PhysicsDebugOverlay(world: world, isVisible: () => _debugVisible),
+    );
+    await camera.viewport.add(
+      DebugHud(
+        camera: camera,
+        player: _player!,
+        isVisible: () => _debugVisible,
+        framesPerSecond: () => _fps,
+        physicsMilliseconds: () => physicsMilliseconds,
+      ),
+    );
   }
 
   bool _artLoaded = false;
@@ -144,7 +170,7 @@ class UmbraGame extends Forge2DGame with HasKeyboardHandlerComponents {
   static final List<String> _art = [
     'grain.png',
     'props/grass_tall.png',
-    ...{for (final prop in GameConfig.scenery) 'props/${prop.imageFile}'},
+    for (var i = 1; i <= 6; i++) 'backgrounds/area_0$i.png',
   ];
 
   Future<void> _loadArt() async {
@@ -166,23 +192,89 @@ class UmbraGame extends Forge2DGame with HasKeyboardHandlerComponents {
 
   @override
   void update(double dt) {
-    super.update(dt);
+    // Keep contacts, acceleration and jump timing consistent on different
+    // displays. Discard long stalls instead of simulating a resume in one step.
+    final double frameDt = dt.clamp(0.0, 0.10);
+    if (dt > 0) {
+      _frameElapsed += dt;
+      _displayFrames++;
+      if (_frameElapsed >= 0.5) {
+        _fps = _displayFrames / _frameElapsed;
+        _frameElapsed = 0;
+        _displayFrames = 0;
+      }
+    }
+    final Player? currentPlayer = _player;
+    if (currentPlayer != null && currentPlayer.isMounted) {
+      if (_intent.consumeAudioToggleRequest()) _audio.toggle();
+      if (_intent.consumeDebugToggleRequest()) {
+        _debugVisible = !_debugVisible;
+        currentPlayer.debugEnabled = _debugVisible;
+      }
+      final preset = _intent.consumePresetRequest();
+      if (preset != null) {
+        currentPlayer.selectPreset(
+          preset < 0 ? (currentPlayer.presetIndex + 1) % 3 : preset,
+        );
+      }
+      if (_intent.consumeResetRequest()) {
+        _touchControls.clear();
+        _intent.clear();
+        checkpoints.respawn(currentPlayer);
+        _simulationAccumulator = 0;
+      }
+    }
+    _simulationAccumulator += frameDt;
+    while (_simulationAccumulator + 1e-10 >= _simulationStep) {
+      super.update(_simulationStep);
+      _simulationAccumulator = math.max(
+        0,
+        _simulationAccumulator - _simulationStep,
+      );
+    }
     final Player? player = _player;
     if (player == null || !player.isMounted) {
       return;
     }
 
     final Vector2 ideal = _idealCameraFor(
-      player.body.position,
-      _intent.horizontalAxis,
+      player.cameraPosition,
+      player.facing *
+          (player.velocity.x.abs() / GameConfig.moveSpeedMetersPerSecond).clamp(
+            0.0,
+            1.0,
+          ),
     );
+    final current = camera.viewfinder.position;
+    // Ignore small vertical landing corrections and idle motion.
+    if ((ideal.x - current.x).abs() < 0.25) ideal.x = current.x;
+    if ((ideal.y - current.y).abs() < 0.35) ideal.y = current.y;
     _cameraTarget.setFrom(_clampCamera(ideal));
 
     // Exponential ease: a fixed fraction of the remaining distance per
     // second, independent of frame rate.
-    final double t = 1 - math.exp(-GameConfig.cameraFollowSpeed * dt);
-    final Vector2 current = camera.viewfinder.position;
+    final double t = 1 - math.exp(-GameConfig.cameraFollowSpeed * frameDt);
     camera.viewfinder.position = current + (_cameraTarget - current) * t;
+  }
+
+  @override
+  void lifecycleStateChange(AppLifecycleState state) {
+    if (state != AppLifecycleState.resumed) {
+      _touchControls.clear();
+      _intent.clear();
+      _simulationAccumulator = 0;
+      _audio.pause();
+    } else {
+      _audio.resume();
+    }
+    super.lifecycleStateChange(state);
+  }
+
+  @override
+  void onRemove() {
+    _audio.dispose();
+    _intent.clear();
+    super.onRemove();
   }
 
   Vector2 _idealCameraFor(Vector2 playerPosition, double facing) {
@@ -208,5 +300,20 @@ class UmbraGame extends Forge2DGame with HasKeyboardHandlerComponents {
       maxX < minX ? GameConfig.levelWidth / 2 : target.x.clamp(minX, maxX),
       maxY < minY ? GameConfig.levelHeight / 2 : target.y.clamp(minY, maxY),
     );
+  }
+}
+
+/// Times the native physics step and contact dispatch, excluding rendering.
+class _ProfiledWorld extends Forge2DWorld {
+  final Stopwatch _watch = Stopwatch();
+  double stepMilliseconds = 0;
+  @override
+  void update(double dt) {
+    _watch.reset();
+    _watch.start();
+    super.update(dt);
+    _watch.stop();
+    final sample = _watch.elapsedMicroseconds / 1000;
+    stepMilliseconds += (sample - stepMilliseconds) * 0.10;
   }
 }

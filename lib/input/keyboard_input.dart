@@ -41,14 +41,41 @@ class KeyboardInput extends Component with KeyboardHandler {
     // is what a player expects.
     final bool isMovingLeft = keysPressed.any(_leftKeys.contains);
     final bool isMovingRight = keysPressed.any(_rightKeys.contains);
-    _intent.horizontalAxis =
-        (isMovingRight ? 1.0 : 0.0) - (isMovingLeft ? 1.0 : 0.0);
+    _intent.setKeyboardState(
+      axis: (isMovingRight ? 1.0 : 0.0) - (isMovingLeft ? 1.0 : 0.0),
+      jump: keysPressed.any(_jumpKeys.contains),
+      run:
+          keysPressed.contains(LogicalKeyboardKey.shiftLeft) ||
+          keysPressed.contains(LogicalKeyboardKey.shiftRight),
+      interact: keysPressed.contains(LogicalKeyboardKey.keyE),
+      crouch:
+          keysPressed.contains(LogicalKeyboardKey.keyS) ||
+          keysPressed.contains(LogicalKeyboardKey.arrowDown),
+    );
 
     // Jump is edge-triggered, so only a genuine key-down counts. Checking for
     // KeyDownEvent specifically also excludes KeyRepeatEvent, which the OS
     // fires while a key is held and which would otherwise machine-gun jumps.
     if (event is KeyDownEvent && _jumpKeys.contains(event.logicalKey)) {
       _intent.requestJump();
+    }
+    if (event is KeyDownEvent) {
+      switch (event.logicalKey) {
+        case LogicalKeyboardKey.keyR:
+          _intent.requestReset();
+        case LogicalKeyboardKey.f1:
+          _intent.requestDebugToggle();
+        case LogicalKeyboardKey.keyK:
+          _intent.requestKnockdown();
+        case LogicalKeyboardKey.keyM:
+          _intent.requestAudioToggle();
+        case LogicalKeyboardKey.digit1:
+          _intent.requestPreset(0);
+        case LogicalKeyboardKey.digit2:
+          _intent.requestPreset(1);
+        case LogicalKeyboardKey.digit3:
+          _intent.requestPreset(2);
+      }
     }
 
     // Returning true lets the event continue to other handlers. Nothing else

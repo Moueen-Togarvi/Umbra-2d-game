@@ -21,13 +21,13 @@ abstract final class Palette {
 
   /// The brightest point of the fog: the pale light behind the mist that
   /// everything is silhouetted against.
-  static const Color fogGlow = Color(0xFFA9A9A7);
+  static const Color fogGlow = Color(0xFFE2E2E2);
 
   /// The fog at mid distance from the light.
-  static const Color fogMid = Color(0xFF6F6F6D);
+  static const Color fogMid = Color(0xFFC6C6C6);
 
   /// The fog at the edges of the light, before the vignette takes over.
-  static const Color fogEdge = Color(0xFF2A2A29);
+  static const Color fogEdge = Color(0xFF181818);
 
   /// The colour the world sinks into at the bottom of the screen and in the
   /// corners.
@@ -73,14 +73,14 @@ abstract final class Palette {
   // area and must never compete with the player silhouette.
 
   /// Resting fill of a control button.
-  static const Color control = Color(0x14FFFFFF);
+  static const Color control = Color(0x0AFFFFFF);
 
   /// Fill of a control button while it is held down.
-  static const Color controlPressed = Color(0x33FFFFFF);
+  static const Color controlPressed = Color(0x26FFFFFF);
 
   /// The ring around a control button.
-  static const Color controlRing = Color(0x40FFFFFF);
+  static const Color controlRing = Color(0x24FFFFFF);
 
   /// The arrow glyph drawn inside a control button.
-  static const Color controlGlyph = Color(0xB3FFFFFF);
+  static const Color controlGlyph = Color(0x73FFFFFF);
 }

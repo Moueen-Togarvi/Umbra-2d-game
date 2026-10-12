@@ -1,7 +1,7 @@
 name: umbra
 description: A Limbo-inspired atmospheric 2D platformer built with Flutter and Flame.
 publish_to: "none"
-version: 0.1.0
+version: 0.2.0+2
 
 environment:
   sdk: ^3.12.0
@@ -32,4 +32,4 @@ flutter:
   assets:
     - assets/images/
     - assets/images/props/
-
+    - assets/images/backgrounds/

@@ -24,7 +24,7 @@ import 'package:flame/game.dart' show Vector2;
 /// are not touching, never bounce, and fall asleep while still moving.
 ///
 /// The guidance is to keep moving bodies between 0.1 m and 10 m. Our player is
-/// 1.6 m tall, like a person. Everything else follows from that.
+/// 1.3 m tall, with a child's proportions. Everything else follows from that.
 abstract final class GameConfig {
   // ---------------------------------------------------------------------------
   // Rendering scale
@@ -43,7 +43,7 @@ abstract final class GameConfig {
   // ---------------------------------------------------------------------------
 
   /// Total width of the level. The camera scrolls along it.
-  static const double levelWidth = 64.0;
+  static const double levelWidth = 96.0;
 
   /// Total height of the level. Ground slabs extend all the way down to this,
   /// so there is never a gap of fog visible *under* the floor.
@@ -55,7 +55,7 @@ abstract final class GameConfig {
 
   /// How much of the world the camera frames, in metres. Flame fits this box
   /// inside the screen, so a wider phone simply sees more of the level to the
-  /// sides. 9 m tall puts a 1.6 m player at about a sixth of the screen,
+  /// sides. 9 m tall puts a 1.3 m player at about a seventh of the screen,
   /// which is the small-figure-in-a-vast-world framing the reference art has.
   static const double cameraVisibleWidth = 16.0;
   static const double cameraVisibleHeight = 9.0;
@@ -88,13 +88,13 @@ abstract final class GameConfig {
   ///
   /// Real Earth gravity is 9.81. Almost every platformer runs at 2-3x that,
   /// because real gravity makes a jump arc feel slow and floaty at the scale of
-  /// a screen. 28 gives Umbra a heavy, weighted fall that suits the mood.
+  /// a screen. 22 gives Umbra a short, weighted jump at the child's scale.
   ///
   /// Note the sign: Flame's y-axis points **down**, so positive y is downward.
-  /// (Raw Box2D uses y-up and would write this as -28. flame_forge2d flips the
+  /// (Raw Box2D uses y-up and would write this as -22. flame_forge2d flips the
   /// convention for you, which is why its default gravity is `(0, 10)` and not
   /// `(0, -10)`.)
-  static const double gravityMetersPerSecondSquared = 28.0;
+  static const double gravityMetersPerSecondSquared = 22.0;
 
   /// Gravity as a vector. A getter rather than a constant because [Vector2] is
   /// mutable and each caller should get its own instance.
@@ -106,7 +106,7 @@ abstract final class GameConfig {
 
   /// Player collision width in metres. Narrower than the drawn figure's
   /// reach, so a swinging arm never snags on a wall.
-  static const double playerWidth = 0.5;
+  static const double playerWidth = 0.42;
 
   /// Player height in metres. The figure is a child, small against the world
   /// — that is most of what makes the world feel vast.
@@ -120,27 +120,47 @@ abstract final class GameConfig {
   /// actually want. Density is in kilograms per square metre because the
   /// simulation is two-dimensional.
   static const double playerDensity =
-      playerMassKilograms / (playerWidth * playerHeight);
+      playerMassKilograms /
+      (playerWidth * (playerHeight - playerWidth) +
+          math.pi * playerWidth * playerWidth / 4);
 
   /// Horizontal running speed in metres per second. A child's run.
   static const double moveSpeedMetersPerSecond = 3.2;
 
+  static const double walkSpeedMetersPerSecond = 1.8;
+  static const double crouchSpeedMetersPerSecond = 0.85;
+  static const double crouchHeightRatio = 0.62;
+  static const double maximumSlopeRadians = math.pi * 0.30;
+  static const double jumpAnticipationSeconds = 0.025;
+  static const double pushForceNewtons = 500;
+  static const double pullForceNewtons = 220;
+  static const double swingAcceleration = 4;
+  static const double knockdownImpactSpeed = 12;
+  static const double recoveryBlendSeconds = 0.45;
+
+  /// Distance travelled in one complete planted-foot walk cycle.
+  static const double walkStrideMeters = 1.2;
+
   /// How quickly the player reaches [moveSpeedMetersPerSecond] on the
-  /// ground, in m/s². 24 gets to full speed in about an eighth of a second:
-  /// enough of a ramp that starting to run reads as a push-off rather than a
-  /// teleport, not so much that the controls feel laggy. Stopping on the
-  /// ground is instant.
-  static const double groundAcceleration = 24.0;
+  /// ground, in m/s². Reaches full speed in about 0.18 seconds, giving the
+  /// first step a visible push-off. Braking uses a stronger rate below.
+  static const double groundAcceleration = 18.0;
+
+  /// Braking is stronger than acceleration, but still takes a few frames.
+  static const double groundDeceleration = 26.0;
 
   /// Acceleration while airborne. Lower than on the ground: you can steer a
   /// jump, but not reverse it outright.
-  static const double airAcceleration = 12.0;
+  static const double airAcceleration = 3.5;
+
+  /// Fraction of upward speed kept when jump is released early.
+  static const double jumpReleaseSpeedFactor = 0.45;
 
   /// Extra gravity on the way *down*, as a multiple of [gravity]. Rising at
-  /// 1x and falling at 1.45x is the classic platformer trick: the jump still
+  /// 1x and falling at 1.25x is the classic platformer trick: the jump still
   /// reaches its apex, but the fall is quicker and heavier, so a jump feels
   /// like a hop rather than a float.
-  static const double fallGravityMultiplier = 1.45;
+  static const double fallGravityMultiplier = 1.25;
 
   /// How long after walking off an edge a jump is still allowed, in seconds.
   /// Without this, pressing jump on the last pixel of a ledge — which is
@@ -156,7 +176,7 @@ abstract final class GameConfig {
   ///
   /// This is the number to tune when the jump feels wrong. The take-off
   /// velocity is derived from it rather than guessed — see [jumpTakeoffSpeed].
-  static const double jumpApexMeters = 1.8;
+  static const double jumpApexMeters = 1.15;
 
   /// The upward speed needed at take-off to reach [jumpApexMeters].
   ///
@@ -190,31 +210,42 @@ abstract final class GameConfig {
   // Level layout (metres, origin at the level's top-left, y pointing down)
   // ---------------------------------------------------------------------------
 
-  /// The ground, as a list of slabs described by their left edge, right edge
-  /// and top surface. Anything between 0 and [levelWidth] that no slab
-  /// covers is a pit, and the level builder puts a hazard at the bottom.
+  /// The ground, as a few control points per unbroken stretch, x then y in
+  /// metres. [Terrain] draws a smooth curve through each stretch; the gap
+  /// between two stretches is a pit with spikes at the bottom.
   ///
-  /// Pits are 1.4 m wide: at [moveSpeedMetersPerSecond] and [jumpApexMeters]
-  /// a running jump carries about 2.4 m, which leaves roughly half a second
-  /// in which pressing jump clears the pit — forgiving, but never walkable. Steps up are at most 1.3 m, comfortably
-  /// under the jump apex.
-  static const List<Slab> terrain = [
-    Slab(left: 0, right: gapStartX, top: floorSurfaceY), // the shore
-    Slab(left: gapEndX, right: 24, top: 7.2),
-    Slab(left: 24, right: 27, top: 6.6), // steps up into the mist
-    Slab(left: 27, right: 30, top: 6.0),
-    Slab(left: 31.4, right: 42, top: 6.4),
-    Slab(left: 42, right: 50, top: 5.2), // the dark forest, high ground
-    Slab(left: 51.4, right: levelWidth, top: 5.6),
+  /// The first stretch starts flat at [floorSurfaceY] — the physics tests
+  /// spawn there and expect level ground — then the land rolls: up to a
+  /// crest, down into the mist, up again into the forest.
+  ///
+  /// Pits are about 1.4 m wide: at [moveSpeedMetersPerSecond] and
+  /// [jumpApexMeters] a running jump carries roughly 2 m, so they are
+  /// clearable with a little to spare but not by walking.
+  static const List<List<double>> terrainProfile = [
+    // 01 Flooded forest. Keep the spawn and first gap fixed for the physics
+    // checks, then let each stretch lead into the next environment.
+    [0, floorSurfaceY, 4, floorSurfaceY, 8, 7.3, 11.5, 6.7, gapStartX, 6.6],
+    // 02 Broken bridge ravine.
+    [gapEndX, 7.0, 19, 7.3, 22.5, 7.1, 26, 6.4, 30, 6.0],
+    // 03 Quarry.
+    [31.4, 6.5, 35, 6.2, 39, 6.6, 43, 5.9, 46, 6.0],
+    // 04 Root thicket.
+    [47.4, 6.5, 51, 6.3, 55, 6.8, 59, 6.1, 62, 6.2],
+    // 05 Marsh and waterwheel.
+    [63.4, 6.8, 67, 7.0, 71, 6.7, 75, 7.1, 78, 6.8],
+    // 06 Storm coast.
+    [79.4, 7.1, 83, 7.0, 87, 6.5, 91, 6.8, levelWidth, 6.6],
   ];
 
-  /// Fallen logs lying on the ground across the path: half a metre tall,
-  /// so they block walking (the player is a box, and a box does not step
-  /// over things) but are cleared by the smallest hop.
-  static const List<Slab> ledges = [
-    Slab(left: 19, right: 21, top: 6.7),
-    Slab(left: 36, right: 38, top: 5.9),
-    Slab(left: 45.5, right: 47.5, top: 4.7),
+  /// Fallen logs lying on the ground across the path, by their x span; each
+  /// sits on the hill under it. Half a metre tall, so they block walking (a
+  /// capsule does not step over things) but are cleared by the smallest hop.
+  static const List<List<double>> logs = [
+    [19, 21],
+    [36, 38],
+    [53, 55],
+    [68, 69.5],
+    [88, 89.5],
   ];
 
   /// Thickness of a ledge.
@@ -254,6 +285,12 @@ abstract final class GameConfig {
   /// wider than its own spot; its `y` is the *lowest* surface in that
   /// stretch, so its base is always buried behind the ground and never hangs
   /// in the air over a lower slab.
+  /// The boy hanging from the gallows: where the noose is, in world metres,
+  /// and how deep in the fog he is (the gallows prop's own depth).
+  static const double hangedX = 22.42;
+  static const double hangedY = 3.55;
+  static const double hangedDepth = 0.22;
+
   static const List<SceneryProp> scenery = [
     SceneryProp('prop_tree_b', x: 5.0, y: 7.5, height: 7.5, depth: 0.55),
     SceneryProp('prop_fence', x: 11.0, y: 7.5, height: 1.5, depth: 0.12),
@@ -298,20 +335,6 @@ abstract final class GameConfig {
 
   /// Size of the arrow glyph inside a button, as a fraction of its radius.
   static const double controlGlyphScale = 0.46;
-}
-
-/// A horizontal run of solid ground: from [left] to [right], with its walkable
-/// surface at [top]. Slabs are described by their edges rather than a centre
-/// and size because that is how a level is naturally read: "floor from x=0 to
-/// x=14, surface at y=7.5".
-class Slab {
-  const Slab({required this.left, required this.right, required this.top});
-
-  final double left;
-  final double right;
-  final double top;
-
-  double get width => right - left;
 }
 
 /// One silhouette standing in the fog. See [GameConfig.scenery].

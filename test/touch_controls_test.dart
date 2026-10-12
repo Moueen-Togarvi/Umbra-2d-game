@@ -25,6 +25,12 @@ void main() {
   Future<(UmbraGame, Player, List<HudButtonComponent>)> boot(
     WidgetTester tester,
   ) async {
+    tester.view.physicalSize = phoneSize.toSize();
+    tester.view.devicePixelRatio = 1;
+    addTearDown(() {
+      tester.view.resetPhysicalSize();
+      tester.view.resetDevicePixelRatio();
+    });
     final game = UmbraGame();
     await tester.pumpWidget(
       MediaQuery(
@@ -32,24 +38,37 @@ void main() {
         child: GameWidget(game: game),
       ),
     );
-    await tester.pump();
+    for (
+      var i = 0;
+      i < 20 && game.world.descendants().whereType<Player>().isEmpty;
+      i++
+    ) {
+      await tester.runAsync(
+        () => Future<void>.delayed(const Duration(milliseconds: 50)),
+      );
+      await tester.pump();
+    }
     await advance(tester, 30);
 
     final buttons = game.camera.viewport.children
         .whereType<HudButtonComponent>()
         .toList();
     final player = game.world.descendants().whereType<Player>().single;
+    addTearDown(() {
+      game.pauseEngine();
+      if (game.world.physicsWorld.isValid) game.world.physicsWorld.destroy();
+    });
     return (game, player, buttons);
   }
 
-  /// The three buttons, in the order TouchControls builds them.
+  /// Main actions retain their original button order.
   const int walkLeft = 0;
   const int walkRight = 1;
   const int jump = 2;
 
-  testWidgets('three controls mount into the camera viewport', (tester) async {
+  testWidgets('mobile actions mount into the camera viewport', (tester) async {
     final (_, _, buttons) = await boot(tester);
-    expect(buttons, hasLength(3));
+    expect(buttons, hasLength(11));
   });
 
   testWidgets('controls sit on screen, along the bottom, thumbs apart', (
@@ -70,8 +89,14 @@ void main() {
         isTrue,
         reason: 'button hangs below the screen: $rect in $viewport',
       );
-      // All three belong in the lower half, where thumbs are.
-      expect(rect.center.dy, greaterThan(viewport.y / 2));
+    }
+    for (final button in buttons.take(6)) {
+      expect(button.toRect().center.dy, greaterThan(viewport.y / 2));
+    }
+    for (var a = 0; a < buttons.length; a++) {
+      for (var b = a + 1; b < buttons.length; b++) {
+        expect(buttons[a].toRect().overlaps(buttons[b].toRect()), isFalse);
+      }
     }
 
     // Walk buttons on the left, jump on the right, and not overlapping.
@@ -97,7 +122,7 @@ void main() {
     expect(player.body.position.x, greaterThan(startX));
 
     await rightGesture.up();
-    await advance(tester, 5);
+    await advance(tester, 10);
     expect(
       player.body.linearVelocity.x.abs(),
       lessThan(0.1),
@@ -183,7 +208,7 @@ void main() {
     );
     await advance(tester, 5);
     await right.up();
-    await advance(tester, 5);
+    await advance(tester, 10);
 
     expect(
       player.body.linearVelocity.x,
@@ -193,4 +218,61 @@ void main() {
 
     await left.up();
   });
+
+  testWidgets('run toggle changes speed and lifecycle clears touch holds', (
+    tester,
+  ) async {
+    final (game, player, buttons) = await boot(tester);
+    final walk = await tester.startGesture(
+      buttons[walkRight].absoluteCenter.toOffset(),
+    );
+    await advance(tester, 30);
+    final walkingSpeed = player.body.linearVelocity.x;
+    await tester.tapAt(buttons[5].absoluteCenter.toOffset());
+    await advance(tester, 20);
+    expect(player.body.linearVelocity.x, greaterThan(walkingSpeed + 0.5));
+    game.lifecycleStateChange(AppLifecycleState.paused);
+    game.lifecycleStateChange(AppLifecycleState.resumed);
+    await advance(tester, 30);
+    expect(player.body.linearVelocity.x.abs(), lessThan(0.1));
+    await walk.up();
+  });
+
+  testWidgets('drag cancellation releases walk input', (tester) async {
+    final (_, player, buttons) = await boot(tester);
+    final walk = await tester.startGesture(
+      buttons[walkRight].absoluteCenter.toOffset(),
+    );
+    await advance(tester, 10);
+    await walk.cancel();
+    await advance(tester, 20);
+    expect(player.body.linearVelocity.x.abs(), lessThan(0.1));
+  });
+
+  testWidgets(
+    'debug toggle draws native geometry and reset returns to checkpoint',
+    (tester) async {
+      final (game, player, buttons) = await boot(tester);
+      expect(buttons[7].containsLocalPoint(buttons[7].size / 2), isFalse);
+      expect(buttons[9].containsLocalPoint(buttons[9].size / 2), isFalse);
+      await tester.tapAt(buttons[8].absoluteCenter.toOffset());
+      await advance(tester, 5);
+      expect(game.debugVisible && player.debugEnabled, isTrue);
+      expect(tester.takeException(), isNull);
+      final walk = await tester.startGesture(
+        buttons[walkRight].absoluteCenter.toOffset(),
+      );
+      await advance(tester, 15);
+      await walk.up();
+      await tester.tapAt(buttons[9].absoluteCenter.toOffset());
+      await advance(tester, 5);
+      expect(
+        player.body.position.x,
+        closeTo(game.checkpoints.activeCheckpoint.x, 0.02),
+      );
+      await tester.tapAt(buttons[8].absoluteCenter.toOffset());
+      await advance(tester, 5);
+      expect(game.debugVisible || player.debugEnabled, isFalse);
+    },
+  );
 }

@@ -4,6 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:umbra/config/game_config.dart';
 import 'package:umbra/entities/player.dart';
 import 'package:umbra/game/umbra_game.dart';
+import 'package:umbra/world/level.dart';
 
 /// Behavioural checks for the Step 1 physics setup.
 ///
@@ -25,8 +26,16 @@ void main() {
   Future<(UmbraGame, Player)> boot(WidgetTester tester) async {
     final game = UmbraGame();
     await tester.pumpWidget(GameWidget(game: game));
-    // One pump runs onLoad; the rest let the world settle onto the floor.
-    await tester.pump();
+    for (
+      var i = 0;
+      i < 20 && game.world.descendants().whereType<Player>().isEmpty;
+      i++
+    ) {
+      await tester.runAsync(
+        () => Future<void>.delayed(const Duration(milliseconds: 50)),
+      );
+      await tester.pump();
+    }
     await advance(tester, 30);
     return (game, game.world.descendants().whereType<Player>().single);
   }
@@ -57,10 +66,9 @@ void main() {
 
     expect(player.body.position.x, greaterThan(startX));
 
-    // Releasing the key stops the player promptly, rather than letting it
-    // coast.
+    // The weighted brake takes about 0.13 seconds at full running speed.
     await tester.sendKeyUpEvent(LogicalKeyboardKey.keyD);
-    await advance(tester, 5);
+    await advance(tester, 10);
     expect(player.body.linearVelocity.x.abs(), lessThan(0.1));
   });
 
@@ -116,6 +124,63 @@ void main() {
 
     // Still a single jump's worth of height, not two.
     expect(restingY - highestPoint, lessThan(GameConfig.jumpApexMeters * 1.2));
+  });
+
+  testWidgets('releasing jump early makes a shorter hop', (tester) async {
+    final (_, player) = await boot(tester);
+    final restingY = player.body.position.y;
+
+    await tester.sendKeyDownEvent(LogicalKeyboardKey.space);
+    await advance(tester, 3);
+    await tester.sendKeyUpEvent(LogicalKeyboardKey.space);
+
+    var highestPoint = restingY;
+    for (var i = 0; i < 35; i++) {
+      await advance(tester, 1);
+      if (player.body.position.y < highestPoint) {
+        highestPoint = player.body.position.y;
+      }
+    }
+
+    // The 25 ms anticipation leaves a shorter ascent before this early release.
+    expect(restingY - highestPoint, greaterThan(0.30));
+    expect(restingY - highestPoint, lessThan(GameConfig.jumpApexMeters * 0.7));
+  });
+
+  testWidgets('walking uphill stays grounded and can jump', (tester) async {
+    final (_, player) = await boot(tester);
+    player.teleportTo(Vector2(8, 7.3 - GameConfig.playerHeight / 2));
+    await advance(tester, 30);
+
+    await tester.sendKeyDownEvent(LogicalKeyboardKey.keyD);
+    await advance(tester, 30);
+    expect(player.body.position.x, greaterThan(8.5));
+    expect(player.isOnGround, isTrue);
+
+    final yBeforeJump = player.body.position.y;
+    await tester.sendKeyDownEvent(LogicalKeyboardKey.space);
+    await advance(tester, 5);
+    expect(player.body.position.y, lessThan(yBeforeJump - 0.2));
+    await tester.sendKeyUpEvent(LogicalKeyboardKey.space);
+    await tester.sendKeyUpEvent(LogicalKeyboardKey.keyD);
+  });
+
+  testWidgets('all six areas have solid ground and progress checkpoints', (
+    tester,
+  ) async {
+    final (game, player) = await boot(tester);
+    final level = game.world.descendants().whereType<Level>().single;
+
+    for (final x in const [17.0, 33.0, 49.0, 65.0, 81.0]) {
+      final groundY = level.terrain.heightAt(x);
+      expect(groundY, isNotNull, reason: 'area at x=$x has no terrain');
+      player.teleportTo(
+        Vector2(x + 0.3, groundY! - GameConfig.playerHeight / 2),
+      );
+      await advance(tester, 25);
+      expect(player.isOnGround, isTrue, reason: 'area at x=$x is not playable');
+      expect(game.checkpoints.activeCheckpoint.x, x);
+    }
   });
 
   testWidgets('falling into the hazard respawns at the checkpoint, at rest', (

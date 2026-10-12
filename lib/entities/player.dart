@@ -2,200 +2,293 @@ import 'dart:math' as math;
 import 'dart:ui';
 
 import 'package:flame_forge2d/flame_forge2d.dart';
+import 'package:flutter/foundation.dart';
 
+import '../character/character_interactions.dart';
+import '../character/character_preset.dart';
+import '../character/character_ragdoll.dart';
+import '../character/character_state.dart';
+import '../character/foot_placement.dart';
 import '../config/game_config.dart';
 import '../config/palette.dart';
 import '../input/player_intent.dart';
+import '../physics/collision_layers.dart';
+import '../render/raincoat_silhouette.dart';
 
-/// The player character: a small silhouetted figure driven by a Box2D body.
-///
-/// The physics body is still a plain box — that is what makes movement
-/// predictable — and the figure is drawn *inside* it, in body-local metres,
-/// with limbs posed from the body's velocity. There is no sprite sheet: a
-/// silhouette is a handful of strokes, and posing them in code means the walk
-/// cycle speeds up and slows down with the player instead of sliding.
-///
-/// ## What changed by moving to a physics engine
-///
-/// A hand-rolled platformer keeps a `velocity` field, adds gravity to it every
-/// frame, moves the rectangle, and then runs its own overlap tests to push the
-/// rectangle back out of the floor. That works, and it is how most first
-/// prototypes start, but everything it does is bespoke: it only knows about the
-/// shapes you taught it about, and things like resting stably on a slope,
-/// stacking, or being pushed by another object have to be invented from
-/// scratch.
-///
-/// With Box2D we stop *simulating* and start *describing*. We declare that the
-/// player is a body with a shape, a mass and a friction coefficient, and the
-/// solver works out where everything ends up each step. That is what makes
-/// crates, ropes and buoyancy possible later — they are all the same solver
-/// doing the same job.
+/// One stable capsule owns locomotion. Constraint interactions may take over;
+/// ragdoll explicitly disables the capsule until safe recovery has completed.
 class Player extends BodyComponent {
-  /// Note the `this._intent` parameter: Dart lets a private field be filled by
-  /// an initialising formal, and callers pass it under its public name, so this
-  /// is constructed as `Player(intent: ..., spawnPosition: ...)`.
   Player({required this._intent, required Vector2 spawnPosition})
     : _spawnPosition = spawnPosition.clone(),
+      _lastPosition = spawnPosition.clone(),
       super(paint: Paint()..color = Palette.silhouette, renderBody: false);
 
   final PlayerIntent _intent;
   final Vector2 _spawnPosition;
+  final Vector2 _lastPosition;
+  final FootPlacement _feet = FootPlacement();
+  RaincoatSilhouette _figure = RaincoatSilhouette(
+    height: GameConfig.playerHeight,
+  );
+  CharacterPreset _preset = CharacterPreset.raincoat;
+  CharacterRagdoll? _ragdoll;
+  CharacterRigPose? _recoveryPose;
+  double _recoveryTime = 0;
+  late CharacterInteractions interactions;
+  late Shape _capsule;
+  bool _crouched = false;
+  double _crouchWeight = 0;
 
-  // --- Animation state --------------------------------------------------------
-  // All of this is presentation. Nothing in the physics reads it.
-
-  /// Which way the figure faces: +1 right, -1 left. Remembered across frames
-  /// so standing still keeps the last direction.
+  CharacterState state = CharacterState.idle;
+  bool debugEnabled = false;
+  bool _grounded = false;
+  double _supportSlope = 0;
+  double _supportY = 0;
+  Vector2 _supportVelocity = Vector2.zero();
+  double _timeSinceGrounded = double.infinity;
+  double _timeSinceJumpPressed = double.infinity;
+  double _anticipationTime = 0;
+  bool _jumping = false;
+  bool _jumpCutApplied = false;
   double _facing = 1;
-
-  /// Progress through the walk cycle, in radians. Advanced by distance
-  /// travelled rather than time, so the feet never slide.
   double _walkPhase = 0;
-
-  /// How much of the walk pose to show, 0..1. Eases in and out so a step that
-  /// starts and stops does not snap the limbs.
   double _walkWeight = 0;
-
-  /// How much of the airborne pose to show, 0..1.
+  double _runWeight = 0;
   double _airWeight = 0;
-
-  /// Vertical velocity mapped to -1 (rising) .. +1 (falling), smoothed.
   double _fallLean = 0;
-
+  double _bodyLean = 0;
+  double _landing = 0;
+  double _takeoff = 0;
+  double _previousVerticalSpeed = 0;
   double _time = 0;
   double _nextBlinkAt = 2.5;
   double _blinkRemaining = 0;
+  double _actualSpeed = 0;
+  double _gripWeight = 0;
 
-  /// Tracks whether the player's feet are touching anything solid.
-  late final GroundSensor _groundSensor = GroundSensor(owner: this);
-
-  /// Whether the player is currently standing on something.
-  bool get isOnGround => _groundSensor.isOnGround;
+  bool get isOnGround => _grounded;
+  double get facing => _facing;
+  int get presetIndex => _preset.index;
+  bool get isRagdoll => _ragdoll != null;
+  Vector2 get velocity => _ragdoll?.velocity ?? body.linearVelocity;
+  Vector2 get cameraPosition => _ragdoll?.pelvisPosition ?? body.position;
+  String get interactionLabel => interactions.mode.name;
+  List<Vector2> get rigFootTargets => _feet.targets;
+  CharacterRigPose get rigPoseWorld =>
+      _ragdoll?.pose ?? _figure.solve(_pose).translated(body.position);
+  bool get isCrouching => _crouched;
+  double get strideMeters =>
+      GameConfig.walkStrideMeters * (0.73 + _runWeight * 0.27);
 
   @override
   Body createBody() {
-    // `world` is assigned by BodyComponent just before this runs.
-    final Body playerBody = world.createBody(
+    final playerBody = world.createBody(
       BodyDef(
-        // Dynamic: the solver moves it, gravity and collisions apply.
-        // (Static bodies never move; kinematic bodies move but ignore forces.)
         type: BodyType.dynamic,
         position: _spawnPosition.clone(),
-
-        // Without this the rectangle topples over the instant it lands on a
-        // corner. Real platformer characters do not rotate; they are a
-        // capsule-on-rails wearing a physics body as a costume.
         fixedRotation: true,
-
-        // Box2D lets resting bodies "sleep" to save time. A sleeping body
-        // ignores direct velocity writes until something wakes it, which would
-        // make the player unresponsive after standing still. Cheap to disable
-        // for one body.
         enableSleep: false,
-
-        // Identifies this body in contact events. The hazard reads this to
-        // find out that it was the player who touched it.
+        isBullet: true,
         userData: this,
       ),
     );
-
-    // --- The body shape: the visible silhouette -------------------------------
-    // Note the half-extents: Box2D describes boxes from their centre outwards,
-    // so a 0.8 x 1.6 m player is `box(0.4, 0.8)`.
-    playerBody.createShape(
-      Polygon.box(GameConfig.playerWidth / 2, GameConfig.playerHeight / 2),
-      ShapeDef(
-        density: GameConfig.playerDensity,
-        material: SurfaceMaterial(
-          // Zero friction on the player's own sides. Because we drive
-          // horizontal movement by writing velocity directly, friction here
-          // would only ever work against us: it is what makes a character
-          // stick to a wall while holding the direction key mid-air.
-          // The *floor* still has friction, which is what matters.
-          friction: 0,
-        ),
-        // Sensors only generate events for shapes that have opted in, on both
-        // sides. Without this line the hazard's sensor would never see us and
-        // respawn would silently stop working.
-        enableSensorEvents: true,
-      ),
-    );
-
-    // --- The foot sensor: "am I standing on something?" -----------------------
-    // A thin, slightly narrower box straddling the soles. It is a sensor, so it
-    // reports overlaps but never pushes anything.
-    //
-    // Why not just check "is my vertical velocity zero"? Because that is also
-    // true at the apex of a jump, and while scraping along a ceiling. A sensor
-    // asks the question we actually mean.
-    playerBody.createShape(
-      Polygon.offsetBox(
-        GameConfig.playerWidth / 2 * GameConfig.footSensorWidthFactor,
-        GameConfig.footSensorHalfHeight,
-        center: Vector2(0, GameConfig.playerHeight / 2),
-      ),
-      ShapeDef(
-        isSensor: true,
-        enableSensorEvents: true,
-        // A sensor should not add weight to the player.
-        density: 0,
-        userData: _groundSensor,
-      ),
-    );
-
+    _capsule = _createCapsule(playerBody);
     return playerBody;
   }
 
-  // --- Movement state ---------------------------------------------------------
+  Shape _createCapsule(Body target) {
+    const radius = GameConfig.playerWidth / 2;
+    const halfHeight = GameConfig.playerHeight / 2;
+    final height =
+        GameConfig.playerHeight *
+        (_crouched ? GameConfig.crouchHeightRatio : 1);
+    final area = 2 * radius * (height - 2 * radius) + math.pi * radius * radius;
+    return target.createShape(
+      Capsule(
+        center1: Vector2(0, halfHeight - height + radius),
+        center2: Vector2(0, halfHeight - radius),
+        radius: radius,
+      ),
+      ShapeDef(
+        density: GameConfig.playerMassKilograms / area,
+        material: SurfaceMaterial(friction: 0, restitution: 0),
+        filter: Filter(
+          categoryBits: CollisionLayers.player,
+          maskBits: CollisionLayers.all,
+        ),
+        enableSensorEvents: true,
+        enableContactEvents: true,
+        enableHitEvents: true,
+      ),
+    );
+  }
 
-  /// Seconds since the feet last touched ground. Drives coyote time.
-  double _timeSinceGrounded = 0;
+  @override
+  Future<void> onLoad() async {
+    await super.onLoad();
+    interactions = CharacterInteractions(
+      world: world,
+      playerBody: body,
+      width: GameConfig.playerWidth,
+      height: GameConfig.playerHeight,
+    );
+  }
 
-  /// Seconds since jump was last pressed. Drives the jump buffer.
-  double _timeSinceJumpPressed = double.infinity;
+  RayHit? _supportBelow() {
+    RayHit? closest;
+    final soleY = body.position.y + GameConfig.playerHeight / 2;
+    for (final offset in const [0.0, -0.10, 0.10]) {
+      world.castRay(
+        Vector2(body.position.x + offset, soleY - 0.20),
+        Vector2(0, 0.29),
+        (hit) {
+          if (hit.shape.body == body ||
+              hit.shape.isSensor ||
+              hit.normal.y > -math.cos(GameConfig.maximumSlopeRadians)) {
+            return -1;
+          }
+          final slope = -hit.normal.x / hit.normal.y;
+          final centreGap = hit.point.y - soleY - offset * slope;
+          final capsuleGap =
+              GameConfig.playerWidth / 2 * (math.sqrt(1 + slope * slope) - 1);
+          if (centreGap > capsuleGap + (_grounded ? 0.07 : 0.02)) return -1;
+          final relativeVelocity =
+              body.linearVelocity - hit.shape.body.linearVelocity;
+          if (relativeVelocity.dot(hit.normal) > 0.65) return -1;
+          if (closest == null || hit.point.y < closest!.point.y) closest = hit;
+          return hit.fraction;
+        },
+        filter: QueryFilter(maskBits: CollisionLayers.solid),
+      );
+    }
+    return closest;
+  }
 
   @override
   void update(double dt) {
     super.update(dt);
-
-    final Vector2 velocity = body.linearVelocity;
-    final bool grounded = isOnGround;
-
-    _timeSinceGrounded = grounded ? 0 : _timeSinceGrounded + dt;
-    if (_intent.consumeJumpRequest()) {
-      _timeSinceJumpPressed = 0;
-    } else {
-      _timeSinceJumpPressed += dt;
+    if (!body.isValid) {
+      if (kDebugMode) debugPrint('Umbra physics: invalid player body handle');
+      return;
+    }
+    if (_intent.consumeKnockdownRequest() && _ragdoll == null) knockDown();
+    if (_ragdoll != null) {
+      _updateRagdoll(dt);
+      _intent.consumeJumpRequest();
+      _intent.consumeInteractRequest();
+      return;
+    }
+    if (_recoveryPose != null) {
+      _recoveryTime += dt;
+      state = CharacterState.recovering;
+      if (_recoveryTime >= GameConfig.recoveryBlendSeconds) {
+        // A crate can enter the recovery space during the visual blend.
+        // Do not re-enable a solid capsule inside it.
+        if (!_recoverySpaceClear()) return;
+        _recoveryPose = null;
+        body.isEnabled = true;
+        _feet.reset();
+      }
+      return;
     }
 
-    // --- Horizontal movement --------------------------------------------------
-    // The horizontal velocity is driven straight at a target rather than by
-    // applying a force, because forces give a character that winds up slowly
-    // and slides on stopping. But it is not *snapped* to the target either:
-    // it ramps up over a few frames so a run starts with a push-off, and it
-    // ramps slower in the air so a jump can be steered but not reversed. On
-    // the ground, letting go stops instantly — that is what feels planted.
-    //
-    // The trade-off is worth naming: because this *sets* the value, the
-    // player wins every horizontal argument with the physics world. Pushing a
-    // heavy crate later will revisit this.
-    final double target =
-        _intent.horizontalAxis * GameConfig.moveSpeedMetersPerSecond;
-    final double newX;
-    if (grounded && target == 0) {
-      newX = 0;
-    } else {
-      final double accel = grounded
-          ? GameConfig.groundAcceleration
-          : GameConfig.airAcceleration;
-      newX = _approach(velocity.x, target, accel * dt);
+    final measuredVelocity = body.linearVelocity;
+    final wasGrounded = _grounded;
+    final support = _supportBelow();
+    _grounded = support != null;
+    if (support != null) {
+      _supportSlope = -support.normal.x / support.normal.y;
+      _supportY =
+          support.point.y + (body.position.x - support.point.x) * _supportSlope;
+      _supportVelocity = support.shape.body.linearVelocity;
+    }
+    if (_grounded && !wasGrounded) {
+      _landing = (_previousVerticalSpeed / 8).clamp(0.0, 1.0);
+      _jumping = false;
+      if (_previousVerticalSpeed > GameConfig.knockdownImpactSpeed) {
+        knockDown();
+        return;
+      }
+    }
+    for (final hit in world.physicsWorld.contactEvents.hit) {
+      if (hit.approachSpeed > GameConfig.knockdownImpactSpeed &&
+          hit.shapeA.isValid &&
+          hit.shapeB.isValid &&
+          (hit.shapeA.body == body || hit.shapeB.body == body)) {
+        knockDown();
+        return;
+      }
     }
 
-    // --- Heavier fall -----------------------------------------------------------
-    // Gravity is a property of the world, so the extra pull on the way down
-    // is applied as a force on this body alone. Only while actually falling:
-    // at rest on the floor there is no downward velocity to speak of.
-    if (!grounded && velocity.y > 0.05) {
+    _updateCrouch();
+    final jumpPressed = _intent.consumeJumpRequest();
+    final interactPressed = _intent.consumeInteractRequest();
+    _intent.consumeInteractRelease();
+    interactions.update(
+      dt,
+      axis: _intent.horizontalAxis,
+      facing: _facing,
+      grounded: _grounded,
+      interactPressed: interactPressed,
+      interactHeld: _intent.isInteractHeld,
+      jumpPressed: jumpPressed,
+      crouchHeld: _intent.isCrouchHeld,
+    );
+    if (interactions.controlsMotion) {
+      _grounded = false;
+      _timeSinceGrounded = double.infinity;
+      _timeSinceJumpPressed = double.infinity;
+      _anticipationTime = 0;
+      _animate(dt, measuredVelocity);
+      _selectState();
+      return;
+    }
+    _timeSinceGrounded = _grounded ? 0 : _timeSinceGrounded + dt;
+    _timeSinceJumpPressed = jumpPressed && !interactions.releasedThisStep
+        ? 0
+        : _timeSinceJumpPressed + dt;
+
+    final axis = _intent.horizontalAxis;
+    final speed = _crouched
+        ? GameConfig.crouchSpeedMetersPerSecond
+        : (_intent.isRunHeld
+              ? GameConfig.moveSpeedMetersPerSecond
+              : GameConfig.walkSpeedMetersPerSecond);
+    final surfaceScale = _grounded
+        ? 1 / math.sqrt(1 + _supportSlope * _supportSlope)
+        : 1.0;
+    final supportX = _grounded ? _supportVelocity.x : 0.0;
+    final target = !_grounded && axis == 0
+        ? measuredVelocity.x
+        : supportX + axis * speed * surfaceScale;
+    final traction = support == null
+        ? 1.0
+        : (support.shape.friction / 0.6).clamp(0.08, 1.0);
+    final acceleration = _grounded
+        ? (axis == 0
+                  ? GameConfig.groundDeceleration
+                  : GameConfig.groundAcceleration) *
+              traction
+        : GameConfig.airAcceleration;
+    final pushing = interactions.pushResistanceBody != null;
+    final interactionForce = interactions.mode == InteractionMode.pulling
+        ? GameConfig.pullForceNewtons
+        : GameConfig.pushForceNewtons;
+    final maxAcceleration = pushing
+        ? math.min(acceleration, interactionForce / body.mass)
+        : acceleration;
+    final newX = _approach(measuredVelocity.x, target, maxAcceleration * dt);
+    // Impulse is bounded by mass * acceleration * dt, so physical contacts
+    // with a heavy crate or external body still resist the controller.
+    body.applyLinearImpulse(
+      Vector2((newX - measuredVelocity.x) * body.mass, 0),
+    );
+    if (_grounded) {
+      body.linearVelocity = Vector2(
+        body.linearVelocity.x,
+        _supportVelocity.y + (newX - _supportVelocity.x) * _supportSlope,
+      );
+    } else if (measuredVelocity.y > 0) {
       body.applyForce(
         Vector2(
           0,
@@ -205,335 +298,462 @@ class Player extends BodyComponent {
         ),
       );
     }
-
-    // Vertical velocity is otherwise left alone — that is gravity's business,
-    // and handing it back untouched is what keeps falling and jumping physical.
-    body.linearVelocity = Vector2(newX, velocity.y);
-
-    // --- Jumping ----------------------------------------------------------------
-    // A jump happens when a recent press meets recent ground: the press may
-    // be up to [jumpBufferSeconds] old, and the ground up to
-    // [coyoteTimeSeconds] gone. Both timers are spent on use so neither can
-    // pay for a second jump.
-    final bool pressedRecently =
-        _timeSinceJumpPressed <= GameConfig.jumpBufferSeconds;
-    final bool groundedRecently =
-        _timeSinceGrounded <= GameConfig.coyoteTimeSeconds;
-    if (pressedRecently && groundedRecently && velocity.y >= -0.01) {
-      _jump();
-      _timeSinceJumpPressed = double.infinity;
-      _timeSinceGrounded = double.infinity;
+    if (_jumping &&
+        !_intent.isJumpHeld &&
+        !_jumpCutApplied &&
+        body.linearVelocity.y < 0) {
+      body.linearVelocity = Vector2(
+        body.linearVelocity.x,
+        math.max(
+          body.linearVelocity.y,
+          -GameConfig.jumpTakeoffSpeed * GameConfig.jumpReleaseSpeedFactor,
+        ),
+      );
+      _jumpCutApplied = true;
     }
 
-    _animate(dt, newX, velocity.y, grounded);
+    if (_anticipationTime > 0) {
+      _anticipationTime -= dt;
+      if (_anticipationTime <= 0) _launchJump();
+    } else if (_timeSinceJumpPressed <= GameConfig.jumpBufferSeconds &&
+        _timeSinceGrounded <= GameConfig.coyoteTimeSeconds &&
+        !_jumping &&
+        !_crouched) {
+      _anticipationTime = GameConfig.jumpAnticipationSeconds;
+      _timeSinceJumpPressed = double.infinity;
+    }
+
+    _animate(dt, measuredVelocity);
+    _selectState();
+    _previousVerticalSpeed = body.linearVelocity.y;
   }
 
-  /// Moves the presentation state on by one frame. Reads velocity, never
-  /// writes it.
-  void _animate(
-    double dt,
-    double horizontalSpeed,
-    double verticalSpeed,
-    bool grounded,
-  ) {
-    _time += dt;
+  void _launchJump() {
+    body.applyLinearImpulse(
+      Vector2(
+        0,
+        (-GameConfig.jumpTakeoffSpeed +
+                _supportVelocity.y -
+                body.linearVelocity.y) *
+            body.mass,
+      ),
+    );
+    _grounded = false;
+    _jumping = true;
+    _jumpCutApplied = false;
+    _takeoff = 1;
+    _timeSinceGrounded = double.infinity;
+    _feet.reset();
+  }
 
-    if (_intent.horizontalAxis != 0) {
+  void _updateCrouch() {
+    final desired = _intent.isCrouchHeld && _grounded;
+    if (desired == _crouched) return;
+    if (!desired && !_standingClear()) return;
+    _crouched = desired;
+    _capsule.destroy();
+    _capsule = _createCapsule(body);
+  }
+
+  bool _standingClear() {
+    final top = body.position.y - GameConfig.playerHeight / 2;
+    final currentTop =
+        body.position.y +
+        GameConfig.playerHeight / 2 -
+        GameConfig.playerHeight * GameConfig.crouchHeightRatio;
+    var clear = true;
+    for (final x in [
+      -GameConfig.playerWidth * 0.4,
+      0.0,
+      GameConfig.playerWidth * 0.4,
+    ]) {
+      world.castRay(
+        Vector2(body.position.x + x, currentTop + 0.02),
+        Vector2(0, top - currentTop - 0.04),
+        (hit) {
+          if (hit.shape.body == body || hit.shape.isSensor) return -1;
+          clear = false;
+          return 0;
+        },
+        filter: QueryFilter(maskBits: CollisionLayers.solid),
+      );
+    }
+    return clear;
+  }
+
+  bool _recoverySpaceClear() {
+    final centre = body.position;
+    final bounds = Aabb(
+      centre -
+          Vector2(
+            GameConfig.playerWidth * 0.42,
+            GameConfig.playerHeight / 2 - 0.025,
+          ),
+      centre +
+          Vector2(
+            GameConfig.playerWidth * 0.42,
+            GameConfig.playerHeight / 2 - GameConfig.playerWidth * 0.48,
+          ),
+    );
+    return !world
+        .overlapAabb(
+          bounds,
+          filter: QueryFilter(maskBits: CollisionLayers.solid),
+        )
+        .any((shape) => shape.body != body && !shape.isSensor);
+  }
+
+  void _animate(double dt, Vector2 measuredVelocity) {
+    _time += dt;
+    RaincoatSilhouette.tick(dt);
+    _gripWeight = _approach(
+      _gripWeight,
+      interactions.gripWorld == null ? 0 : 1,
+      dt * 12,
+    );
+    final travelled = body.position - _lastPosition;
+    if (kDebugMode && travelled.length > 1.0) {
+      debugPrint(
+        'Umbra physics: unexpected ${travelled.length.toStringAsFixed(2)} m displacement in ${state.name}',
+      );
+    }
+    _lastPosition.setFrom(body.position);
+    final relativeTravel =
+        travelled - (_grounded ? _supportVelocity * dt : Vector2.zero());
+    _actualSpeed = relativeTravel.x / dt;
+    final pulling = interactions.mode == InteractionMode.pulling;
+    if (interactions.facingOverride != null) {
+      _facing = interactions.facingOverride!;
+    } else if (!pulling && _actualSpeed.abs() > 0.18) {
+      _facing = _actualSpeed.sign;
+    } else if (!pulling &&
+        body.linearVelocity.x.abs() < 0.18 &&
+        _intent.horizontalAxis != 0) {
       _facing = _intent.horizontalAxis.sign;
     }
-
-    final bool walking = grounded && horizontalSpeed.abs() > 0.3;
+    final walking = _grounded && _actualSpeed.abs() > 0.12;
+    _runWeight = _approach(
+      _runWeight,
+      ((_actualSpeed.abs() - GameConfig.walkSpeedMetersPerSecond) /
+              (GameConfig.moveSpeedMetersPerSecond -
+                  GameConfig.walkSpeedMetersPerSecond))
+          .clamp(0.0, 1.0),
+      dt * 5,
+    );
     if (walking) {
-      // One full stride per metre or so — short legs, quick steps.
-      _walkPhase += horizontalSpeed.abs() * dt * (2 * math.pi / 1.0);
+      _walkPhase += relativeTravel.length * (2 * math.pi / strideMeters);
     }
-    _walkWeight = _approach(_walkWeight, walking ? 1 : 0, dt * 12);
-    _airWeight = _approach(_airWeight, grounded ? 0 : 1, dt * 10);
-    final double leanTarget = (verticalSpeed / 7.0).clamp(-1.0, 1.0);
-    _fallLean = _approach(_fallLean, leanTarget, dt * 6);
-
-    // Blink every few seconds, for a tenth of one.
+    final walkTarget = walking
+        ? (_actualSpeed.abs() / GameConfig.walkSpeedMetersPerSecond).clamp(
+            0.0,
+            1.0,
+          )
+        : 0.0;
+    _walkWeight = _approach(_walkWeight, walkTarget, dt * 9);
+    _airWeight = _approach(_airWeight, _grounded ? 0 : 1, dt * 12);
+    _fallLean = _approach(
+      _fallLean,
+      (body.linearVelocity.y / 7).clamp(-1.0, 1.0),
+      dt * 8,
+    );
+    final acceleration = (body.linearVelocity.x - measuredVelocity.x) / dt;
+    _bodyLean = _approach(
+      _bodyLean,
+      (acceleration * _facing / 80).clamp(-0.08, 0.10),
+      dt * 0.8,
+    );
+    _crouchWeight = _approach(_crouchWeight, _crouched ? 1 : 0, dt * 8);
+    _landing = math.max(0, _landing - dt * 5);
+    _takeoff = math.max(0, _takeoff - dt * 10);
+    _feet.update(
+      world: world,
+      body: body,
+      height: GameConfig.playerHeight,
+      phase: _walkPhase,
+      stride: strideMeters,
+      facing: _facing,
+      grounded: _grounded,
+      speed: _actualSpeed,
+      dt: dt,
+    );
     if (_blinkRemaining > 0) {
       _blinkRemaining -= dt;
     } else if (_time >= _nextBlinkAt) {
-      _blinkRemaining = 0.11;
-      _nextBlinkAt = _time + 2.2 + (_time * 7.3) % 3.1;
+      _blinkRemaining = 0.10;
+      _nextBlinkAt = _time + 2.5 + (_time * 7.3) % 2.8;
     }
   }
 
-  static double _approach(double value, double target, double step) {
-    if ((target - value).abs() <= step) return target;
-    return value + step * (target - value).sign;
+  void _selectState() {
+    final interactionState = switch (interactions.mode) {
+      InteractionMode.pushing => CharacterState.pushing,
+      InteractionMode.pulling =>
+        _gripWeight < 0.85 ? CharacterState.grabbing : CharacterState.pulling,
+      InteractionMode.hanging => CharacterState.hanging,
+      InteractionMode.swinging => CharacterState.swinging,
+      InteractionMode.climbing => CharacterState.climbing,
+      _ => null,
+    };
+    if (interactionState != null) {
+      state = interactionState;
+      return;
+    }
+    if (_anticipationTime > 0) {
+      state = CharacterState.jumpAnticipation;
+      return;
+    }
+    if (!_grounded) {
+      state = body.linearVelocity.y.abs() < 0.65
+          ? CharacterState.jumpApex
+          : body.linearVelocity.y < 0
+          ? CharacterState.jumpAscending
+          : CharacterState.falling;
+    } else if (_crouched) {
+      state = CharacterState.crouching;
+    } else if (_landing > 0.2) {
+      state = CharacterState.landing;
+    } else if (_intent.horizontalAxis != 0 &&
+        _actualSpeed * _intent.horizontalAxis < -0.1) {
+      state = CharacterState.turning;
+    } else if (_intent.horizontalAxis == 0 && _actualSpeed.abs() > 0.1) {
+      state = CharacterState.stopping;
+    } else if (_intent.horizontalAxis != 0 && _actualSpeed.abs() < 0.6) {
+      state = CharacterState.starting;
+    } else if (_actualSpeed.abs() < 0.12) {
+      state = CharacterState.idle;
+    } else {
+      state = _runWeight > 0.35
+          ? CharacterState.running
+          : CharacterState.walking;
+    }
   }
 
-  /// Launches the player upwards fast enough to reach [GameConfig.jumpApexMeters].
-  void _jump() {
-    // Setting the velocity rather than applying an impulse is deliberate: it
-    // makes the jump height independent of the player's mass, so tuning the
-    // character's weight later does not silently retune the jump.
-    //
-    // Negative y is upwards: Flame's y-axis points down the screen.
-    body.linearVelocity = Vector2(
-      body.linearVelocity.x,
-      -GameConfig.jumpTakeoffSpeed,
+  RaincoatPose get _pose {
+    Offset local(Vector2 point) => Offset(
+      (point.x - body.position.x) * _facing / GameConfig.playerHeight,
+      (point.y - body.position.y) / GameConfig.playerHeight,
+    );
+    final targets = _feet.targets;
+    final grip = interactions.gripWorld;
+    return RaincoatPose(
+      facing: _facing,
+      walkPhase: _walkPhase,
+      walk: _walkWeight,
+      run: _runWeight,
+      air: _grounded ? 0 : _airWeight,
+      fallLean: _fallLean,
+      blink: _blinkRemaining > 0,
+      groundY: _grounded
+          ? (_supportY - body.position.y) / GameConfig.playerHeight
+          : 0.5,
+      groundSlope: _grounded ? _supportSlope * _facing : 0,
+      landing: _landing,
+      takeoff: _takeoff,
+      bodyLean: _bodyLean,
+      anticipation: _anticipationTime > 0 ? 1 : 0,
+      crouch: _crouchWeight,
+      hanging: interactions.controlsMotion ? 1 : 0,
+      frontFoot: _grounded ? local(targets[0]) : null,
+      backFoot: _grounded ? local(targets[1]) : null,
+      frontHand: grip == null ? null : local(grip),
+      backHand: grip == null ? null : local(grip + Vector2(0, 0.02)),
+      interactionWeight: _gripWeight,
     );
   }
 
-  /// Instantly moves the player to [position] with no leftover motion.
-  ///
-  /// Used by the checkpoint system. Zeroing both velocities is the part that is
-  /// easy to forget: without it the player arrives at the checkpoint still
-  /// carrying the speed it had when it died, and immediately drifts off it.
+  void knockDown() {
+    if (_ragdoll != null || _recoveryPose != null) return;
+    interactions.release();
+    final rig = _figure.solve(_pose).translated(body.position);
+    _ragdoll = CharacterRagdoll.activate(
+      world: world.physicsWorld,
+      pose: rig,
+      velocity: body.linearVelocity,
+      preset: _preset,
+      userData: this,
+    );
+    body.isEnabled = false;
+    _grounded = false;
+    _feet.reset();
+    state = CharacterState.ragdoll;
+  }
+
+  void _updateRagdoll(double dt) {
+    final ragdoll = _ragdoll!;
+    ragdoll.update(dt);
+    state = CharacterState.ragdoll;
+    if (!ragdoll.isStable) return;
+    final recovery = ragdoll.recoveryPosition(
+      capsuleHeight: GameConfig.playerHeight,
+      capsuleWidth: GameConfig.playerWidth,
+    );
+    if (recovery == null) return;
+    _recoveryPose = ragdoll.pose;
+    _recoveryTime = 0;
+    ragdoll.destroy();
+    _ragdoll = null;
+    body.setTransform(recovery, const Rot.identity());
+    body.linearVelocity = Vector2.zero();
+    _lastPosition.setFrom(recovery);
+    _walkWeight = 0;
+    _airWeight = 0;
+    _landing = 0;
+    _crouchWeight = 0;
+    if (_crouched) {
+      _crouched = false;
+      _capsule.destroy();
+      _capsule = _createCapsule(body);
+    }
+    _grounded = true;
+    _supportY = recovery.y + GameConfig.playerHeight / 2;
+    _supportSlope = 0;
+    _feet.reset();
+    _feet.update(
+      world: world,
+      body: body,
+      height: GameConfig.playerHeight,
+      phase: 0,
+      stride: strideMeters,
+      facing: _facing,
+      grounded: true,
+      speed: 0,
+      dt: dt,
+    );
+    state = CharacterState.recovering;
+  }
+
+  void selectPreset(int index) {
+    if (index < 0 ||
+        index >= CharacterPreset.values.length ||
+        isRagdoll ||
+        _recoveryPose != null) {
+      return;
+    }
+    _preset = CharacterPreset.values[index];
+    _figure = RaincoatSilhouette(
+      height: GameConfig.playerHeight,
+      preset: _preset,
+    );
+  }
+
+  static double _approach(double value, double target, double step) =>
+      (target - value).abs() <= step
+      ? target
+      : value + step * (target - value).sign;
+
   void teleportTo(Vector2 position) {
+    interactions.release();
+    _ragdoll?.destroy();
+    _ragdoll = null;
+    _recoveryPose = null;
+    body.isEnabled = true;
     body.setTransform(position, const Rot.identity());
     body.linearVelocity = Vector2.zero();
     body.angularVelocity = 0;
-    // Deliberately *not* resetting the ground sensor here. See GroundSensor.
+    _lastPosition.setFrom(position);
+    _feet.reset();
+    _grounded = false;
+    _jumping = false;
+    _jumpCutApplied = false;
+    _timeSinceGrounded = double.infinity;
+    _timeSinceJumpPressed = double.infinity;
+    _walkWeight = 0;
+    _airWeight = 0;
+    _landing = 0;
+    _takeoff = 0;
+    _anticipationTime = 0;
+    _gripWeight = 0;
+    _bodyLean = 0;
+    _crouchWeight = 0;
+    if (_crouched) {
+      _crouched = false;
+      _capsule.destroy();
+      _capsule = _createCapsule(body);
+    }
+    _previousVerticalSpeed = 0;
+    state = CharacterState.idle;
   }
-
-  // ---------------------------------------------------------------------------
-  // Drawing
-  // ---------------------------------------------------------------------------
-  //
-  // Everything below is in body-local metres: the origin is the centre of the
-  // physics box, y points down. The figure is a small child — a big round
-  // head on a short body — the proportions that make the world look vast.
-  // The body is 1.3 m tall, so the crown of the head is at y = -0.65 and the
-  // soles at y = +0.65.
-
-  static const double _headRadius = 0.175;
-  static const double _headY = -0.46;
-  static const double _shoulderY = -0.24;
-  static const double _hipY = 0.06;
-  static const double _upperArm = 0.21;
-  static const double _foreArm = 0.19;
-  static const double _thigh = 0.30;
-  static const double _shin = 0.29;
-
-  final Paint _limbPaint = Paint()
-    ..color = Palette.silhouette
-    ..style = PaintingStyle.stroke
-    ..strokeCap = StrokeCap.round
-    ..strokeJoin = StrokeJoin.round;
-  final Paint _eyePaint = Paint()..color = Palette.eyes;
-  final Paint _glowPaint = Paint()..color = Palette.eyeGlow;
 
   @override
   void render(Canvas canvas) {
-    canvas.save();
-    canvas.scale(_facing, 1);
-
-    // A little bob while running, and a breath while standing.
-    final double bob =
-        _walkWeight * math.sin(_walkPhase * 2).abs() * 0.03 +
-        (1 - _walkWeight) * math.sin(_time * 1.6) * 0.006;
-    canvas.translate(0, -bob);
-
-    // Lean into a run; tip slightly forward on the way down from a jump.
-    final double lean = _walkWeight * 0.10 + _airWeight * 0.10 * _fallLean;
-    canvas.rotate(lean);
-
-    _drawLegs(canvas);
-    _drawTorso(canvas);
-    _drawArms(canvas);
-    _drawHead(canvas);
-
-    canvas.restore();
+    if (_ragdoll != null) {
+      _figure.drawRig(canvas, _ragdoll!.pose.translated(-body.position));
+    } else if (_recoveryPose != null) {
+      final t = (_recoveryTime / GameConfig.recoveryBlendSeconds).clamp(
+        0.0,
+        1.0,
+      );
+      final from = _recoveryPose!.translated(-body.position);
+      _figure.drawRig(
+        canvas,
+        from.lerp(_figure.solve(_pose), t * t * (3 - 2 * t)),
+      );
+    } else {
+      if (_grounded) {
+        canvas.drawOval(
+          Rect.fromCenter(
+            center: Offset(0, _supportY - body.position.y + 0.01),
+            width: 0.52,
+            height: 0.07,
+          ),
+          Paint()..color = const Color(0x55000000),
+        );
+      }
+      _figure.draw(canvas, _pose);
+    }
+    if (debugEnabled) renderDebug(canvas);
   }
 
-  void _drawTorso(Canvas canvas) {
-    // A small, slightly tapered body; wider at the shoulders. Rounded so it
-    // reads as a child in a shirt rather than as a block.
-    final Path torso = Path()
-      ..moveTo(-0.115, _shoulderY)
-      ..quadraticBezierTo(0.0, _shoulderY - 0.06, 0.115, _shoulderY)
-      ..lineTo(0.095, _hipY + 0.05)
-      ..quadraticBezierTo(0.0, _hipY + 0.11, -0.095, _hipY + 0.05)
-      ..close();
-    canvas.drawPath(torso, paint);
-    // Neck: short and thick, so the head sits *on* the body.
-    _limbPaint.strokeWidth = 0.09;
-    canvas.drawLine(
-      Offset(0, _shoulderY + 0.02),
-      Offset(0.005, _headY + _headRadius * 0.55),
-      _limbPaint,
-    );
-  }
-
-  void _drawHead(Canvas canvas) {
-    final Offset centre = Offset(0.015, _headY);
-    canvas.drawCircle(centre, _headRadius, paint);
-
-    // Hair: a soft tousled cap on the crown and back, not spikes. Two ovals
-    // do it: one over the top, one hanging over the back of the neck.
-    canvas.drawOval(
-      Rect.fromCenter(
-        center: Offset(centre.dx - 0.03, centre.dy - _headRadius * 0.55),
-        width: _headRadius * 2.15,
-        height: _headRadius * 1.35,
+  void renderDebug(Canvas canvas) {
+    final line = Paint()
+      ..color = const Color(0xFF58FFE2)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 0.013;
+    const radius = GameConfig.playerWidth / 2;
+    final h =
+        GameConfig.playerHeight *
+        (_crouched ? GameConfig.crouchHeightRatio : 1);
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(
+        Rect.fromLTWH(-radius, GameConfig.playerHeight / 2 - h, radius * 2, h),
+        const Radius.circular(radius),
       ),
-      paint,
+      line,
     );
-    canvas.drawOval(
-      Rect.fromCenter(
-        center: Offset(centre.dx - _headRadius * 0.75, centre.dy + 0.02),
-        width: _headRadius * 0.9,
-        height: _headRadius * 1.7,
-      ),
-      paint,
-    );
-
-    // The eyes. Small, white, and the brightest thing in the scene, so the
-    // player is never lost against a black foreground. They look the way the
-    // figure faces, so they sit forward of the head's centre.
-    final double open = _blinkRemaining > 0 ? 0.15 : 1.0;
-    for (final dx in const [0.035, 0.105]) {
-      final Offset eye = Offset(centre.dx + dx, centre.dy + 0.005);
-      canvas.drawCircle(eye, 0.055, _glowPaint);
-      canvas.save();
-      canvas.translate(eye.dx, eye.dy);
-      canvas.scale(1, open);
-      canvas.drawCircle(Offset.zero, 0.021, _eyePaint);
-      canvas.restore();
+    canvas.drawCircle(Offset.zero, 0.035, line);
+    for (final x in const [-0.10, 0.0, 0.10]) {
+      canvas.drawLine(
+        Offset(x, GameConfig.playerHeight / 2 - 0.2),
+        Offset(x, GameConfig.playerHeight / 2 + 0.09),
+        line,
+      );
     }
-  }
-
-  void _drawArms(Canvas canvas) {
-    _limbPaint.strokeWidth = 0.065;
-    for (final side in const [-1.0, 1.0]) {
-      // Angles are measured from straight down; positive swings forward.
-      // Arms swing opposite to the leg on the same side.
-      final double swing = math.sin(_walkPhase + (side > 0 ? math.pi : 0));
-      double upper = 0.08 + _walkWeight * swing * 0.45;
-      double elbow = 0.20 + _walkWeight * 0.35 * (0.5 + 0.5 * swing);
-      // In the air the arms drift back and up a little, more on the way down.
-      upper = _mix(upper, -0.35 - _fallLean * 0.45 + side * 0.1, _airWeight);
-      elbow = _mix(elbow, 0.30, _airWeight);
-
-      final Offset shoulder = Offset(0.09 * side, _shoulderY + 0.03);
-      final Offset elbowPt = shoulder + _polar(math.pi / 2 - upper, _upperArm);
-      final Offset hand =
-          elbowPt + _polar(math.pi / 2 - upper - elbow, _foreArm);
-      canvas.drawLine(shoulder, elbowPt, _limbPaint);
-      canvas.drawLine(elbowPt, hand, _limbPaint);
+    line.color = const Color(0xFFFFB74D);
+    for (final target in rigFootTargets) {
+      canvas.drawCircle(
+        Offset(target.x - body.position.x, target.y - body.position.y),
+        0.04,
+        line,
+      );
     }
-  }
-
-  void _drawLegs(Canvas canvas) {
-    _limbPaint.strokeWidth = 0.085;
-    for (final side in const [-1.0, 1.0]) {
-      final double swing = math.sin(_walkPhase + (side > 0 ? 0 : math.pi));
-      // Standing: legs straight down, slightly apart. Running: thighs swing,
-      // and the knee folds as the leg comes through.
-      double thigh = 0.04 * side + _walkWeight * swing * 0.55;
-      final double lift =
-          0.5 + 0.5 * math.cos(_walkPhase + (side > 0 ? 0 : math.pi));
-      double knee = _walkWeight * 0.8 * lift * (swing > 0 ? 1 : 0.2);
-      // Airborne: legs trail a little, one ahead of the other, and straighten
-      // out into the fall so the landing is feet-first.
-      final double tuck = side > 0 ? 0.45 : -0.25;
-      thigh = _mix(thigh, tuck - _fallLean * 0.25, _airWeight);
-      final double airKnee =
-          (side > 0 ? 0.9 : 0.3) * (1 - _fallLean.clamp(0.0, 1.0) * 0.7);
-      knee = _mix(knee, airKnee, _airWeight);
-
-      final Offset hip = Offset(0.045 * side, _hipY + 0.02);
-      final Offset kneePt = hip + _polar(math.pi / 2 - thigh, _thigh);
-      final Offset foot = kneePt + _polar(math.pi / 2 - thigh + knee, _shin);
-      canvas.drawLine(hip, kneePt, _limbPaint);
-      canvas.drawLine(kneePt, foot, _limbPaint);
-      // A foot.
-      canvas.drawLine(foot, foot + const Offset(0.075, 0.0), _limbPaint);
+    final grip = interactions.gripWorld;
+    if (grip != null) {
+      canvas.drawCircle(
+        Offset(grip.x - body.position.x, grip.y - body.position.y),
+        0.05,
+        line,
+      );
     }
-  }
-
-  static Offset _polar(double angle, double length) =>
-      Offset(math.cos(angle) * length, math.sin(angle) * length);
-
-  static double _mix(double a, double b, double t) => a + (b - a) * t;
-}
-
-/// Counts how many solid things the player's feet are currently touching.
-///
-/// A counter rather than a boolean, because the feet can touch two things at
-/// once — the seam between two floor slabs, or a crate and the floor. If this
-/// were a boolean, stepping off one of the two would wrongly report the player
-/// as airborne.
-class GroundSensor with ContactCallbacks {
-  GroundSensor({required this.owner});
-
-  /// The player this sensor belongs to, used to filter out self-contacts.
-  final Player owner;
-
-  /// Note there is no `reset()`. An earlier version cleared this on respawn,
-  /// which looked defensive and was actually the source of a bug: the
-  /// dispatcher delivers *all* begin events before *all* end events, so a stale
-  /// end arriving in the same batch as the respawn's fresh begin cancelled it
-  /// out and left the player permanently unable to jump. Box2D pairs every
-  /// begin with an end, including across a teleport, so the count balances
-  /// itself if left alone.
-  int _contactCount = 0;
-
-  /// True while the feet are touching at least one solid thing.
-  bool get isOnGround => _contactCount > 0;
-
-  @override
-  void beginContact(Object other, Contact contact) {
-    if (!_isStandableSurface(other, contact)) {
-      return;
+    if (kDebugMode &&
+        (!body.position.x.isFinite || !body.position.y.isFinite)) {
+      debugPrint('Umbra physics: non-finite player transform in ${state.name}');
     }
-    _contactCount++;
   }
 
   @override
-  void endContact(Object other, Contact contact) {
-    if (!_isStandableSurface(other, contact)) {
-      return;
-    }
-    // Guard against underflow. Box2D pairs every begin with an end, so this
-    // should not trigger, but a stuck-airborne player is a miserable bug to
-    // chase and the guard is one line.
-    if (_contactCount > 0) {
-      _contactCount--;
-    }
-  }
-
-  /// Whether this contact is something the player can actually stand on.
-  ///
-  /// Two separate filters, both of which were found the hard way:
-  ///
-  /// 1. **Ignore our own player.** flame_forge2d gathers the userData of both
-  ///    bodies *and* both shapes in a contact, then notifies each
-  ///    [ContactCallbacks] once per other participant. This sensor lives on the
-  ///    player's own body, so every ground contact notifies us twice: once
-  ///    about the ground, once about the player who owns us. Without this,
-  ///    every increment is doubled.
-  ///
-  /// 2. **Ignore other sensors.** Sensors in Box2D v3 detect each other, so the
-  ///    hazard's trigger volume shows up here looking exactly like a floor.
-  ///    A trigger volume is not something you can stand on. This matters more
-  ///    with every step: the water zone in Step 4 is a sensor too, and without
-  ///    this filter the player would count as standing on solid ground the
-  ///    entire time they were swimming.
-  ///
-  /// For a sensor event the engine names one shape the sensor and the other the
-  /// visitor. If *we* are the sensor, the visitor is the thing we landed on and
-  /// it must be solid. If we are the visitor, then the other shape is by
-  /// definition a sensor, and we want nothing to do with it.
-  bool _isStandableSurface(Object other, Contact contact) {
-    if (identical(other, owner)) {
-      return false;
-    }
-    if (contact.isSensorEvent) {
-      // An end event can arrive after a shape has been destroyed, in which case
-      // there is nothing left to inspect.
-      if (!contact.isValid) {
-        return false;
-      }
-      if (contact.visitor.isSensor) {
-        return false;
-      }
-    }
-    return true;
+  void onRemove() {
+    interactions.dispose();
+    _ragdoll?.destroy();
+    super.onRemove();
   }
 }

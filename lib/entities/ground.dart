@@ -7,6 +7,7 @@ import 'package:flame/game.dart' show FlameGame;
 import 'package:flame_forge2d/flame_forge2d.dart';
 
 import '../config/palette.dart';
+import '../physics/collision_layers.dart';
 
 /// How a piece of ground is drawn. The physics is the same box either way.
 enum GroundStyle {
@@ -45,6 +46,8 @@ class Ground extends BodyComponent {
              // Half-extents, as always in Box2D.
              Polygon.box(size.x / 2, size.y / 2),
              ShapeDef(
+               filter: Filter(categoryBits: CollisionLayers.terrain),
+               material: SurfaceMaterial(friction: 0.7),
                // The player's foot sensor can only detect shapes that have
                // opted in to sensor events. Leaving this out is the single
                // most common reason a ground check "just doesn't work".
@@ -121,33 +124,21 @@ class Ground extends BodyComponent {
         return Path()..addRect(Rect.fromLTRB(-hw, -hh, hw, hh));
 
       case GroundStyle.log:
-        // A bar with rounded ends, fatter at one end, with a couple of stubs
-        // of broken branch so it is not just a pill.
-        final Path log = Path()
-          ..addRRect(
-            RRect.fromRectAndRadius(
-              Rect.fromLTRB(-hw, -hh, hw, hh),
-              Radius.circular(hh),
-            ),
-          )
-          ..addOval(
-            Rect.fromCircle(center: Offset(-hw + hh, 0), radius: hh * 1.25),
-          )
-          ..addOval(
-            Rect.fromCenter(
-              center: Offset(hw * 0.3, -hh * 0.9),
-              width: hh * 1.6,
-              height: hh * 1.2,
-            ),
-          )
-          ..addOval(
-            Rect.fromCenter(
-              center: Offset(-hw * 0.45, -hh * 1.1),
-              width: hh * 1.1,
-              height: hh * 1.6,
-            ),
-          );
-        return log;
+        // Keep the walking face on the collision top. Chips belong on the
+        // sides and underside; lumps above it made planted feet look buried.
+        return Path()
+          ..moveTo(-hw, -hh)
+          ..lineTo(hw, -hh)
+          ..lineTo(hw - 0.035, -hh * 0.2)
+          ..lineTo(hw, hh * 0.5)
+          ..lineTo(hw - 0.09, hh * 0.7)
+          ..lineTo(hw - 0.04, hh)
+          ..lineTo(hw * 0.25, hh * 0.85)
+          ..lineTo(-hw * 0.6, hh)
+          ..lineTo(-hw + 0.04, hh * 0.65)
+          ..lineTo(-hw, hh * 0.3)
+          ..lineTo(-hw + 0.025, -hh * 0.4)
+          ..close();
 
       case GroundStyle.earth:
         // Walk along the top edge with a couple of sine waves, seeded from the
