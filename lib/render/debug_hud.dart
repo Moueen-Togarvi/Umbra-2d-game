@@ -37,12 +37,12 @@ class DebugHud extends Component {
       final v = player.velocity;
       _text.text = TextSpan(
         text:
-            '${player.state.name}  |  preset ${player.presetIndex + 1}\n'
+            '${player.state.name}${player.isDead ? '  |  dead' : ''}\n'
             'ground ${player.isOnGround}  |  ${player.interactionLabel}\n'
             'vx ${v.x.toStringAsFixed(2)}  vy ${v.y.toStringAsFixed(2)} m/s\n'
             '${framesPerSecond().toStringAsFixed(1)} FPS  |  '
             'physics ${physicsMilliseconds().toStringAsFixed(2)} ms/tick\n'
-            'F1 debug  ·  Shift run  ·  E grab  ·  R reset  ·  K fall',
+            'F1 debug  ·  E grab  ·  S let go  ·  R reset  ·  K fall',
         style: const TextStyle(
           fontFamily: 'Roboto',
           color: Color(0xFF9EF4DD),
@@ -87,19 +87,17 @@ class _CanvasPhysicsDraw extends DebugDraw {
   final Paint _paint = Paint()
     ..style = PaintingStyle.stroke
     ..strokeWidth = 0.015;
-  final Path _path = Path();
   Paint _color(int color) => _paint..color = Color(0xD0000000 | color);
 
   @override
   void drawPolygon(List<Vector2> vertices, int color) {
     if (vertices.isEmpty) return;
-    _path.reset();
-    _path.moveTo(vertices.first.x, vertices.first.y);
+    // A new Path each time: on the web a drawn path is recorded by reference.
+    final path = Path()..moveTo(vertices.first.x, vertices.first.y);
     for (final p in vertices.skip(1)) {
-      _path.lineTo(p.x, p.y);
+      path.lineTo(p.x, p.y);
     }
-    _path.close();
-    canvas.drawPath(_path, _color(color));
+    canvas.drawPath(path..close(), _color(color));
   }
 
   @override

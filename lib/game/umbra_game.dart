@@ -12,10 +12,11 @@ import '../entities/player.dart';
 import '../input/keyboard_input.dart';
 import '../input/player_intent.dart';
 import '../input/touch_controls.dart';
-import '../render/six_areas_backdrop.dart';
 import '../render/debug_hud.dart';
+import '../render/fog_backdrop.dart';
 import '../render/foreground_overlay.dart';
 import '../world/checkpoint_service.dart';
+import '../world/death_sequence.dart';
 import '../world/level.dart';
 
 /// The root of the game.
@@ -32,7 +33,9 @@ import '../world/level.dart';
 /// also swaps in a viewfinder that understands the metres-to-pixels conversion,
 /// so the rest of the code can think purely in metres.
 class UmbraGame extends Forge2DGame with HasKeyboardHandlerComponents {
-  UmbraGame()
+  /// [debugTools] adds the on-screen development buttons; it defaults to
+  /// on only in `UMBRA_DEBUG` builds.
+  UmbraGame({this.debugTools = DebugHud.enabled})
     : super(
         // Gravity is handed to the physics world at construction. Positive y is
         // downwards in Flame's coordinate system.
@@ -47,6 +50,8 @@ class UmbraGame extends Forge2DGame with HasKeyboardHandlerComponents {
         metersToPixels: GameConfig.metersToPixels,
       );
 
+  final bool debugTools;
+
   /// The shared intent object that input writes to and the player reads from.
   final PlayerIntent _intent = PlayerIntent();
   final AmbientAudio _audio = AmbientAudio();
@@ -56,7 +61,11 @@ class UmbraGame extends Forge2DGame with HasKeyboardHandlerComponents {
   late final TouchControls _touchControls = TouchControls(
     _intent,
     debugVisible: () => _debugVisible,
+    debugTools: debugTools,
   );
+
+  /// Plays out a death: the limp body, the fade to black, the respawn.
+  late DeathSequence deathSequence;
 
   /// Respawn state. Created in [onLoad] so it can be replaced per level later.
   ///
@@ -70,6 +79,8 @@ class UmbraGame extends Forge2DGame with HasKeyboardHandlerComponents {
   /// Where the camera is heading. Kept separate from the camera's actual
   /// position so it can ease towards it.
   final Vector2 _cameraTarget = Vector2.zero();
+  double _cameraVelocityX = 0;
+  double _lookAhead = 0;
 
   static const double _simulationStep = 1 / 120;
   double _simulationAccumulator = 0;
@@ -112,6 +123,7 @@ class UmbraGame extends Forge2DGame with HasKeyboardHandlerComponents {
     );
 
     checkpoints = CheckpointService(initialCheckpoint: GameConfig.playerSpawn);
+    deathSequence = DeathSequence(checkpoints: checkpoints);
 
     // Start the camera on the spawn point so the first frame is not a pan.
     _cameraTarget.setFrom(
@@ -119,11 +131,14 @@ class UmbraGame extends Forge2DGame with HasKeyboardHandlerComponents {
     );
     camera.viewfinder.position = _cameraTarget.clone();
 
-    // The fog and silhouettes behind the world, and the lens in front of it.
-    if (_artLoaded) {
-      await camera.backdrop.add(SixAreasBackdrop(camera: camera));
-      await camera.viewport.add(ForegroundOverlay(camera: camera));
-    }
+    // The fog and forest behind the world; out-of-focus shapes and the lens
+    // in front of it; and the black the picture fades to when he dies.
+    await camera.backdrop.add(FogBackdrop(camera: camera));
+    await camera.viewport.addAll([
+      ForegroundFog(camera: camera),
+      ForegroundOverlay(camera: camera),
+      ScreenFade(camera: camera, blackness: () => deathSequence.blackness),
+    ]);
 
     // The keyboard listener lives on the game, not in the world: it is not a
     // thing in the room, it is a source of events. HasKeyboardHandlerComponents
@@ -162,24 +177,12 @@ class UmbraGame extends Forge2DGame with HasKeyboardHandlerComponents {
     );
   }
 
-  bool _artLoaded = false;
-
-  /// Everything the renderers pull from the image cache. The scenery's
-  /// files are derived from [GameConfig.scenery] so adding a prop there is
-  /// enough.
-  static final List<String> _art = [
-    'grain.png',
-    'props/grass_tall.png',
-    for (var i = 1; i <= 6; i++) 'backgrounds/area_0$i.png',
-  ];
-
+  /// The only bitmap the game draws: film grain. Everything else is
+  /// procedural. If it is missing the grain is simply left out.
   Future<void> _loadArt() async {
     try {
-      await Flame.images.loadAll(_art);
-      _artLoaded = true;
-    } catch (_) {
-      _artLoaded = false;
-    }
+      await Flame.images.load('grain.png');
+    } catch (_) {}
   }
 
   // ---------------------------------------------------------------------------
@@ -211,15 +214,10 @@ class UmbraGame extends Forge2DGame with HasKeyboardHandlerComponents {
         _debugVisible = !_debugVisible;
         currentPlayer.debugEnabled = _debugVisible;
       }
-      final preset = _intent.consumePresetRequest();
-      if (preset != null) {
-        currentPlayer.selectPreset(
-          preset < 0 ? (currentPlayer.presetIndex + 1) % 3 : preset,
-        );
-      }
       if (_intent.consumeResetRequest()) {
         _touchControls.clear();
         _intent.clear();
+        deathSequence.cancel();
         checkpoints.respawn(currentPlayer);
         _simulationAccumulator = 0;
       }
@@ -236,25 +234,59 @@ class UmbraGame extends Forge2DGame with HasKeyboardHandlerComponents {
     if (player == null || !player.isMounted) {
       return;
     }
+    deathSequence.update(frameDt, player);
 
-    final Vector2 ideal = _idealCameraFor(
-      player.cameraPosition,
-      player.facing *
-          (player.velocity.x.abs() / GameConfig.moveSpeedMetersPerSecond).clamp(
-            0.0,
-            1.0,
-          ),
-    );
+    // Lead the way he is running, easing the lead itself so a turn swings
+    // the view round instead of jerking it.
+    final double running =
+        (player.velocity.x.abs() / GameConfig.moveSpeedMetersPerSecond).clamp(
+          0.0,
+          1.0,
+        );
+    final double lead = player.isDead
+        ? 0
+        : player.facing * running * GameConfig.cameraLookAhead;
+    final double maxLeadChange = 3.0 * frameDt;
+    _lookAhead += (lead - _lookAhead).clamp(-maxLeadChange, maxLeadChange);
+
+    final Vector2 ideal = _idealCameraFor(player.cameraPosition, _lookAhead);
     final current = camera.viewfinder.position;
     // Ignore small vertical landing corrections and idle motion.
-    if ((ideal.x - current.x).abs() < 0.25) ideal.x = current.x;
     if ((ideal.y - current.y).abs() < 0.35) ideal.y = current.y;
     _cameraTarget.setFrom(_clampCamera(ideal));
 
-    // Exponential ease: a fixed fraction of the remaining distance per
-    // second, independent of frame rate.
+    // Horizontal: a critically damped spring, which starts and stops
+    // smoothly. Vertical: an exponential ease, a fixed fraction of the
+    // remaining distance per second.
+    final double nextX = _smoothDamp(
+      current.x,
+      _cameraTarget.x,
+      GameConfig.cameraHorizontalSmoothSeconds,
+      frameDt,
+    );
     final double t = 1 - math.exp(-GameConfig.cameraFollowSpeed * frameDt);
-    camera.viewfinder.position = current + (_cameraTarget - current) * t;
+    camera.viewfinder.position = Vector2(
+      nextX,
+      current.y + (_cameraTarget.y - current.y) * t,
+    );
+  }
+
+  /// Unity-style SmoothDamp: moves [current] towards [target] like a
+  /// critically damped spring that settles in about [smoothTime] seconds.
+  double _smoothDamp(
+    double current,
+    double target,
+    double smoothTime,
+    double dt,
+  ) {
+    if (dt <= 0) return current;
+    final double omega = 2 / smoothTime;
+    final double x = omega * dt;
+    final double decay = 1 / (1 + x + 0.48 * x * x + 0.235 * x * x * x);
+    final double change = current - target;
+    final double temp = (_cameraVelocityX + omega * change) * dt;
+    _cameraVelocityX = (_cameraVelocityX - omega * temp) * decay;
+    return target + (change + temp) * decay;
   }
 
   @override
@@ -277,9 +309,9 @@ class UmbraGame extends Forge2DGame with HasKeyboardHandlerComponents {
     super.onRemove();
   }
 
-  Vector2 _idealCameraFor(Vector2 playerPosition, double facing) {
+  Vector2 _idealCameraFor(Vector2 playerPosition, double lead) {
     return Vector2(
-      playerPosition.x + facing * GameConfig.cameraLookAhead,
+      playerPosition.x + lead,
       playerPosition.y - GameConfig.cameraLookUp,
     );
   }

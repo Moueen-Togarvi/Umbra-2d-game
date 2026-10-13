@@ -4,7 +4,6 @@ import 'package:flame_forge2d/flame_forge2d.dart';
 
 import '../config/game_config.dart';
 import '../physics/collision_layers.dart';
-import 'character_preset.dart';
 import 'character_rig.dart';
 
 enum RagdollPart {
@@ -42,7 +41,6 @@ class CharacterRagdoll {
     required World world,
     required CharacterRigPose pose,
     required Vector2 velocity,
-    CharacterPreset preset = CharacterPreset.raincoat,
     double totalMassKilograms = GameConfig.playerMassKilograms,
     Object? userData,
   }) {
@@ -120,10 +118,11 @@ class CharacterRagdoll {
         name: 'ragdoll-head',
       ),
     );
-    final double headRadius = h * 0.12;
+    // The big head is most of what makes him a child: heavy for his size.
+    final double headRadius = h * CharacterRig.headRadius * 0.92;
     head.createShape(
       Circle(radius: headRadius),
-      material(2.4, math.pi * headRadius * headRadius),
+      material(3.4, math.pi * headRadius * headRadius),
     );
     ragdoll.bodies[RagdollPart.head] = head;
     bind(RigJoint.head, head);
@@ -205,7 +204,7 @@ class CharacterRagdoll {
         front ? RagdollPart.frontUpperArm : RagdollPart.backUpperArm,
         pose[shoulder],
         pose[elbow],
-        h * 0.022,
+        h * 0.026,
         0.8,
       );
       final forearm = segment(
@@ -219,7 +218,7 @@ class CharacterRagdoll {
         front ? RagdollPart.frontThigh : RagdollPart.backThigh,
         pose[hip],
         pose[knee],
-        h * 0.028,
+        h * 0.036,
         1.6,
       );
       final shin = segment(
@@ -286,10 +285,8 @@ class CharacterRagdoll {
     },
     height: initialPose.height,
     facing: initialPose.facing,
-    preset: initialPose.preset,
     blink: true,
     headAngle: bodies[RagdollPart.head]!.angle,
-    lanternVisible: false,
     ragdoll: true,
   );
 

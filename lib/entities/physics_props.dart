@@ -67,35 +67,43 @@ class PhysicsCrate extends BodyComponent {
     return result;
   }
 
+  static final Paint _wood = Paint()..color = const Color(0xFF0A0A0A);
+  static final Paint _gap = Paint()..color = const Color(0x2EBDBDBD);
+  static final Paint _iron = Paint()..color = const Color(0xFF050505);
+
   @override
   void render(Canvas canvas) {
-    final rect = Rect.fromCenter(
-      center: Offset.zero,
-      width: size.x,
-      height: size.y,
-    );
+    // A slatted wooden crate: horizontal planks with thin gaps the fog shows
+    // through, nailed to corner posts. The heavy one is banded with iron.
+    final double hw = size.x / 2, hh = size.y / 2;
+    final rect = Rect.fromLTRB(-hw, -hh, hw, hh);
     canvas.drawRRect(
-      RRect.fromRectAndRadius(rect, const Radius.circular(0.035)),
-      Paint()..color = const Color(0xFF090909),
+      RRect.fromRectAndRadius(rect, const Radius.circular(0.02)),
+      _wood,
     );
-    final seam = Paint()
-      ..color = const Color(0xFF303030)
-      ..strokeWidth = 0.025
-      ..strokeCap = StrokeCap.round;
-    final inset = rect.deflate(0.07);
-    canvas.drawLine(inset.topLeft, inset.bottomRight, seam);
-    canvas.drawLine(inset.bottomLeft, inset.topRight, seam);
+    final int planks = math.max(3, (size.y / 0.16).round());
+    final double post = math.min(0.085, size.x * 0.12);
+    for (var i = 1; i < planks; i++) {
+      final double y = -hh + i * size.y / planks;
+      // Gaps run between the posts, slightly uneven like hand-cut boards.
+      final double wobble = ((i * 37) % 7 - 3) * 0.0025;
+      canvas.drawRect(
+        Rect.fromLTRB(-hw + post, y - 0.007 + wobble, hw - post, y + 0.006),
+        _gap,
+      );
+    }
+    // Knot holes and a split board, so it is wood and not a grille.
+    canvas.drawCircle(Offset(hw * 0.35, -hh * 0.15), 0.012, _gap);
     canvas.drawRect(
-      inset,
-      Paint()
-        ..color = const Color(0xFF232323)
-        ..strokeWidth = 0.02
-        ..style = PaintingStyle.stroke,
+      Rect.fromLTRB(-hw * 0.2, hh * 0.55, hw * 0.25, hh * 0.55 + 0.005),
+      _gap,
     );
-    // Metal bands distinguish the heavy crate without a HUD label.
     if (massKg >= 25) {
-      for (final x in [-size.x * 0.31, size.x * 0.31]) {
-        canvas.drawLine(Offset(x, rect.top), Offset(x, rect.bottom), seam);
+      for (final x in [-hw * 0.45, hw * 0.45]) {
+        canvas.drawRect(Rect.fromLTRB(x - 0.03, -hh, x + 0.03, hh), _iron);
+        for (final y in [-hh * 0.8, 0.0, hh * 0.8]) {
+          canvas.drawCircle(Offset(x, y), 0.009, _gap);
+        }
       }
     }
   }
@@ -152,23 +160,34 @@ class MovingPlatform extends BodyComponent {
         : delta * (math.min(speed, distance / dt) / distance);
   }
 
+  static final Paint _board = Paint()..color = const Color(0xFF0A0A0A);
+  static final Paint _seam = Paint()..color = const Color(0x24BDBDBD);
+  static final Paint _rope = Paint()
+    ..color = const Color(0xFF101010)
+    ..strokeWidth = 0.028
+    ..strokeCap = StrokeCap.round;
+
   @override
   void render(Canvas canvas) {
+    // Rough planks lashed side by side, hung from two ropes that run up out
+    // of the picture to whatever winds them.
+    final double hw = size.x / 2, hh = size.y / 2;
+    for (final x in [-hw + 0.12, hw - 0.12]) {
+      canvas.drawLine(Offset(x, -hh), Offset(x * 0.7, -hh - 14), _rope);
+    }
     canvas.drawRRect(
       RRect.fromRectAndRadius(
-        Rect.fromCenter(center: Offset.zero, width: size.x, height: size.y),
-        const Radius.circular(0.035),
+        Rect.fromLTRB(-hw, -hh, hw, hh),
+        const Radius.circular(0.02),
       ),
-      Paint()..color = const Color(0xFF111111),
+      _board,
     );
-    final rim = Paint()
-      ..color = const Color(0xFF444444)
-      ..strokeWidth = 0.025;
-    canvas.drawLine(
-      Offset(-size.x / 2, -size.y / 2),
-      Offset(size.x / 2, -size.y / 2),
-      rim,
-    );
+    for (double x = -hw + 0.3; x < hw - 0.1; x += 0.3) {
+      canvas.drawRect(
+        Rect.fromLTRB(x - 0.004, -hh + 0.03, x + 0.004, hh),
+        _seam,
+      );
+    }
   }
 }
 
@@ -249,19 +268,29 @@ class SwingRope extends BodyComponent {
       Paint()..color = const Color(0xFF606060),
     );
     final end = bob.position - body.position;
-    canvas.drawLine(
-      Offset.zero,
-      Offset(end.x, end.y),
-      Paint()
-        ..color = const Color(0xFF272727)
-        ..strokeWidth = 0.035
-        ..strokeCap = StrokeCap.round,
-    );
-    canvas.drawCircle(
-      Offset(end.x, end.y),
-      0.085,
-      Paint()..color = const Color(0xFF171717),
-    );
+    final rope = Paint()
+      ..color = const Color(0xFF181818)
+      ..strokeWidth = 0.032
+      ..strokeCap = StrokeCap.round;
+    canvas.drawLine(Offset.zero, Offset(end.x, end.y), rope);
+    // A knot and a frayed end below it, rather than a ball.
+    final double length = end.length;
+    if (length > 0) {
+      final Offset dir = Offset(end.x / length, end.y / length);
+      final Offset knot = Offset(end.x, end.y);
+      canvas.drawCircle(knot, 0.03, Paint()..color = const Color(0xFF181818));
+      rope.strokeWidth = 0.012;
+      for (final splay in const [-0.25, 0.0, 0.3]) {
+        final Offset tip =
+            knot +
+            Offset(
+                  dir.dx * math.cos(splay) - dir.dy * math.sin(splay),
+                  dir.dx * math.sin(splay) + dir.dy * math.cos(splay),
+                ) *
+                0.09;
+        canvas.drawLine(knot, tip, rope);
+      }
+    }
   }
 
   @override

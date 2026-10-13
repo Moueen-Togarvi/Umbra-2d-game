@@ -5,18 +5,25 @@ import 'package:flame_forge2d/flame_forge2d.dart';
 import 'package:flutter/foundation.dart';
 
 import '../character/character_interactions.dart';
-import '../character/character_preset.dart';
 import '../character/character_ragdoll.dart';
+import '../character/character_rig.dart' show Gait;
 import '../character/character_state.dart';
 import '../character/foot_placement.dart';
+import '../character/ground_probe.dart';
+import '../character/leg_physics.dart';
 import '../config/game_config.dart';
 import '../config/palette.dart';
 import '../input/player_intent.dart';
 import '../physics/collision_layers.dart';
-import '../render/raincoat_silhouette.dart';
+import '../render/character_silhouette.dart';
 
 /// One stable capsule owns locomotion. Constraint interactions may take over;
 /// ragdoll explicitly disables the capsule until safe recovery has completed.
+///
+/// The controller is tuned to LIMBO's boy: one running speed, a fixed-height
+/// jump, ledges and ropes caught by themselves, and a body that simply goes
+/// limp when it falls too far or is hit too hard. Death is permanent until
+/// the [DeathSequence] fades out and puts him back at the checkpoint.
 class Player extends BodyComponent {
   Player({required this._intent, required Vector2 spawnPosition})
     : _spawnPosition = spawnPosition.clone(),
@@ -27,20 +34,29 @@ class Player extends BodyComponent {
   final Vector2 _spawnPosition;
   final Vector2 _lastPosition;
   final FootPlacement _feet = FootPlacement();
-  RaincoatSilhouette _figure = RaincoatSilhouette(
+  final LegPhysics _legs = LegPhysics(height: GameConfig.playerHeight);
+
+  /// The pose last solved and run through the leg physics, in world metres.
+  /// Drawn as is, and handed to the ragdoll when he goes limp.
+  CharacterRigPose? _drawnPose;
+
+  /// The pelvis rides on a spring: landings and footstrikes push it down,
+  /// the legs fold under it, and it springs back. Metres, positive down.
+  double _pelvisDrop = 0;
+  double _pelvisSpeed = 0;
+  List<bool> _wasPlanted = const [true, true];
+  final CharacterSilhouette _figure = CharacterSilhouette(
     height: GameConfig.playerHeight,
   );
-  CharacterPreset _preset = CharacterPreset.raincoat;
   CharacterRagdoll? _ragdoll;
   CharacterRigPose? _recoveryPose;
   double _recoveryTime = 0;
   late CharacterInteractions interactions;
-  late Shape _capsule;
-  bool _crouched = false;
-  double _crouchWeight = 0;
 
   CharacterState state = CharacterState.idle;
   bool debugEnabled = false;
+  bool _dead = false;
+  double _deadSeconds = 0;
   bool _grounded = false;
   double _supportSlope = 0;
   double _supportY = 0;
@@ -49,16 +65,19 @@ class Player extends BodyComponent {
   double _timeSinceJumpPressed = double.infinity;
   double _anticipationTime = 0;
   bool _jumping = false;
-  bool _jumpCutApplied = false;
   double _facing = 1;
-  double _walkPhase = 0;
-  double _walkWeight = 0;
-  double _runWeight = 0;
+  double _turn = 1;
+  double _gaitPhase = 0;
+  double _gaitWeight = 0;
   double _airWeight = 0;
   double _fallLean = 0;
   double _bodyLean = 0;
   double _landing = 0;
+  double _hardLanding = 0;
+  double _hardLandingHold = 0;
   double _takeoff = 0;
+  double _pushWeight = 0;
+  double _hairSway = 0;
   double _previousVerticalSpeed = 0;
   double _time = 0;
   double _nextBlinkAt = 2.5;
@@ -68,17 +87,27 @@ class Player extends BodyComponent {
 
   bool get isOnGround => _grounded;
   double get facing => _facing;
-  int get presetIndex => _preset.index;
   bool get isRagdoll => _ragdoll != null;
+
+  /// True from the moment the body goes limp until the checkpoint respawn.
+  bool get isDead => _dead;
+
+  /// How long the body has been lying still, for the death sequence.
+  double get deadSeconds => _deadSeconds;
   Vector2 get velocity => _ragdoll?.velocity ?? body.linearVelocity;
   Vector2 get cameraPosition => _ragdoll?.pelvisPosition ?? body.position;
   String get interactionLabel => interactions.mode.name;
   List<Vector2> get rigFootTargets => _feet.targets;
+
+  /// Whether each foot (front, back) is planted rather than swinging.
+  List<bool> get rigFeetPlanted => _feet.planted;
   CharacterRigPose get rigPoseWorld =>
-      _ragdoll?.pose ?? _figure.solve(_pose).translated(body.position);
-  bool get isCrouching => _crouched;
-  double get strideMeters =>
-      GameConfig.walkStrideMeters * (0.73 + _runWeight * 0.27);
+      _ragdoll?.pose ??
+      _drawnPose ??
+      _figure.solve(_pose).translated(body.position);
+
+  /// How far the pelvis spring is compressed, metres.
+  double get pelvisDrop => _pelvisDrop;
 
   @override
   Body createBody() {
@@ -92,20 +121,14 @@ class Player extends BodyComponent {
         userData: this,
       ),
     );
-    _capsule = _createCapsule(playerBody);
-    return playerBody;
-  }
-
-  Shape _createCapsule(Body target) {
     const radius = GameConfig.playerWidth / 2;
     const halfHeight = GameConfig.playerHeight / 2;
-    final height =
-        GameConfig.playerHeight *
-        (_crouched ? GameConfig.crouchHeightRatio : 1);
-    final area = 2 * radius * (height - 2 * radius) + math.pi * radius * radius;
-    return target.createShape(
+    const area =
+        2 * radius * (GameConfig.playerHeight - 2 * radius) +
+        math.pi * radius * radius;
+    playerBody.createShape(
       Capsule(
-        center1: Vector2(0, halfHeight - height + radius),
+        center1: Vector2(0, -halfHeight + radius),
         center2: Vector2(0, halfHeight - radius),
         radius: radius,
       ),
@@ -121,6 +144,7 @@ class Player extends BodyComponent {
         enableHitEvents: true,
       ),
     );
+    return playerBody;
   }
 
   @override
@@ -171,8 +195,12 @@ class Player extends BodyComponent {
       if (kDebugMode) debugPrint('Umbra physics: invalid player body handle');
       return;
     }
-    if (_intent.consumeKnockdownRequest() && _ragdoll == null) knockDown();
+    _time += dt;
+    if (_intent.consumeKnockdownRequest() && _ragdoll == null && !_dead) {
+      knockDown();
+    }
     if (_ragdoll != null) {
+      if (_dead) _deadSeconds += dt;
       _updateRagdoll(dt);
       _intent.consumeJumpRequest();
       _intent.consumeInteractRequest();
@@ -188,6 +216,7 @@ class Player extends BodyComponent {
         _recoveryPose = null;
         body.isEnabled = true;
         _feet.reset();
+        _legs.reset();
       }
       return;
     }
@@ -203,24 +232,32 @@ class Player extends BodyComponent {
       _supportVelocity = support.shape.body.linearVelocity;
     }
     if (_grounded && !wasGrounded) {
-      _landing = (_previousVerticalSpeed / 8).clamp(0.0, 1.0);
+      final impact = _previousVerticalSpeed - _supportVelocity.y;
       _jumping = false;
-      if (_previousVerticalSpeed > GameConfig.knockdownImpactSpeed) {
-        knockDown();
+      if (impact > GameConfig.deathImpactSpeed) {
+        die();
         return;
       }
+      if (impact > GameConfig.hardLandingSpeed) {
+        _hardLanding = 1;
+        _hardLandingHold = GameConfig.hardLandingSeconds;
+      } else {
+        _landing = (impact / 7).clamp(0.0, 1.0);
+      }
+      // The landing's real speed goes into the pelvis spring: the body
+      // keeps sinking for a moment and the knees fold to catch it.
+      _pelvisSpeed += impact.clamp(0.0, GameConfig.deathImpactSpeed) * 0.3;
     }
     for (final hit in world.physicsWorld.contactEvents.hit) {
-      if (hit.approachSpeed > GameConfig.knockdownImpactSpeed &&
+      if (hit.approachSpeed > GameConfig.deathImpactSpeed &&
           hit.shapeA.isValid &&
           hit.shapeB.isValid &&
           (hit.shapeA.body == body || hit.shapeB.body == body)) {
-        knockDown();
+        die();
         return;
       }
     }
 
-    _updateCrouch();
     final jumpPressed = _intent.consumeJumpRequest();
     final interactPressed = _intent.consumeInteractRequest();
     _intent.consumeInteractRelease();
@@ -232,7 +269,7 @@ class Player extends BodyComponent {
       interactPressed: interactPressed,
       interactHeld: _intent.isInteractHeld,
       jumpPressed: jumpPressed,
-      crouchHeld: _intent.isCrouchHeld,
+      downHeld: _intent.isDownHeld,
     );
     if (interactions.controlsMotion) {
       _grounded = false;
@@ -241,19 +278,20 @@ class Player extends BodyComponent {
       _anticipationTime = 0;
       _animate(dt, measuredVelocity);
       _selectState();
+      _simulateLegs(dt);
+      _previousVerticalSpeed = body.linearVelocity.y;
       return;
     }
     _timeSinceGrounded = _grounded ? 0 : _timeSinceGrounded + dt;
     _timeSinceJumpPressed = jumpPressed && !interactions.releasedThisStep
         ? 0
         : _timeSinceJumpPressed + dt;
+    _hardLandingHold = math.max(0, _hardLandingHold - dt);
 
     final axis = _intent.horizontalAxis;
-    final speed = _crouched
-        ? GameConfig.crouchSpeedMetersPerSecond
-        : (_intent.isRunHeld
-              ? GameConfig.moveSpeedMetersPerSecond
-              : GameConfig.walkSpeedMetersPerSecond);
+    // A long drop folds the knees: he stays down for a moment, then runs on.
+    final double held = _hardLandingHold > 0 ? 0.15 : 1;
+    final speed = GameConfig.moveSpeedMetersPerSecond * held;
     final surfaceScale = _grounded
         ? 1 / math.sqrt(1 + _supportSlope * _supportSlope)
         : 1.0;
@@ -298,19 +336,6 @@ class Player extends BodyComponent {
         ),
       );
     }
-    if (_jumping &&
-        !_intent.isJumpHeld &&
-        !_jumpCutApplied &&
-        body.linearVelocity.y < 0) {
-      body.linearVelocity = Vector2(
-        body.linearVelocity.x,
-        math.max(
-          body.linearVelocity.y,
-          -GameConfig.jumpTakeoffSpeed * GameConfig.jumpReleaseSpeedFactor,
-        ),
-      );
-      _jumpCutApplied = true;
-    }
 
     if (_anticipationTime > 0) {
       _anticipationTime -= dt;
@@ -318,14 +343,49 @@ class Player extends BodyComponent {
     } else if (_timeSinceJumpPressed <= GameConfig.jumpBufferSeconds &&
         _timeSinceGrounded <= GameConfig.coyoteTimeSeconds &&
         !_jumping &&
-        !_crouched) {
+        _hardLandingHold <= 0) {
       _anticipationTime = GameConfig.jumpAnticipationSeconds;
       _timeSinceJumpPressed = double.infinity;
     }
 
     _animate(dt, measuredVelocity);
     _selectState();
+    _simulateLegs(dt);
     _previousVerticalSpeed = body.linearVelocity.y;
+  }
+
+  /// One step of the visual body's physics: the pelvis spring, then the
+  /// legs, which hang from the solved hips and stand on the real ground.
+  void _simulateLegs(double dt) {
+    // A footstrike while running gives the spring a small kick.
+    final planted = _feet.planted;
+    for (var i = 0; i < 2; i++) {
+      if (_grounded && planted[i] && !_wasPlanted[i]) {
+        _pelvisSpeed += 0.22 * _gaitWeight;
+      }
+    }
+    _wasPlanted = planted;
+    // About 3.3 Hz, a little under critically damped: one soft dip and
+    // a barely visible rebound.
+    const double stiffness = 420, damping = 24;
+    _pelvisSpeed += (-stiffness * _pelvisDrop - damping * _pelvisSpeed) * dt;
+    _pelvisDrop = (_pelvisDrop + _pelvisSpeed * dt).clamp(-0.01, 0.30);
+
+    final modes =
+        interactions.mode == InteractionMode.hanging ||
+            interactions.mode == InteractionMode.swinging
+        ? const [LegMode.hang, LegMode.hang]
+        : !_grounded
+        ? const [LegMode.air, LegMode.air]
+        : [for (final p in planted) p ? LegMode.planted : LegMode.swing];
+    _drawnPose = _legs.step(
+      dt: dt,
+      target: _figure.solve(_pose).translated(body.position),
+      modes: modes,
+      ground: (x, fromY, depth) =>
+          probeGround(world, x, fromY, depth, ignore: body),
+      gravity: GameConfig.gravityMetersPerSecondSquared,
+    );
   }
 
   void _launchJump() {
@@ -340,45 +400,9 @@ class Player extends BodyComponent {
     );
     _grounded = false;
     _jumping = true;
-    _jumpCutApplied = false;
     _takeoff = 1;
     _timeSinceGrounded = double.infinity;
     _feet.reset();
-  }
-
-  void _updateCrouch() {
-    final desired = _intent.isCrouchHeld && _grounded;
-    if (desired == _crouched) return;
-    if (!desired && !_standingClear()) return;
-    _crouched = desired;
-    _capsule.destroy();
-    _capsule = _createCapsule(body);
-  }
-
-  bool _standingClear() {
-    final top = body.position.y - GameConfig.playerHeight / 2;
-    final currentTop =
-        body.position.y +
-        GameConfig.playerHeight / 2 -
-        GameConfig.playerHeight * GameConfig.crouchHeightRatio;
-    var clear = true;
-    for (final x in [
-      -GameConfig.playerWidth * 0.4,
-      0.0,
-      GameConfig.playerWidth * 0.4,
-    ]) {
-      world.castRay(
-        Vector2(body.position.x + x, currentTop + 0.02),
-        Vector2(0, top - currentTop - 0.04),
-        (hit) {
-          if (hit.shape.body == body || hit.shape.isSensor) return -1;
-          clear = false;
-          return 0;
-        },
-        filter: QueryFilter(maskBits: CollisionLayers.solid),
-      );
-    }
-    return clear;
   }
 
   bool _recoverySpaceClear() {
@@ -404,8 +428,6 @@ class Player extends BodyComponent {
   }
 
   void _animate(double dt, Vector2 measuredVelocity) {
-    _time += dt;
-    RaincoatSilhouette.tick(dt);
     _gripWeight = _approach(
       _gripWeight,
       interactions.gripWorld == null ? 0 : 1,
@@ -422,6 +444,7 @@ class Player extends BodyComponent {
         travelled - (_grounded ? _supportVelocity * dt : Vector2.zero());
     _actualSpeed = relativeTravel.x / dt;
     final pulling = interactions.mode == InteractionMode.pulling;
+    final previousFacing = _facing;
     if (interactions.facingOverride != null) {
       _facing = interactions.facingOverride!;
     } else if (!pulling && _actualSpeed.abs() > 0.18) {
@@ -431,50 +454,80 @@ class Player extends BodyComponent {
         _intent.horizontalAxis != 0) {
       _facing = _intent.horizontalAxis.sign;
     }
-    final walking = _grounded && _actualSpeed.abs() > 0.12;
-    _runWeight = _approach(
-      _runWeight,
-      ((_actualSpeed.abs() - GameConfig.walkSpeedMetersPerSecond) /
-              (GameConfig.moveSpeedMetersPerSecond -
-                  GameConfig.walkSpeedMetersPerSecond))
-          .clamp(0.0, 1.0),
-      dt * 5,
-    );
-    if (walking) {
-      _walkPhase += relativeTravel.length * (2 * math.pi / strideMeters);
+    // Turning round is a quick pivot through side-on, not a mirror flip.
+    if (_facing != previousFacing) {
+      _turn = 0;
+      _legs.reset();
     }
-    final walkTarget = walking
-        ? (_actualSpeed.abs() / GameConfig.walkSpeedMetersPerSecond).clamp(
+    _turn = math.min(1, _turn + dt / 0.11);
+
+    final moving = _grounded && _actualSpeed.abs() > 0.12;
+    final bool bracing =
+        interactions.mode == InteractionMode.pushing ||
+        interactions.mode == InteractionMode.pulling;
+    if (moving) {
+      _gaitPhase +=
+          relativeTravel.length *
+          (2 *
+              math.pi /
+              (Gait.strideMeters(_actualSpeed) *
+                  FootPlacement.strideScale(bracing)));
+    }
+    final gaitTarget = moving
+        ? (_actualSpeed.abs() / GameConfig.moveSpeedMetersPerSecond).clamp(
             0.0,
             1.0,
           )
         : 0.0;
-    _walkWeight = _approach(_walkWeight, walkTarget, dt * 9);
+    _gaitWeight = _approach(_gaitWeight, gaitTarget, dt * 7);
+    _pushWeight = _approach(
+      _pushWeight,
+      interactions.mode == InteractionMode.pushing ||
+              interactions.mode == InteractionMode.pulling
+          ? 1
+          : 0,
+      dt * 6,
+    );
     _airWeight = _approach(_airWeight, _grounded ? 0 : 1, dt * 12);
     _fallLean = _approach(
       _fallLean,
-      (body.linearVelocity.y / 7).clamp(-1.0, 1.0),
+      (body.linearVelocity.y / 6).clamp(-1.0, 1.0),
       dt * 8,
     );
     final acceleration = (body.linearVelocity.x - measuredVelocity.x) / dt;
-    _bodyLean = _approach(
-      _bodyLean,
-      (acceleration * _facing / 80).clamp(-0.08, 0.10),
-      dt * 0.8,
+    // Lean into a start and back against a skid. Braking without input is
+    // a sharper lean back, held briefly, as the feet dig in.
+    final braking =
+        _grounded &&
+        _intent.horizontalAxis == 0 &&
+        _actualSpeed.abs() > 1.0 &&
+        !interactions.controlsMotion;
+    final leanTarget = braking
+        ? -0.16
+        : (acceleration * _facing / 70).clamp(-0.10, 0.12);
+    _bodyLean = _approach(_bodyLean, leanTarget, dt * (braking ? 2.4 : 0.9));
+    _hairSway = _approach(
+      _hairSway,
+      (-acceleration * _facing / 300).clamp(-0.025, 0.025) +
+          _gaitWeight * 0.012,
+      dt * 0.4,
     );
-    _crouchWeight = _approach(_crouchWeight, _crouched ? 1 : 0, dt * 8);
     _landing = math.max(0, _landing - dt * 5);
+    _hardLanding = _hardLandingHold > 0
+        ? 1
+        : math.max(0, _hardLanding - dt * 3.2);
     _takeoff = math.max(0, _takeoff - dt * 10);
     _feet.update(
       world: world,
       body: body,
       height: GameConfig.playerHeight,
-      phase: _walkPhase,
-      stride: strideMeters,
+      phase: _gaitPhase,
+      gait: _gaitWeight,
       facing: _facing,
       grounded: _grounded,
       speed: _actualSpeed,
       dt: dt,
+      bracing: bracing,
     );
     if (_blinkRemaining > 0) {
       _blinkRemaining -= dt;
@@ -508,38 +561,37 @@ class Player extends BodyComponent {
           : body.linearVelocity.y < 0
           ? CharacterState.jumpAscending
           : CharacterState.falling;
-    } else if (_crouched) {
-      state = CharacterState.crouching;
-    } else if (_landing > 0.2) {
+    } else if (_landing > 0.2 || _hardLandingHold > 0) {
       state = CharacterState.landing;
     } else if (_intent.horizontalAxis != 0 &&
         _actualSpeed * _intent.horizontalAxis < -0.1) {
       state = CharacterState.turning;
     } else if (_intent.horizontalAxis == 0 && _actualSpeed.abs() > 0.1) {
       state = CharacterState.stopping;
-    } else if (_intent.horizontalAxis != 0 && _actualSpeed.abs() < 0.6) {
+    } else if (_intent.horizontalAxis != 0 &&
+        _actualSpeed.abs() < GameConfig.moveSpeedMetersPerSecond * 0.6) {
       state = CharacterState.starting;
     } else if (_actualSpeed.abs() < 0.12) {
       state = CharacterState.idle;
     } else {
-      state = _runWeight > 0.35
-          ? CharacterState.running
-          : CharacterState.walking;
+      state = CharacterState.running;
     }
   }
 
-  RaincoatPose get _pose {
+  CharacterPose get _pose {
     Offset local(Vector2 point) => Offset(
       (point.x - body.position.x) * _facing / GameConfig.playerHeight,
       (point.y - body.position.y) / GameConfig.playerHeight,
     );
     final targets = _feet.targets;
+    final normals = _feet.normals;
+    final rolls = _feet.rolls;
+    Offset localNormal(Vector2 n) => Offset(n.x * _facing, n.y);
     final grip = interactions.gripWorld;
-    return RaincoatPose(
+    return CharacterPose(
       facing: _facing,
-      walkPhase: _walkPhase,
-      walk: _walkWeight,
-      run: _runWeight,
+      gaitPhase: _gaitPhase,
+      gait: _gaitWeight,
       air: _grounded ? 0 : _airWeight,
       fallLean: _fallLean,
       blink: _blinkRemaining > 0,
@@ -548,28 +600,53 @@ class Player extends BodyComponent {
           : 0.5,
       groundSlope: _grounded ? _supportSlope * _facing : 0,
       landing: _landing,
+      hardLanding: _hardLanding,
       takeoff: _takeoff,
       bodyLean: _bodyLean,
+      push: _pushWeight,
       anticipation: _anticipationTime > 0 ? 1 : 0,
-      crouch: _crouchWeight,
-      hanging: interactions.controlsMotion ? 1 : 0,
+      hanging:
+          interactions.mode == InteractionMode.hanging ||
+              interactions.mode == InteractionMode.swinging
+          ? 1
+          : 0,
+      hangLow: interactions.mode == InteractionMode.swinging ? 1 : 0,
+      clock: _time,
+      pelvisDrop: _pelvisDrop / GameConfig.playerHeight,
       frontFoot: _grounded ? local(targets[0]) : null,
       backFoot: _grounded ? local(targets[1]) : null,
+      frontFootNormal: _grounded ? localNormal(normals[0]) : null,
+      backFootNormal: _grounded ? localNormal(normals[1]) : null,
+      frontRoll: _grounded ? rolls[0] : 0,
+      backRoll: _grounded ? rolls[1] : 0,
       frontHand: grip == null ? null : local(grip),
       backHand: grip == null ? null : local(grip + Vector2(0, 0.02)),
       interactionWeight: _gripWeight,
     );
   }
 
+  /// The body goes limp, for good. Used by spikes, long falls and heavy hits.
+  void die() {
+    if (_dead) return;
+    _dead = true;
+    _deadSeconds = 0;
+    if (_recoveryPose != null) {
+      _recoveryPose = null;
+      body.isEnabled = true;
+    }
+    if (_ragdoll == null) knockDown();
+  }
+
+  /// Hands motion to the articulated ragdoll. Unless dead, the controller
+  /// takes back over once the body comes to rest somewhere he can stand.
   void knockDown() {
     if (_ragdoll != null || _recoveryPose != null) return;
     interactions.release();
-    final rig = _figure.solve(_pose).translated(body.position);
+    final rig = rigPoseWorld;
     _ragdoll = CharacterRagdoll.activate(
       world: world.physicsWorld,
       pose: rig,
       velocity: body.linearVelocity,
-      preset: _preset,
       userData: this,
     );
     body.isEnabled = false;
@@ -582,7 +659,7 @@ class Player extends BodyComponent {
     final ragdoll = _ragdoll!;
     ragdoll.update(dt);
     state = CharacterState.ragdoll;
-    if (!ragdoll.isStable) return;
+    if (_dead || !ragdoll.isStable) return;
     final recovery = ragdoll.recoveryPosition(
       capsuleHeight: GameConfig.playerHeight,
       capsuleWidth: GameConfig.playerWidth,
@@ -595,15 +672,10 @@ class Player extends BodyComponent {
     body.setTransform(recovery, const Rot.identity());
     body.linearVelocity = Vector2.zero();
     _lastPosition.setFrom(recovery);
-    _walkWeight = 0;
+    _gaitWeight = 0;
     _airWeight = 0;
     _landing = 0;
-    _crouchWeight = 0;
-    if (_crouched) {
-      _crouched = false;
-      _capsule.destroy();
-      _capsule = _createCapsule(body);
-    }
+    _hardLanding = 0;
     _grounded = true;
     _supportY = recovery.y + GameConfig.playerHeight / 2;
     _supportSlope = 0;
@@ -613,27 +685,13 @@ class Player extends BodyComponent {
       body: body,
       height: GameConfig.playerHeight,
       phase: 0,
-      stride: strideMeters,
+      gait: 0,
       facing: _facing,
       grounded: true,
       speed: 0,
       dt: dt,
     );
     state = CharacterState.recovering;
-  }
-
-  void selectPreset(int index) {
-    if (index < 0 ||
-        index >= CharacterPreset.values.length ||
-        isRagdoll ||
-        _recoveryPose != null) {
-      return;
-    }
-    _preset = CharacterPreset.values[index];
-    _figure = RaincoatSilhouette(
-      height: GameConfig.playerHeight,
-      preset: _preset,
-    );
   }
 
   static double _approach(double value, double target, double step) =>
@@ -646,30 +704,33 @@ class Player extends BodyComponent {
     _ragdoll?.destroy();
     _ragdoll = null;
     _recoveryPose = null;
+    _dead = false;
+    _deadSeconds = 0;
     body.isEnabled = true;
     body.setTransform(position, const Rot.identity());
     body.linearVelocity = Vector2.zero();
     body.angularVelocity = 0;
     _lastPosition.setFrom(position);
     _feet.reset();
+    _legs.reset();
+    _drawnPose = null;
+    _pelvisDrop = 0;
+    _pelvisSpeed = 0;
     _grounded = false;
     _jumping = false;
-    _jumpCutApplied = false;
     _timeSinceGrounded = double.infinity;
     _timeSinceJumpPressed = double.infinity;
-    _walkWeight = 0;
+    _gaitWeight = 0;
     _airWeight = 0;
     _landing = 0;
+    _hardLanding = 0;
+    _hardLandingHold = 0;
     _takeoff = 0;
     _anticipationTime = 0;
     _gripWeight = 0;
     _bodyLean = 0;
-    _crouchWeight = 0;
-    if (_crouched) {
-      _crouched = false;
-      _capsule.destroy();
-      _capsule = _createCapsule(body);
-    }
+    _pushWeight = 0;
+    _turn = 1;
     _previousVerticalSpeed = 0;
     state = CharacterState.idle;
   }
@@ -689,17 +750,21 @@ class Player extends BodyComponent {
         from.lerp(_figure.solve(_pose), t * t * (3 - 2 * t)),
       );
     } else {
-      if (_grounded) {
-        canvas.drawOval(
-          Rect.fromCenter(
-            center: Offset(0, _supportY - body.position.y + 0.01),
-            width: 0.52,
-            height: 0.07,
-          ),
-          Paint()..color = const Color(0x55000000),
-        );
+      canvas.save();
+      if (_turn < 1) {
+        final t = _turn * _turn * (3 - 2 * _turn);
+        canvas.scale(0.3 + 0.7 * t, 1);
       }
-      _figure.draw(canvas, _pose);
+      final drawn = _drawnPose;
+      if (drawn != null) {
+        // The simulated pose is in world metres; this canvas is centred on
+        // the body.
+        canvas.translate(-body.position.x, -body.position.y);
+        _figure.drawRig(canvas, drawn, hairSway: _hairSway);
+      } else {
+        _figure.drawRig(canvas, _figure.solve(_pose), hairSway: _hairSway);
+      }
+      canvas.restore();
     }
     if (debugEnabled) renderDebug(canvas);
   }
@@ -710,12 +775,14 @@ class Player extends BodyComponent {
       ..style = PaintingStyle.stroke
       ..strokeWidth = 0.013;
     const radius = GameConfig.playerWidth / 2;
-    final h =
-        GameConfig.playerHeight *
-        (_crouched ? GameConfig.crouchHeightRatio : 1);
     canvas.drawRRect(
       RRect.fromRectAndRadius(
-        Rect.fromLTWH(-radius, GameConfig.playerHeight / 2 - h, radius * 2, h),
+        Rect.fromLTWH(
+          -radius,
+          -GameConfig.playerHeight / 2,
+          radius * 2,
+          GameConfig.playerHeight,
+        ),
         const Radius.circular(radius),
       ),
       line,

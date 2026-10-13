@@ -2,25 +2,54 @@ import 'dart:math' as math;
 
 import 'package:flame_forge2d/flame_forge2d.dart';
 
-import '../physics/collision_layers.dart';
+import 'character_rig.dart' show Gait;
+import 'ground_probe.dart';
 
 /// Stance feet are stored in their support body's local coordinates. They stay
 /// planted when the root accelerates and travel with a moving support.
+///
+/// The timing comes from [Gait], the same as the rig's: each foot is planted
+/// for a stance fraction of the cycle and swings through the rest, kicking
+/// the heel up behind the body before it reaches for the next contact.
+///
+/// A foot always stands on real, visible ground: on an earth bank that is the
+/// drawn edge, not the collision line under it, and where the next step
+/// would land over a gap the foot comes back onto the lip instead of
+/// treading air. Each foot also reports the surface normal under it and how
+/// far it has rolled: heel first at contact, flat, then up onto the toes.
 class FootPlacement {
   final List<_Foot> _feet = [_Foot(), _Foot()];
   double _facing = 1;
   double _travelDirection = 1;
   bool _wasGrounded = false;
 
+  /// Idle stance, as fractions of height ahead of the centre: one foot a
+  /// little forward, one a little back, the way a child stands.
+  static const double idleFront = 0.07, idleBack = -0.06;
+
+  /// Front foot first, then back foot, in world metres: where the sole
+  /// touches (or, swinging, would touch) the ground.
   List<Vector2> get targets => [
     for (final foot in _feet) foot.position.clone(),
   ];
+
+  /// Whether each foot is currently planted rather than swinging.
+  List<bool> get planted => [for (final foot in _feet) foot.wasStance];
+
+  /// The ground normal under each foot, world space, pointing up.
+  List<Vector2> get normals => [for (final foot in _feet) foot.normal.clone()];
+
+  /// How far each foot has rolled, radians: positive lifts the toe (heel
+  /// strike), negative lifts the heel (push-off).
+  List<double> get rolls => [for (final foot in _feet) foot.roll];
 
   void reset() {
     _wasGrounded = false;
     for (final foot in _feet) {
       foot.support = null;
       foot.initialized = false;
+      foot.roll = 0;
+      foot.normal.setValues(0, -1);
     }
   }
 
@@ -29,11 +58,12 @@ class FootPlacement {
     required Body body,
     required double height,
     required double phase,
-    required double stride,
+    required double gait,
     required double facing,
     required bool grounded,
     required double speed,
     required double dt,
+    bool bracing = false,
   }) {
     if (!grounded) {
       reset();
@@ -51,19 +81,26 @@ class FootPlacement {
     _wasGrounded = true;
     final root = body.position;
     final soleY = root.y + height / 2;
+    final stanceFraction = Gait.stanceFraction(gait);
+    final reach = Gait.reachMeters(speed, gait) * strideScale(bracing);
+    // Leaning on a crate, the short steps land a little behind the hips,
+    // so the legs drive the body into it instead of stepping in under it.
+    final double land = reach - (bracing ? height * 0.04 : 0);
     for (var i = 0; i < _feet.length; i++) {
       final foot = _feet[i];
       final cycle = (phase / (math.pi * 2) + i * 0.5) % 1;
-      final stance = !moving || cycle < 0.5;
-      final reach = stride / 4;
-      final idleX = root.x + (i == 0 ? 0.055 : -0.055) * height * facing;
+      final stance = !moving || cycle < stanceFraction;
+      final idleX = root.x + (i == 0 ? idleFront : idleBack) * height * facing;
       if (!foot.initialized) {
         final x = moving
-            ? root.x + travelDirection * reach * (1 - 4 * cycle.clamp(0.0, 0.5))
+            ? root.x +
+                  travelDirection *
+                      reach *
+                      (1 - 2 * (cycle / stanceFraction).clamp(0.0, 1.0))
             : idleX;
         _plant(world, body, foot, x, soleY, height);
         foot.wasStance = stance;
-        foot.swingStart.setFrom(foot.position);
+        foot.swingFrom = foot.position.x - root.x;
       }
       if (stance) {
         if (!foot.wasStance) {
@@ -71,7 +108,7 @@ class FootPlacement {
             world,
             body,
             foot,
-            root.x + travelDirection * reach,
+            root.x + travelDirection * land,
             soleY,
             height,
           );
@@ -90,23 +127,51 @@ class FootPlacement {
             (foot.position.y - soleY).abs() > height * 0.3) {
           _plant(world, body, foot, idleX, soleY, height);
         }
+        // Heel strike, flat foot, then up onto the toes before toe-off.
+        final t = moving ? cycle / stanceFraction : 0.5;
+        foot.roll = gait * _stanceRoll(t);
       } else {
-        if (foot.wasStance) foot.swingStart.setFrom(foot.position);
-        final t = (cycle - 0.5) * 2;
-        final eased = t * t * (3 - 2 * t);
-        final landingX = root.x + travelDirection * reach;
-        final hit = _surface(world, body, landingX, soleY, height);
-        final landing = hit?.point ?? Vector2(landingX, soleY);
-        foot.position.setFrom(
-          foot.swingStart + (landing - foot.swingStart) * eased,
+        // A swinging foot travels with the body: it starts where it left
+        // the ground relative to the hips, trails behind with the heel kicked
+        // up, then sweeps through to land a stride's reach ahead.
+        if (foot.wasStance) foot.swingFrom = foot.position.x - root.x;
+        final t = (cycle - stanceFraction) / (1 - stanceFraction);
+        final x =
+            root.x +
+            foot.swingFrom +
+            (travelDirection * land - foot.swingFrom) * Gait.swingProgress(t);
+        final hit = _surface(world, body, x, soleY, height);
+        foot.position.setValues(
+          x,
+          (hit?.point.y ?? soleY) - Gait.swingLift(t, gait) * height,
         );
-        foot.position.y -= math.sin(t * math.pi) * height * 0.12;
+        foot.normal.setValues(0, -1);
         foot.support = null;
+        // Toes trail down after push-off and come up for the next heel
+        // strike.
+        foot.roll = gait * (-0.8 + 1.12 * _smooth(t));
       }
       foot.wasStance = stance;
     }
   }
 
+  /// Steps are shorter, and so quicker, while leaning on a crate.
+  static double strideScale(bool bracing) => bracing ? 0.45 : 1;
+
+  static double _smooth(double t) {
+    final double x = t.clamp(0.0, 1.0);
+    return x * x * (3 - 2 * x);
+  }
+
+  static double _stanceRoll(double t) {
+    if (t < 0.15) return 0.32 * (1 - t / 0.15);
+    if (t > 0.55) return -0.8 * math.pow((t - 0.55) / 0.45, 1.4).toDouble();
+    return 0;
+  }
+
+  /// Puts [foot] on the ground near [x]. Where there is no ground under
+  /// [x] — the step would land over a pit — it comes back towards the body,
+  /// a few centimetres at a time, onto the nearest lip.
   void _plant(
     Forge2DWorld world,
     Body body,
@@ -115,45 +180,43 @@ class FootPlacement {
     double soleY,
     double height,
   ) {
-    final hit = _surface(world, body, x, soleY, height);
+    GroundContact? hit = _surface(world, body, x, soleY, height);
+    // Back towards the body — and past its centre, which may itself be
+    // over the gap when the capsule rests on the lip.
+    final double toward = x == body.position.x
+        ? -_travelDirection
+        : (body.position.x - x).sign;
+    for (var tries = 0; hit == null && tries < 16; tries++) {
+      x += toward * 0.03;
+      hit = _surface(world, body, x, soleY, height);
+    }
     foot.position.setFrom(hit?.point ?? Vector2(x, soleY));
-    foot.support = hit?.shape.body;
+    foot.normal.setFrom(hit?.normal ?? Vector2(0, -1));
+    foot.support = hit?.body;
     if (foot.support != null) {
       foot.localAnchor.setFrom(foot.support!.localPoint(foot.position));
     }
     foot.initialized = true;
   }
 
-  RayHit? _surface(
+  GroundContact? _surface(
     Forge2DWorld world,
     Body body,
     double x,
     double soleY,
     double height,
-  ) {
-    RayHit? result;
-    world.castRay(
-      Vector2(x, soleY - height * 0.25),
-      Vector2(0, height * 0.45),
-      (hit) {
-        if (hit.shape.body == body ||
-            hit.shape.isSensor ||
-            hit.normal.y > -0.6) {
-          return -1;
-        }
-        result = hit;
-        return hit.fraction;
-      },
-      filter: QueryFilter(maskBits: CollisionLayers.solid),
-    );
-    return result;
-  }
+  ) =>
+      probeGround(world, x, soleY - height * 0.25, height * 0.45, ignore: body);
 }
 
 class _Foot {
   final position = Vector2.zero();
   final localAnchor = Vector2.zero();
-  final swingStart = Vector2.zero();
+  final normal = Vector2(0, -1);
+  double roll = 0;
+
+  /// Where the foot left the ground, relative to the hips.
+  double swingFrom = 0;
   Body? support;
   bool initialized = false;
   bool wasStance = false;

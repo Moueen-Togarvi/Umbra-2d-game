@@ -57,7 +57,7 @@ void main() {
     expect(player.body.linearVelocity.y.abs(), lessThan(0.1));
   });
 
-  testWidgets('holding a direction key walks the player', (tester) async {
+  testWidgets('holding a direction key runs the player', (tester) async {
     final (_, player) = await boot(tester);
     final startX = player.body.position.x;
 
@@ -126,25 +126,30 @@ void main() {
     expect(restingY - highestPoint, lessThan(GameConfig.jumpApexMeters * 1.2));
   });
 
-  testWidgets('releasing jump early makes a shorter hop', (tester) async {
+  testWidgets('the jump is always the same height, however long it is held', (
+    tester,
+  ) async {
     final (_, player) = await boot(tester);
-    final restingY = player.body.position.y;
-
-    await tester.sendKeyDownEvent(LogicalKeyboardKey.space);
-    await advance(tester, 3);
-    await tester.sendKeyUpEvent(LogicalKeyboardKey.space);
-
-    var highestPoint = restingY;
-    for (var i = 0; i < 35; i++) {
-      await advance(tester, 1);
-      if (player.body.position.y < highestPoint) {
-        highestPoint = player.body.position.y;
+    final apexes = <double>[];
+    for (final heldFrames in const [2, 40]) {
+      player.teleportTo(GameConfig.playerSpawn);
+      await advance(tester, 20);
+      final restingY = player.body.position.y;
+      await tester.sendKeyDownEvent(LogicalKeyboardKey.space);
+      var highestPoint = restingY;
+      for (var i = 0; i < 45; i++) {
+        if (i == heldFrames) {
+          await tester.sendKeyUpEvent(LogicalKeyboardKey.space);
+        }
+        await advance(tester, 1);
+        if (player.body.position.y < highestPoint) {
+          highestPoint = player.body.position.y;
+        }
       }
+      apexes.add(restingY - highestPoint);
     }
-
-    // The 25 ms anticipation leaves a shorter ascent before this early release.
-    expect(restingY - highestPoint, greaterThan(0.30));
-    expect(restingY - highestPoint, lessThan(GameConfig.jumpApexMeters * 0.7));
+    expect(apexes.first, closeTo(apexes.last, 0.03));
+    expect(apexes.first, closeTo(GameConfig.jumpApexMeters, 0.15));
   });
 
   testWidgets('walking uphill stays grounded and can jump', (tester) async {
@@ -183,16 +188,32 @@ void main() {
     }
   });
 
-  testWidgets('falling into the hazard respawns at the checkpoint, at rest', (
+  testWidgets('falling onto the stakes kills, fades out and respawns at rest', (
     tester,
   ) async {
     final (game, player) = await boot(tester);
 
-    // Drop the player into the pit between the two floor slabs.
+    // Drop the player into the pit between the first two banks.
     final pitCentreX = (GameConfig.gapStartX + GameConfig.gapEndX) / 2;
-    player.teleportTo(Vector2(pitCentreX, 1));
+    player.teleportTo(Vector2(pitCentreX, 4));
 
-    await advance(tester, 120);
+    var died = false;
+    var blackest = 0.0;
+    for (var frame = 0; frame < 240; frame++) {
+      await advance(tester, 1);
+      died |= player.isDead;
+      if (died && player.isDead) {
+        // The limp body stays in the pit, on the stakes, not under the world.
+        expect(player.cameraPosition.y, lessThan(GameConfig.levelHeight));
+      }
+      if (game.deathSequence.blackness > blackest) {
+        blackest = game.deathSequence.blackness;
+      }
+    }
+    expect(died, isTrue, reason: 'the stakes should kill');
+    expect(blackest, greaterThan(0.99), reason: 'the picture fades to black');
+    expect(player.isDead, isFalse);
+    expect(game.deathSequence.blackness, 0);
 
     // Back at the checkpoint...
     expect(

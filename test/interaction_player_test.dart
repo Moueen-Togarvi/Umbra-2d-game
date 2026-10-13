@@ -95,7 +95,6 @@ void main() {
         var pushingTicks = 0;
         var verifiedHands = false;
         await tester.sendKeyDownEvent(LogicalKeyboardKey.keyD);
-        await tester.sendKeyDownEvent(LogicalKeyboardKey.shiftLeft);
         for (var tick = 0; tick < 120; tick++) {
           game.update(_step);
           if (player.interactions.mode == InteractionMode.pushing) {
@@ -109,7 +108,6 @@ void main() {
           }
         }
         await tester.sendKeyUpEvent(LogicalKeyboardKey.keyD);
-        await tester.sendKeyUpEvent(LogicalKeyboardKey.shiftLeft);
         expect(verifiedHands, isTrue);
         final distance = crate.body.position.x - start;
         expect(
@@ -181,10 +179,8 @@ void main() {
       _advance(game, 10);
       final start = crate.body.position.x;
       await tester.sendKeyDownEvent(LogicalKeyboardKey.keyD);
-      await tester.sendKeyDownEvent(LogicalKeyboardKey.shiftLeft);
       _advance(game, 240);
       await tester.sendKeyUpEvent(LogicalKeyboardKey.keyD);
-      await tester.sendKeyUpEvent(LogicalKeyboardKey.shiftLeft);
       expect(player.interactions.mode, InteractionMode.pushing);
       expect(crate.body.position.x, closeTo(start, 0.035));
       expect(
@@ -215,7 +211,6 @@ void main() {
       );
       _advance(game, 24);
       await tester.sendKeyDownEvent(LogicalKeyboardKey.keyD);
-      await tester.sendKeyDownEvent(LogicalKeyboardKey.shiftLeft);
       var physicallyPushing = false;
       for (var tick = 0; tick < 120 * 30; tick++) {
         game.update(_step);
@@ -223,7 +218,6 @@ void main() {
             player.interactions.mode == InteractionMode.pushing;
       }
       await tester.sendKeyUpEvent(LogicalKeyboardKey.keyD);
-      await tester.sendKeyUpEvent(LogicalKeyboardKey.shiftLeft);
       expect(physicallyPushing, isTrue);
       expect(
         crate.body.position.x - start,
@@ -235,40 +229,31 @@ void main() {
   );
 
   testWidgets(
-    'Space detaches a rope until held E is released and pressed again',
+    'a rope is caught by itself, jump kicks off it, and it is caught again later',
     (tester) async {
       final (game, player) = await _boot(tester);
       final rope = SwingRope(anchor: Vector2(34, 1), length: 2);
       await game.world.add(rope);
       _advance(game, 10);
       player.teleportTo(rope.grip + Vector2(0, GameConfig.playerHeight * 0.42));
-      await tester.sendKeyDownEvent(LogicalKeyboardKey.keyE);
-      _advance(game, 12);
+      _advance(game, 2);
       expect(player.interactions.mode, InteractionMode.swinging);
       await tester.sendKeyDownEvent(LogicalKeyboardKey.space);
+      _advance(game, 1);
+      await tester.sendKeyUpEvent(LogicalKeyboardKey.space);
+      expect(player.velocity.y, lessThan(-2), reason: 'kicked off upwards');
       for (var tick = 0; tick < 20; tick++) {
         game.update(_step);
         expect(
           player.interactions.mode,
           InteractionMode.none,
-          reason:
-              'holding E must not reattach after a deliberate Space release',
+          reason: 'the rope just let go must not be caught straight back',
         );
-        expect(player.interactions.controlsMotion, isFalse);
       }
-      await tester.sendKeyUpEvent(LogicalKeyboardKey.space);
-      await tester.sendKeyUpEvent(LogicalKeyboardKey.keyE);
-      _advance(game, 1);
+      _advance(game, 60);
       player.teleportTo(rope.grip + Vector2(0, GameConfig.playerHeight * 0.42));
-      await tester.sendKeyDownEvent(LogicalKeyboardKey.keyE);
       _advance(game, 2);
-      expect(
-        player.interactions.mode,
-        InteractionMode.swinging,
-        reason: 'releasing E should rearm the next intentional grab',
-      );
-      await tester.sendKeyUpEvent(LogicalKeyboardKey.keyE);
-      _advance(game, 1);
+      expect(player.interactions.mode, InteractionMode.swinging);
     },
   );
 }

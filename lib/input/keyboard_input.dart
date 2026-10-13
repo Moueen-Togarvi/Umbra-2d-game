@@ -33,6 +33,19 @@ class KeyboardInput extends Component with KeyboardHandler {
     LogicalKeyboardKey.keyW,
   };
 
+  /// LIMBO's single action button: grab, hold and pull.
+  static final Set<LogicalKeyboardKey> _actionKeys = {
+    LogicalKeyboardKey.keyE,
+    LogicalKeyboardKey.controlLeft,
+    LogicalKeyboardKey.controlRight,
+  };
+
+  /// Only lets go of a ledge or rope; there is no crouch.
+  static final Set<LogicalKeyboardKey> _downKeys = {
+    LogicalKeyboardKey.keyS,
+    LogicalKeyboardKey.arrowDown,
+  };
+
   @override
   bool onKeyEvent(KeyEvent event, Set<LogicalKeyboardKey> keysPressed) {
     // Horizontal movement is read from the full set of currently-held keys
@@ -44,13 +57,8 @@ class KeyboardInput extends Component with KeyboardHandler {
     _intent.setKeyboardState(
       axis: (isMovingRight ? 1.0 : 0.0) - (isMovingLeft ? 1.0 : 0.0),
       jump: keysPressed.any(_jumpKeys.contains),
-      run:
-          keysPressed.contains(LogicalKeyboardKey.shiftLeft) ||
-          keysPressed.contains(LogicalKeyboardKey.shiftRight),
-      interact: keysPressed.contains(LogicalKeyboardKey.keyE),
-      crouch:
-          keysPressed.contains(LogicalKeyboardKey.keyS) ||
-          keysPressed.contains(LogicalKeyboardKey.arrowDown),
+      interact: keysPressed.any(_actionKeys.contains),
+      down: keysPressed.any(_downKeys.contains),
     );
 
     // Jump is edge-triggered, so only a genuine key-down counts. Checking for
@@ -69,12 +77,6 @@ class KeyboardInput extends Component with KeyboardHandler {
           _intent.requestKnockdown();
         case LogicalKeyboardKey.keyM:
           _intent.requestAudioToggle();
-        case LogicalKeyboardKey.digit1:
-          _intent.requestPreset(0);
-        case LogicalKeyboardKey.digit2:
-          _intent.requestPreset(1);
-        case LogicalKeyboardKey.digit3:
-          _intent.requestPreset(2);
       }
     }
 

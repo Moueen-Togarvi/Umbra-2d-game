@@ -55,21 +55,25 @@ abstract final class GameConfig {
 
   /// How much of the world the camera frames, in metres. Flame fits this box
   /// inside the screen, so a wider phone simply sees more of the level to the
-  /// sides. 9 m tall puts a 1.3 m player at about a seventh of the screen,
-  /// which is the small-figure-in-a-vast-world framing the reference art has.
-  static const double cameraVisibleWidth = 16.0;
-  static const double cameraVisibleHeight = 9.0;
+  /// sides. 10.5 m tall puts the 1.3 m boy at about an eighth of the screen,
+  /// which is how small LIMBO's camera keeps him against the forest.
+  static const double cameraVisibleWidth = 18.67;
+  static const double cameraVisibleHeight = 10.5;
 
   /// How far above the player's centre the camera aims. Positive is *up*.
   /// Looking up shows more sky and canopy and less dead black ground.
   static const double cameraLookUp = 1.4;
 
   /// How far ahead of the player, in the direction of travel, the camera
-  /// leads. Lets the player see what they are walking into.
-  static const double cameraLookAhead = 1.0;
+  /// leads at full running speed. Puts the running boy at about 40% of the
+  /// screen, with the space he is running into in front of him.
+  static const double cameraLookAhead = 1.8;
 
-  /// How quickly the camera catches up with its target, per second. Larger
-  /// is snappier; around 3 gives a slow cinematic drift.
+  /// Time for the horizontal follow to close most of the gap, in seconds. A
+  /// critically damped spring: it eases in and out instead of snapping.
+  static const double cameraHorizontalSmoothSeconds = 0.38;
+
+  /// How quickly the camera catches up vertically, per second.
   static const double cameraFollowSpeed = 3.0;
 
   /// The lowest the camera's centre may go. Stops a fall into a pit from
@@ -86,15 +90,16 @@ abstract final class GameConfig {
 
   /// Downward acceleration, in metres per second squared.
   ///
-  /// Real Earth gravity is 9.81. Almost every platformer runs at 2-3x that,
-  /// because real gravity makes a jump arc feel slow and floaty at the scale of
-  /// a screen. 22 gives Umbra a short, weighted jump at the child's scale.
+  /// Real Earth gravity is 9.81. Platformers run heavier than that, because
+  /// real gravity makes a jump arc feel slow and floaty at the scale of a
+  /// screen. 18, with a slightly heavier fall, gives the light, long LIMBO
+  /// hop: about 0.64 s in the air and a 2 m running jump.
   ///
   /// Note the sign: Flame's y-axis points **down**, so positive y is downward.
   /// (Raw Box2D uses y-up and would write this as -22. flame_forge2d flips the
   /// convention for you, which is why its default gravity is `(0, 10)` and not
   /// `(0, -10)`.)
-  static const double gravityMetersPerSecondSquared = 22.0;
+  static const double gravityMetersPerSecondSquared = 18.0;
 
   /// Gravity as a vector. A getter rather than a constant because [Vector2] is
   /// mutable and each caller should get its own instance.
@@ -124,22 +129,41 @@ abstract final class GameConfig {
       (playerWidth * (playerHeight - playerWidth) +
           math.pi * playerWidth * playerWidth / 4);
 
-  /// Horizontal running speed in metres per second. A child's run.
+  /// Running speed in metres per second. Like LIMBO's boy, Umbra's child has
+  /// one gait: a light run. There is no walk button.
   static const double moveSpeedMetersPerSecond = 3.2;
 
-  static const double walkSpeedMetersPerSecond = 1.8;
-  static const double crouchSpeedMetersPerSecond = 0.85;
-  static const double crouchHeightRatio = 0.62;
   static const double maximumSlopeRadians = math.pi * 0.30;
-  static const double jumpAnticipationSeconds = 0.025;
+
+  /// LIMBO's jump leaves the ground almost at once: a single frame of bent
+  /// knees, not a wind-up.
+  static const double jumpAnticipationSeconds = 0.017;
   static const double pushForceNewtons = 500;
   static const double pullForceNewtons = 220;
   static const double swingAcceleration = 4;
-  static const double knockdownImpactSpeed = 12;
+
+  /// Upward speed added when kicking off a rope with jump.
+  static const double ropeJumpSpeed = 3.6;
+
+  /// A landing faster than this, or a hit from anything this fast, kills: the
+  /// body goes limp. About a 4.5 m drop, three and a half times his height.
+  static const double deathImpactSpeed = 14;
+
+  /// A landing faster than this (about a 1.5 m drop) folds the knees deep and
+  /// holds the boy for a moment before he runs on.
+  static const double hardLandingSpeed = 8.2;
+  static const double hardLandingSeconds = 0.32;
+
+  /// Used by the debug knockdown (K), which still gets back up.
   static const double recoveryBlendSeconds = 0.45;
 
-  /// Distance travelled in one complete planted-foot walk cycle.
-  static const double walkStrideMeters = 1.2;
+  /// LIMBO's death beat: how long the limp body lies there before the picture
+  /// fades, the fade itself, a moment of black, and the fade back in at the
+  /// checkpoint.
+  static const double deathLingerSeconds = 1.3;
+  static const double deathFadeOutSeconds = 0.55;
+  static const double deathBlackSeconds = 0.25;
+  static const double deathFadeInSeconds = 0.8;
 
   /// How quickly the player reaches [moveSpeedMetersPerSecond] on the
   /// ground, in m/s². Reaches full speed in about 0.18 seconds, giving the
@@ -153,14 +177,10 @@ abstract final class GameConfig {
   /// jump, but not reverse it outright.
   static const double airAcceleration = 3.5;
 
-  /// Fraction of upward speed kept when jump is released early.
-  static const double jumpReleaseSpeedFactor = 0.45;
-
   /// Extra gravity on the way *down*, as a multiple of [gravity]. Rising at
-  /// 1x and falling at 1.25x is the classic platformer trick: the jump still
-  /// reaches its apex, but the fall is quicker and heavier, so a jump feels
-  /// like a hop rather than a float.
-  static const double fallGravityMultiplier = 1.25;
+  /// 1x and falling at 1.2x is the classic platformer trick: the jump still
+  /// reaches its apex, but the fall is a little quicker and heavier.
+  static const double fallGravityMultiplier = 1.2;
 
   /// How long after walking off an edge a jump is still allowed, in seconds.
   /// Without this, pressing jump on the last pixel of a ledge — which is
@@ -172,11 +192,12 @@ abstract final class GameConfig {
   static const double jumpBufferSeconds = 0.12;
 
   /// How high the player's jump peaks, in metres, measured from the take-off
-  /// point.
+  /// point. Like LIMBO's, the jump is always this height: holding or
+  /// releasing the button early does not change it.
   ///
   /// This is the number to tune when the jump feels wrong. The take-off
   /// velocity is derived from it rather than guessed — see [jumpTakeoffSpeed].
-  static const double jumpApexMeters = 1.15;
+  static const double jumpApexMeters = 1.0;
 
   /// The upward speed needed at take-off to reach [jumpApexMeters].
   ///
@@ -220,7 +241,7 @@ abstract final class GameConfig {
   ///
   /// Pits are about 1.4 m wide: at [moveSpeedMetersPerSecond] and
   /// [jumpApexMeters] a running jump carries roughly 2 m, so they are
-  /// clearable with a little to spare but not by walking.
+  /// clearable with a little to spare, but only with a jump.
   static const List<List<double>> terrainProfile = [
     // 01 Flooded forest. Keep the spawn and first gap fixed for the physics
     // checks, then let each stretch lead into the next environment.
@@ -251,8 +272,9 @@ abstract final class GameConfig {
   /// Thickness of a ledge.
   static const double ledgeThickness = 0.5;
 
-  /// How deep below the surrounding ground a pit's deadly floor sits.
-  static const double pitDepth = 2.4;
+  /// How deep below the surrounding ground a pit's stakes stand. Shallow
+  /// enough that the camera still sees what happens at the bottom.
+  static const double pitDepth = 1.6;
 
   /// The first slab's surface: where the player spawns and where the physics
   /// tests expect the floor to be.
@@ -267,47 +289,6 @@ abstract final class GameConfig {
   /// of the player body, so it sits half the player's height above the floor.
   static Vector2 get playerSpawn =>
       Vector2(2.0, floorSurfaceY - playerHeight / 2);
-
-  // ---------------------------------------------------------------------------
-  // Scenery
-  // ---------------------------------------------------------------------------
-
-  /// The silhouettes that stand in the fog behind the player, placed one at a
-  /// time along the level rather than tiled, so that each screen holds a
-  /// single thing to look at — a tree, a gallows, a tower — and the rest is
-  /// empty mist. That emptiness is the look; a busy backdrop kills it.
-  ///
-  /// [SceneryProp.depth] is how far into the fog the thing stands: 0 is right
-  /// behind the player, 1 is the horizon. It sets how the prop scrolls, how
-  /// faint it is drawn, and whether the soft (blurred) art is used.
-  ///
-  /// A deep prop scrolls slowly, so it is seen over a stretch of ground much
-  /// wider than its own spot; its `y` is the *lowest* surface in that
-  /// stretch, so its base is always buried behind the ground and never hangs
-  /// in the air over a lower slab.
-  /// The boy hanging from the gallows: where the noose is, in world metres,
-  /// and how deep in the fog he is (the gallows prop's own depth).
-  static const double hangedX = 22.42;
-  static const double hangedY = 3.55;
-  static const double hangedDepth = 0.22;
-
-  static const List<SceneryProp> scenery = [
-    SceneryProp('prop_tree_b', x: 5.0, y: 7.5, height: 7.5, depth: 0.55),
-    SceneryProp('prop_fence', x: 11.0, y: 7.5, height: 1.5, depth: 0.12),
-    SceneryProp('prop_gallows', x: 21.5, y: 7.2, height: 5.6, depth: 0.22),
-    SceneryProp('prop_tree_a', x: 29.5, y: 7.2, height: 7.5, depth: 0.60),
-    SceneryProp(
-      'prop_ladder',
-      x: 38.5,
-      y: -0.6,
-      height: 5.0,
-      depth: 0.08,
-      hangs: true,
-    ),
-    SceneryProp('prop_tower', x: 46.5, y: 6.4, height: 9.5, depth: 0.72),
-    SceneryProp('prop_watchtower', x: 57.0, y: 5.6, height: 6.5, depth: 0.55),
-    SceneryProp('prop_tree_a', x: 62.5, y: 5.6, height: 8.0, depth: 0.10),
-  ];
 
   // ---------------------------------------------------------------------------
   // On-screen controls
@@ -325,7 +306,7 @@ abstract final class GameConfig {
   ///
   /// Material's minimum touch target is 48dp; a game that is held in both hands
   /// and played with thumbs wants considerably more than the minimum.
-  static const double controlButtonDiameterPx = 88.0;
+  static const double controlButtonDiameterPx = 84.0;
 
   /// Gap between the screen edge and the nearest button.
   static const double controlEdgeMarginPx = 28.0;
@@ -335,45 +316,4 @@ abstract final class GameConfig {
 
   /// Size of the arrow glyph inside a button, as a fraction of its radius.
   static const double controlGlyphScale = 0.46;
-}
-
-/// One silhouette standing in the fog. See [GameConfig.scenery].
-class SceneryProp {
-  const SceneryProp(
-    this.image, {
-    required this.x,
-    required this.y,
-    required this.height,
-    required this.depth,
-    this.hangs = false,
-  });
-
-  /// Base name of the art in `assets/images/props/`, without extension. Props
-  /// drawn deep in the fog use the `_soft` variant automatically.
-  final String image;
-
-  /// World x of the prop's centre, in metres.
-  final double x;
-
-  /// World y of the prop's base — the ground it stands on — or, when [hangs]
-  /// is set, of its top.
-  final double y;
-
-  /// Drawn height in metres.
-  final double height;
-
-  /// 0 just behind the player, 1 at the horizon.
-  final double depth;
-
-  /// Hang from [y] instead of standing on it, for ladders and ropes.
-  final bool hangs;
-
-  /// The art to draw, chosen by depth: crisp up close, `_soft` further in,
-  /// `_far` deep in the fog where the base has dissolved entirely. All three
-  /// are baked by `tools/bake_props.py`.
-  String get imageFile {
-    if (depth > 0.62) return '${image}_far.png';
-    if (depth > 0.32) return '${image}_soft.png';
-    return '$image.png';
-  }
 }

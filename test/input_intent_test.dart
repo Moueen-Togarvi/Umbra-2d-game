@@ -16,23 +16,15 @@ void main() {
     timeStamp: Duration.zero,
   );
 
-  test('walk, run, crouch and grab edges follow full keyboard held state', () {
+  test('move, action and down follow the full keyboard held state', () {
     final intent = PlayerIntent();
     final input = KeyboardInput(intent);
-    final held = <LogicalKeyboardKey>{
-      LogicalKeyboardKey.keyD,
-      LogicalKeyboardKey.shiftLeft,
-    };
-    input.onKeyEvent(down(LogicalKeyboardKey.shiftLeft), held);
+    final held = <LogicalKeyboardKey>{LogicalKeyboardKey.keyD};
+    input.onKeyEvent(down(LogicalKeyboardKey.keyD), held);
     expect(intent.horizontalAxis, 1);
-    expect(intent.isRunHeld, isTrue);
-    held.remove(LogicalKeyboardKey.shiftLeft);
-    input.onKeyEvent(up(LogicalKeyboardKey.shiftLeft), held);
-    expect(intent.horizontalAxis, 1);
-    expect(intent.isRunHeld, isFalse);
     held.addAll({LogicalKeyboardKey.keyE, LogicalKeyboardKey.arrowDown});
     input.onKeyEvent(down(LogicalKeyboardKey.keyE), held);
-    expect(intent.isCrouchHeld && intent.isInteractHeld, isTrue);
+    expect(intent.isDownHeld && intent.isInteractHeld, isTrue);
     expect(intent.consumeInteractRequest(), isTrue);
     input.onKeyEvent(
       KeyRepeatEvent(
@@ -47,6 +39,15 @@ void main() {
     input.onKeyEvent(up(LogicalKeyboardKey.keyE), held);
     expect(intent.consumeInteractRelease(), isTrue);
     expect(intent.consumeInteractRelease(), isFalse);
+
+    // Ctrl is LIMBO's action key too; shift does nothing (he always runs).
+    held
+      ..remove(LogicalKeyboardKey.arrowDown)
+      ..addAll({LogicalKeyboardKey.controlLeft, LogicalKeyboardKey.shiftLeft});
+    input.onKeyEvent(down(LogicalKeyboardKey.controlLeft), held);
+    expect(intent.isInteractHeld, isTrue);
+    expect(intent.isDownHeld, isFalse);
+    expect(intent.horizontalAxis, 1);
   });
 
   test(
@@ -69,7 +70,7 @@ void main() {
     },
   );
 
-  test('reset, debug, preset and knockdown are consumed once', () {
+  test('reset, debug, knockdown and sound are consumed once', () {
     final intent = PlayerIntent();
     final input = KeyboardInput(intent);
     for (final key in [
@@ -77,7 +78,6 @@ void main() {
       LogicalKeyboardKey.f1,
       LogicalKeyboardKey.keyK,
       LogicalKeyboardKey.keyM,
-      LogicalKeyboardKey.digit2,
     ]) {
       input.onKeyEvent(down(key), {key});
     }
@@ -89,27 +89,17 @@ void main() {
     expect(intent.consumeKnockdownRequest(), isFalse);
     expect(intent.consumeAudioToggleRequest(), isTrue);
     expect(intent.consumeAudioToggleRequest(), isFalse);
-    expect(intent.consumePresetRequest(), 1);
-    expect(intent.consumePresetRequest(), isNull);
   });
 
   test('focus clear drops held actions and emits one grab release', () {
     final intent = PlayerIntent()
-      ..setTouchState(
-        axis: 1,
-        jump: true,
-        run: true,
-        interact: true,
-        crouch: true,
-      )
+      ..setTouchState(axis: 1, jump: true, interact: true)
+      ..setKeyboardState(down: true)
       ..requestJump();
     intent.clear();
     expect(intent.horizontalAxis, 0);
     expect(
-      intent.isJumpHeld ||
-          intent.isRunHeld ||
-          intent.isInteractHeld ||
-          intent.isCrouchHeld,
+      intent.isJumpHeld || intent.isInteractHeld || intent.isDownHeld,
       isFalse,
     );
     expect(intent.consumeJumpRequest(), isFalse);
@@ -122,15 +112,13 @@ void main() {
     final intent = PlayerIntent();
     final controls = TouchControls(intent);
     final buttons = controls.buildButtons();
+    expect(buttons, hasLength(4), reason: 'left, right, jump and action');
     buttons[1].onPressed!();
+    buttons[2].onPressed!();
     buttons[3].onPressed!();
-    buttons[4].onPressed!();
-    buttons[5].onPressed!();
     expect(intent.horizontalAxis, 1);
-    expect(
-      intent.isRunHeld && intent.isInteractHeld && intent.isCrouchHeld,
-      isTrue,
-    );
+    expect(intent.isJumpHeld && intent.isInteractHeld, isTrue);
+    expect(intent.consumeJumpRequest(), isTrue);
     expect(intent.consumeInteractRequest(), isTrue);
     buttons[3].onCancelled!();
     expect(intent.isInteractHeld, isFalse);
@@ -138,6 +126,6 @@ void main() {
     expect(intent.horizontalAxis, 1);
     controls.clear();
     expect(intent.horizontalAxis, 0);
-    expect(intent.isRunHeld || intent.isCrouchHeld, isFalse);
+    expect(intent.isJumpHeld, isFalse);
   });
 }

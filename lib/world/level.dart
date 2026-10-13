@@ -8,6 +8,7 @@ import '../entities/hill_ground.dart';
 import '../entities/player.dart';
 import '../entities/physics_props.dart';
 import '../input/player_intent.dart';
+import '../render/grass.dart';
 import 'checkpoint_service.dart';
 import 'terrain.dart';
 
@@ -18,7 +19,7 @@ import 'terrain.dart';
 /// entities. The layout itself is data — a few control points per hill — so
 /// a second level is a second list, not a second copy of this file.
 ///
-/// The level, in metres, with y pointing down and the camera showing 9 m:
+/// The level, in metres, with y pointing down and the camera showing 10.5 m:
 ///
 /// ```
 ///   0            14 15.4        30 31.4         50 51.4          64
@@ -42,8 +43,11 @@ class Level extends Component {
   /// save the player later.
   final CheckpointService checkpoints;
 
-  /// The ground's curve. The backdrop reads it too, for the far hills.
+  /// The ground's curve.
   final Terrain terrain;
+
+  /// Wind for every blade of grass, and the boy's legs pushing through it.
+  final GrassWind wind = GrassWind();
 
   /// Available as soon as the level loads, before its children mount.
   late final Player player;
@@ -54,11 +58,16 @@ class Level extends Component {
   @override
   void update(double dt) {
     super.update(dt);
+    wind.update(dt);
     if (!player.isMounted) return;
+    wind.pusherX = player.isDead ? double.nan : player.cameraPosition.x;
+    wind.pusherSpeed = player.velocity.x;
+    // Out of the world is a death like any other; the death sequence brings
+    // him back.
     if (player.cameraPosition.y > GameConfig.levelHeight + 3 ||
         player.cameraPosition.x < -1 ||
         player.cameraPosition.x > GameConfig.levelWidth + 1) {
-      checkpoints.respawn(player);
+      player.die();
     }
     while (_nextCheckpoint < _checkpointXs.length &&
         player.body.position.x >= _checkpointXs[_nextCheckpoint]) {
@@ -72,10 +81,18 @@ class Level extends Component {
   Future<void> onLoad() async {
     final List<Component> pieces = [];
 
-    // --- The ground: one hill per stretch of the profile ---------------------
-    for (final segment in terrain.segments) {
-      pieces.add(HillGround(segment: segment, pitDepth: GameConfig.pitDepth));
-    }
+    // --- The ground: one bank per stretch of the profile -------------------
+    final banks = <HillGround>[
+      for (var i = 0; i < terrain.segments.length; i++)
+        HillGround(
+          segment: terrain.segments[i],
+          pitDepth: GameConfig.pitDepth,
+          wind: wind,
+          pitOnLeft: i > 0,
+          pitOnRight: i < terrain.segments.length - 1,
+        ),
+    ];
+    pieces.addAll(banks);
 
     // --- Pits: the gaps between stretches, spiked ------------------------------
     for (var i = 0; i + 1 < terrain.segments.length; i++) {
@@ -95,7 +112,6 @@ class Level extends Component {
           right: b.left,
           top: lip + GameConfig.pitDepth,
           bottom: GameConfig.levelHeight,
-          checkpoints: checkpoints,
         ),
       );
     }
@@ -135,8 +151,8 @@ class Level extends Component {
     }
     pieces.addAll([
       MovingPlatform(
-        from: Vector2(24, 5.9),
-        to: Vector2(27, 5.9),
+        from: Vector2(24, 6.15),
+        to: Vector2(27, 6.15),
         size: Vector2(1.6, 0.22),
         speed: 0.65,
       ),
@@ -147,13 +163,8 @@ class Level extends Component {
         speed: 0.5,
       ),
       SwingRope(anchor: Vector2(29, 1.4), length: 3.3),
-      Ground.slab(
-        left: 73,
-        right: 74.4,
-        top: 5.5,
-        thickness: 1.8,
-        style: GroundStyle.log,
-      ),
+      // A bank too tall to jump onto: it has to be caught and climbed.
+      Ground.slab(left: 73, right: 74.4, top: 5.5, thickness: 1.8, wind: wind),
     ]);
 
     // --- Walls, so the player cannot walk out of the level --------------------
@@ -182,6 +193,9 @@ class Level extends Component {
       spawnPosition: checkpoints.activeCheckpoint,
     );
     pieces.add(player);
+
+    // The short grass in front of his feet draws over everything else.
+    pieces.add(FrontGrass(banks: banks, wind: wind));
 
     await addAll(pieces);
   }

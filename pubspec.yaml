@@ -28,8 +28,8 @@ dev_dependencies:
 flutter:
   uses-material-design: true
 
-  # Baked by tools/bake_props.py from the generated art in assets/raw/.
+  # Only the film grain is a bitmap: the boy, the ground and the fogged
+  # forest are all drawn procedurally. The older painted backgrounds and
+  # props under assets/images/ stay in the repo but are not bundled.
   assets:
-    - assets/images/
-    - assets/images/props/
-    - assets/images/backgrounds/
+    - assets/images/grain.png

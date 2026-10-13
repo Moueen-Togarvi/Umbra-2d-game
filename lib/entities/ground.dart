@@ -1,44 +1,42 @@
 import 'dart:math' as math;
 import 'dart:ui';
 
-import 'package:flame/components.dart';
-import 'package:flame/flame.dart';
-import 'package:flame/game.dart' show FlameGame;
 import 'package:flame_forge2d/flame_forge2d.dart';
 
-import '../config/palette.dart';
 import '../physics/collision_layers.dart';
+import '../render/grass.dart';
 
 /// How a piece of ground is drawn. The physics is the same box either way.
 enum GroundStyle {
-  /// A mass of earth: solid black with a rough, grassy top edge.
+  /// A mass of earth: solid black with a slightly uneven top edge.
   earth,
 
-  /// A fallen log or branch: a rounded, slightly tapered bar with a few tufts.
+  /// A fallen log: a rounded trunk with bark, broken branch stubs and a
+  /// sawn or snapped end.
   log,
 
   /// A wall at the edge of the level. Drawn plain; it is off screen anyway.
   wall,
 }
 
-/// A solid, immovable slab: floors, walls and ledges.
+/// A solid, immovable slab: floors, walls, ledges and fallen logs.
 ///
 /// This is a **static** body. Static bodies have infinite mass, are never moved
 /// by the solver, and do not collide with each other — which makes them
 /// essentially free to simulate. Level geometry should almost always be static.
 ///
-/// The collision box is a perfect rectangle. The *drawing* is not: the top
-/// edge wanders up and down by a few centimetres and carries a strip of grass,
-/// which is what stops a floor from reading as a black bar. The wander is
-/// small enough that the feet never visibly float or sink.
+/// The collision box is a perfect rectangle, so the walking surface is flat
+/// and steady. The *drawing* is not: a log is a rounded trunk whose top runs
+/// along the box's top, so feet land exactly on the bark.
 class Ground extends BodyComponent {
   Ground({
     required Vector2 center,
     required Vector2 size,
     this.style = GroundStyle.earth,
+    this.wind,
   }) : _size = size.clone(),
        super(
-         paint: Paint()..color = Palette.silhouette,
+         paint: Paint()..color = const Color(0xFF070707),
          renderBody: false,
          bodyDef: BodyDef(type: BodyType.static, position: center.clone()),
          shapeSpecs: [
@@ -49,17 +47,14 @@ class Ground extends BodyComponent {
                filter: Filter(categoryBits: CollisionLayers.terrain),
                material: SurfaceMaterial(friction: 0.7),
                // The player's foot sensor can only detect shapes that have
-               // opted in to sensor events. Leaving this out is the single
-               // most common reason a ground check "just doesn't work".
+               // opted in to sensor events.
                enableSensorEvents: true,
              ),
            ),
          ],
        ) {
     // `this` is not available in an initialiser list, so the userData is
-    // attached here, before the body is ever created. The foot sensor
-    // identifies what it has landed on by looking at userData, and a slab
-    // with none is invisible to it.
+    // attached here, before the body is ever created.
     bodyDef!.userData = this;
   }
 
@@ -71,192 +66,152 @@ class Ground extends BodyComponent {
     required double top,
     required double thickness,
     GroundStyle style = GroundStyle.earth,
+    GrassWind? wind,
   }) {
     return Ground(
       center: Vector2((left + right) / 2, top + thickness / 2),
       size: Vector2(right - left, thickness),
       style: style,
+      wind: wind,
     );
   }
 
   final Vector2 _size;
   final GroundStyle style;
 
+  /// When set, an earth slab grows grass along its top in this wind.
+  final GrassWind? wind;
+
   /// The silhouette, built once. Body-local metres, origin at the centre.
   late final Path _outline = _buildOutline();
-
-  /// Seconds elapsed, for the wind in the grass. A static body never moves,
-  /// so this is the only reason it has an update at all.
-  double _time = 0;
-
-  /// The camera, for culling grass that is off screen. Every slab draws its
-  /// grass in dozens of slices; without this a 64 m level issues a few
-  /// hundred draw calls a frame for grass nobody can see.
-  CameraComponent? _camera;
-
-  @override
-  void update(double dt) {
-    super.update(dt);
-    _time += dt;
-  }
-
-  Image? _grass;
-  final Paint _grassPaint = Paint()..filterQuality = FilterQuality.low;
-
-  @override
-  Future<void> onLoad() async {
-    await super.onLoad();
-    if (style == GroundStyle.earth &&
-        Flame.images.containsKey('props/grass_tall.png')) {
-      _grass = Flame.images.fromCache('props/grass_tall.png');
-    }
-    final game = findGame();
-    if (game is FlameGame) {
-      _camera = game.camera;
-    }
-  }
 
   Path _buildOutline() {
     final double hw = _size.x / 2;
     final double hh = _size.y / 2;
+    final random = math.Random((_size.x * 731 + _size.y * 53).round());
     switch (style) {
       case GroundStyle.wall:
         return Path()..addRect(Rect.fromLTRB(-hw, -hh, hw, hh));
 
-      case GroundStyle.log:
-        // Keep the walking face on the collision top. Chips belong on the
-        // sides and underside; lumps above it made planted feet look buried.
-        return Path()
-          ..moveTo(-hw, -hh)
-          ..lineTo(hw, -hh)
-          ..lineTo(hw - 0.035, -hh * 0.2)
-          ..lineTo(hw, hh * 0.5)
-          ..lineTo(hw - 0.09, hh * 0.7)
-          ..lineTo(hw - 0.04, hh)
-          ..lineTo(hw * 0.25, hh * 0.85)
-          ..lineTo(-hw * 0.6, hh)
-          ..lineTo(-hw + 0.04, hh * 0.65)
-          ..lineTo(-hw, hh * 0.3)
-          ..lineTo(-hw + 0.025, -hh * 0.4)
-          ..close();
-
       case GroundStyle.earth:
-        // Walk along the top edge with a couple of sine waves, seeded from the
-        // slab's width so neighbouring slabs do not repeat the same bumps.
-        final Path earth = Path()..moveTo(-hw, hh);
-        earth.lineTo(-hw, -hh);
-        final double seed = _size.x * 3.7 + _size.y;
-        final int steps = math.max(8, (_size.x * 4).round());
-        for (var i = 0; i <= steps; i++) {
-          final double t = i / steps;
-          final double x = -hw + t * _size.x;
-          // Long, low swells: a hillside, not a rock face.
-          final double wobble =
-              math.sin(x * 0.9 + seed) * 0.10 +
-              math.sin(x * 2.3 + seed * 0.7) * 0.04 +
-              math.sin(x * 7.0 + seed * 1.3) * 0.008;
-          // Pinch the ends down a little so pit edges look worn.
-          final double edge = math.min(1.0, math.min(t, 1 - t) * 8);
-          earth.lineTo(x, -hh - wobble * edge + 0.02 * (1 - edge));
+        // A bank of packed earth: crumbly top edge, and sides that bulge
+        // and crumble rather than standing as clean walls.
+        final Path earth = Path()..moveTo(-hw + 0.06, hh);
+        for (var i = 0; i <= 12; i++) {
+          final double t = i / 12;
+          final double y = hh - t * _size.y;
+          final double bulge =
+              math.sin(t * math.pi) * 0.05 + (random.nextDouble() - 0.5) * 0.03;
+          earth.lineTo(-hw - bulge + (1 - t) * 0.06, y);
         }
-        earth.lineTo(hw, hh);
-        earth.close();
-        return earth;
+        final int steps = math.max(8, (_size.x / 0.04).round());
+        for (var i = 0; i <= steps; i++) {
+          final double x = -hw + i / steps * _size.x;
+          earth.lineTo(x, -hh + _crumbs(x));
+        }
+        for (var i = 0; i <= 12; i++) {
+          final double t = i / 12;
+          final double y = -hh + t * _size.y;
+          final double bulge =
+              math.sin(t * math.pi) * 0.05 + (random.nextDouble() - 0.5) * 0.03;
+          earth.lineTo(hw + bulge - t * 0.06, y);
+        }
+        return earth..close();
+
+      case GroundStyle.log:
+        return _log(hw, hh, random);
     }
   }
 
-  /// Height of the top edge at body-local [x]: the same wobble the outline
-  /// is built from. Only meaningful for [GroundStyle.earth].
-  double _surfaceAt(double x) {
-    final double hw = _size.x / 2;
-    final double hh = _size.y / 2;
-    final double seed = _size.x * 3.7 + _size.y;
-    final double t = ((x + hw) / _size.x).clamp(0.0, 1.0);
-    final double wobble =
-        math.sin(x * 0.9 + seed) * 0.10 +
-        math.sin(x * 2.3 + seed * 0.7) * 0.04 +
-        math.sin(x * 7.0 + seed * 1.3) * 0.008;
-    final double edge = math.min(1.0, math.min(t, 1 - t) * 8);
-    return -hh - wobble * edge + 0.02 * (1 - edge);
+  /// A trunk lying on its side. The bark along the top follows the
+  /// collision top within a centimetre; the underside bulges and the ends
+  /// are broken off, with a few snapped branches sticking up and out.
+  Path _log(double hw, double hh, math.Random random) {
+    final Path path = Path();
+    final double r = hh;
+    // Top edge: bark ridges.
+    path.moveTo(-hw + r * 0.6, -hh);
+    final int steps = math.max(6, (_size.x / 0.05).round());
+    for (var i = 1; i <= steps; i++) {
+      final double x = -hw + r * 0.6 + i / steps * (_size.x - r * 1.2);
+      path.lineTo(x, -hh + 0.004 + random.nextDouble() * 0.008);
+    }
+    // Right end: a snapped stump with splinters.
+    path
+      ..lineTo(hw - r * 0.15, -hh * 0.75)
+      ..lineTo(hw + 0.03, -hh * 0.55)
+      ..lineTo(hw - 0.02, -hh * 0.2)
+      ..lineTo(hw + 0.05, hh * 0.05)
+      ..lineTo(hw - 0.01, hh * 0.4)
+      ..quadraticBezierTo(hw - r * 0.1, hh * 1.02, hw - r * 0.7, hh);
+    // Underside: slightly bellied.
+    path.quadraticBezierTo(0, hh * 1.12, -hw + r * 0.7, hh);
+    // Left end: a rounder sawn face.
+    path.quadraticBezierTo(-hw - r * 0.08, hh * 0.6, -hw, 0);
+    path.quadraticBezierTo(-hw - r * 0.02, -hh * 0.75, -hw + r * 0.6, -hh);
+    path.close();
+
+    // Broken branches: a snapped limb rising out and away near each end,
+    // where it cannot stand in the middle of the walking surface, and stubs
+    // hanging from the underside.
+    for (final end in const [-1.0, 1.0]) {
+      if (random.nextDouble() < 0.25) continue;
+      final double x = end * (hw - r * (1.2 + random.nextDouble()));
+      final double angle = end * (0.55 + random.nextDouble() * 0.35);
+      final double length = 0.12 + random.nextDouble() * 0.16;
+      final double width = 0.025 + random.nextDouble() * 0.015;
+      final double tipX = x + math.sin(angle) * length;
+      final double tipY = -hh * 0.5 - math.cos(angle) * length;
+      path
+        ..moveTo(x - width, -hh * 0.3)
+        ..lineTo(tipX - width * 0.2, tipY)
+        ..lineTo(tipX + width * 0.2, tipY + 0.02)
+        ..lineTo(x + width, -hh * 0.3)
+        ..close();
+    }
+    final int stubs = math.max(1, (_size.x / 0.9).round());
+    for (var i = 0; i < stubs; i++) {
+      final double x =
+          -hw + (i + 0.3 + random.nextDouble() * 0.4) / stubs * _size.x;
+      final double length = 0.08 + random.nextDouble() * 0.16;
+      final double lean = (random.nextDouble() - 0.5) * 0.6;
+      final double width = 0.025 + random.nextDouble() * 0.02;
+      path
+        ..moveTo(x - width, hh * 0.5)
+        ..lineTo(x + lean * length - width * 0.2, hh + length)
+        ..lineTo(x + lean * length + width * 0.2, hh + length)
+        ..lineTo(x + width, hh * 0.5)
+        ..close();
+    }
+    return path;
   }
+
+  /// The earth top edge's offset below the collision top at body-local x.
+  static double _crumbs(double x) =>
+      0.006 + 0.006 * math.sin(x * 11.3) + 0.004 * math.sin(x * 29.1 + 1.3);
 
   @override
   void render(Canvas canvas) {
     canvas.drawPath(_outline, paint);
-
-    final Image? grass = _grass;
-    if (grass == null) {
-      return;
-    }
-    // Wild grass along the top edge, its roots buried in the slab. Clipped
-    // to the slab's width, slightly overhanging so a pit's lip has a few
-    // blades leaning out over the drop.
-    const double grassHeight = 0.62;
-    const double overhang = 0.08;
+    final GrassWind? wind = this.wind;
+    if (wind == null || style != GroundStyle.earth) return;
     final double hw = _size.x / 2;
-    final double top = -_size.y / 2;
-    final double scale = grassHeight / grass.height;
-    final double tileW = grass.width * scale;
-    canvas.save();
-    canvas.clipRect(
-      Rect.fromLTRB(
-        -hw - overhang,
-        top - grassHeight - 0.3,
-        hw + overhang,
-        top + 1,
-      ),
+    final double cx = body.position.x;
+    final double top = body.position.y - _size.y / 2;
+    // Built fresh each frame: the web renderer records drawn paths by
+    // reference, so a path must not be changed once it has been drawn.
+    final grass = Path();
+    GrassPainter.addBlades(
+      grass,
+      left: cx - hw + 0.02,
+      right: cx + hw - 0.02,
+      surface: (x) => top + _crumbs(x - cx),
+      style: GrassStyle.back,
+      wind: wind,
     );
-
-    // The grass is drawn in narrow vertical slices, each sheared from its
-    // root by its own amount, so a gust can travel along the field: the
-    // shear is a couple of slow waves in world x and time. Shearing about
-    // the root keeps the roots planted and moves only the tips, which is
-    // what wind does to grass.
-    const double sliceW = 0.45;
-    final int slicesPerTile = (tileW / sliceW).ceil();
-    final double srcSliceW = grass.width / slicesPerTile;
-    final double drawSliceW = tileW / slicesPerTile;
-    final double worldLeft = body.position.x - hw;
-
-    // Only the slices the camera can see, in body-local x.
-    final Rect? visible = _camera?.visibleWorldRect;
-    final double visLeft = visible == null
-        ? -hw - overhang
-        : visible.left - body.position.x - sliceW;
-    final double visRight = visible == null
-        ? hw + overhang
-        : visible.right - body.position.x + sliceW;
-
-    // Offset the tiling by the slab's world position so two slabs never show
-    // the same blade at the same screen x.
-    double x = -hw - (body.position.x * 0.37) % tileW;
-    while (x < hw + overhang) {
-      for (var i = 0; i < slicesPerTile; i++) {
-        final double sx = x + i * drawSliceW;
-        if (sx + drawSliceW < -hw - overhang || sx > hw + overhang) continue;
-        if (sx + drawSliceW < visLeft || sx > visRight) continue;
-        // Each slice is rooted on its own bit of hill, buried a little, so
-        // no fog can show between the roots and a dip in the outline.
-        final double root = _surfaceAt(sx + drawSliceW / 2) + 0.12;
-        final double wx = worldLeft + hw + sx; // world x of this slice
-        final double gust =
-            math.sin(_time * 1.1 - wx * 0.45) * 0.10 +
-            math.sin(_time * 2.3 - wx * 1.7 + 1.0) * 0.045 +
-            math.sin(_time * 0.37 + wx * 0.2) * 0.05;
-        final double lean = 0.10 + gust; // a prevailing breeze, plus gusts
-        canvas.save();
-        canvas.translate(sx, root);
-        canvas.skew(-lean, 0);
-        canvas.drawImageRect(
-          grass,
-          Rect.fromLTWH(i * srcSliceW, 0, srcSliceW, grass.height.toDouble()),
-          Rect.fromLTWH(0, -grassHeight, drawSliceW + 0.004, grassHeight),
-          _grassPaint,
-        );
-        canvas.restore();
-      }
-      x += tileW;
-    }
+    canvas.save();
+    canvas.translate(-cx, -body.position.y);
+    canvas.drawPath(grass, paint);
     canvas.restore();
   }
 }

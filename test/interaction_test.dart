@@ -3,6 +3,8 @@ import 'dart:math' as math;
 import 'package:flame_forge2d/flame_forge2d.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:umbra/character/character_interactions.dart';
+import 'package:umbra/character/character_rig.dart';
+import 'package:umbra/config/game_config.dart';
 import 'package:umbra/entities/physics_props.dart';
 
 const _step = 1 / 120;
@@ -71,6 +73,7 @@ void _input(
   bool pressed = false,
   bool held = false,
   bool jump = false,
+  bool down = false,
 }) => system.update(
   _step,
   axis: axis,
@@ -79,7 +82,13 @@ void _input(
   interactPressed: pressed,
   interactHeld: held,
   jumpPressed: jump,
+  downHeld: down,
 );
+
+/// A shoulder of the rig standing upright in [player], and the arm's reach.
+Vector2 _shoulder(Body player, {bool front = true}) =>
+    player.position + CharacterRig.restShoulder(front: front) * _height;
+const double _reach = CharacterRig.armReach * _height;
 
 void _drive(Body player, double speed) {
   final force = ((speed - player.linearVelocity.x) * player.mass * 18).clamp(
@@ -176,11 +185,9 @@ void main() {
         _drive(player, -1.6);
         world.update(_step);
         expect(system.mode, InteractionMode.pulling);
-        final shoulder =
-            player.position + Vector2(_height * 0.07, -_height * 0.13);
         expect(
-          (system.gripWorld! - shoulder).length,
-          lessThan(_height * 0.30 + 0.026),
+          (system.gripWorld! - _shoulder(player)).length,
+          lessThan(_reach + 0.08),
         );
       }
       expect(crate.body.position.x, lessThan(startX - 0.6));
@@ -195,7 +202,7 @@ void main() {
   );
 
   test(
-    'rope constrains length and releases with its actual swing momentum',
+    'a rope is caught without the action button, swings, and jump kicks off',
     () {
       final world = _world();
       final rope = _create(world, SwingRope(anchor: Vector2.zero(), length: 2));
@@ -203,40 +210,47 @@ void main() {
       final system = _interactions(world, player);
       final entryPosition = player.position.clone();
       final entryVelocity = player.linearVelocity.clone();
-      _input(system, grounded: false, pressed: true, held: true);
+      _input(system, grounded: false);
       expect(system.mode, InteractionMode.swinging);
       expect(system.controlsMotion, isTrue);
       expect((player.position - entryPosition).length, lessThan(1e-8));
       expect((player.linearVelocity - entryVelocity).length, lessThan(1e-8));
       var peakSwingSpeed = 0.0;
       for (var i = 0; i < 240; i++) {
-        _input(system, axis: 1, grounded: false, held: true);
+        _input(system, axis: 1, grounded: false);
         world.update(_step);
         peakSwingSpeed = math.max(
           peakSwingSpeed,
           player.linearVelocity.x.abs(),
         );
         expect(rope.constraint.currentLength, closeTo(2, 0.035));
-        for (final side in [-1.0, 1.0]) {
-          final shoulder =
-              player.position + Vector2(side * _height * 0.05, -_height * 0.13);
+        for (final front in [true, false]) {
           expect(
-            (system.gripWorld! - shoulder).length,
-            lessThan(_height * 0.30),
+            (system.gripWorld! - _shoulder(player, front: front)).length,
+            lessThan(_reach + 0.02),
           );
         }
       }
       expect(peakSwingSpeed, greaterThan(0.3));
       final velocity = player.linearVelocity.clone();
-      _input(system, grounded: false, held: true, jump: true);
+      _input(system, grounded: false, jump: true);
       expect(system.mode, InteractionMode.none);
       expect(system.releasedThisStep, isTrue);
-      expect((player.linearVelocity - velocity).length, lessThan(1e-8));
+      // The swing's momentum is kept, plus the legs' kick upwards.
+      expect(
+        (player.linearVelocity -
+                velocity -
+                Vector2(0, -GameConfig.ropeJumpSpeed))
+            .length,
+        lessThan(1e-5),
+      );
+      // And it is not caught again on the way past.
       for (var i = 0; i < 6; i++) {
+        _input(system, grounded: false);
         world.update(_step);
+        expect(system.mode, InteractionMode.none);
       }
       expect(player.linearVelocity.x, closeTo(velocity.x, 0.05));
-      expect(player.linearVelocity.y, greaterThan(velocity.y + 0.9));
     },
   );
 
@@ -284,19 +298,20 @@ void main() {
       _box(world, Vector2(1.5, 4), Vector2(2, 2)); // left0.5, top3
       final player = _player(world, Vector2(0.23, 3.5));
       final system = _interactions(world, player);
-      _input(system, grounded: false, pressed: true, held: true);
+      // Caught automatically, no action button.
+      _input(system, grounded: false);
       expect(system.mode, InteractionMode.hanging);
       for (var i = 0; i < 50; i++) {
-        _input(system, grounded: false, held: true);
+        _input(system, grounded: false);
         world.update(_step);
       }
-      _input(system, grounded: false, held: true, jump: true);
+      _input(system, grounded: false, jump: true);
       expect(system.mode, InteractionMode.climbing);
       var climbed = false;
       var largestStep = 0.0;
       for (var i = 0; i < 360; i++) {
         final previous = player.position;
-        _input(system, grounded: false, held: true);
+        _input(system, grounded: false);
         world.update(_step);
         largestStep = math.max(
           largestStep,
@@ -320,9 +335,41 @@ void main() {
     _box(world, Vector2(1.5, 2.2), Vector2(2, 0.3));
     final player = _player(world, Vector2(0.23, 3.5));
     final system = _interactions(world, player);
-    _input(system, grounded: false, pressed: true, held: true);
+    _input(system, grounded: false);
     expect(system.mode, InteractionMode.none);
     expect(system.controlsMotion, isFalse);
+  });
+
+  test('down or steering away lets go of a ledge, and it is not re-caught', () {
+    for (final letGo in ['down', 'away']) {
+      final world = _world();
+      _box(world, Vector2(1.5, 4), Vector2(2, 2));
+      final player = _player(world, Vector2(0.23, 3.5));
+      final system = _interactions(world, player);
+      _input(system, grounded: false);
+      expect(system.mode, InteractionMode.hanging);
+      _input(
+        system,
+        grounded: false,
+        down: letGo == 'down',
+        axis: letGo == 'away' ? -1 : 0,
+      );
+      expect(system.mode, InteractionMode.none, reason: letGo);
+      for (var i = 0; i < 12; i++) {
+        _input(system, grounded: false);
+        world.update(_step);
+        expect(system.mode, InteractionMode.none, reason: letGo);
+      }
+    }
+  });
+
+  test('steering away from a wall does not catch its ledge', () {
+    final world = _world();
+    _box(world, Vector2(1.5, 4), Vector2(2, 2));
+    final player = _player(world, Vector2(0.23, 3.5));
+    final system = _interactions(world, player);
+    _input(system, grounded: false, axis: -1);
+    expect(system.mode, InteractionMode.none);
   });
 
   test('objects beyond arm reach cannot create a disconnected grab', () {

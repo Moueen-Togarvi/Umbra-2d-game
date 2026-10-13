@@ -57,10 +57,8 @@ void main() {
       advance(game, 0.2, fps: fps);
       final startX = player.body.position.x;
       await tester.sendKeyDownEvent(LogicalKeyboardKey.keyD);
-      await tester.sendKeyDownEvent(LogicalKeyboardKey.shiftLeft);
       advance(game, 0.6, fps: fps);
       await tester.sendKeyUpEvent(LogicalKeyboardKey.keyD);
-      await tester.sendKeyUpEvent(LogicalKeyboardKey.shiftLeft);
       advance(game, 0.3, fps: fps);
       distances.add(player.body.position.x - startX);
       expect(player.body.linearVelocity.x.abs(), lessThan(0.05));
@@ -105,7 +103,6 @@ void main() {
       advance(game, 0.2, fps: 120);
       expect(player.isOnGround, isTrue);
       await tester.sendKeyDownEvent(LogicalKeyboardKey.keyD);
-      await tester.sendKeyDownEvent(LogicalKeyboardKey.shiftLeft);
       for (var tick = 0; tick < 120 && player.isOnGround; tick++) {
         game.update(1 / 120);
       }
@@ -122,7 +119,6 @@ void main() {
     expect(player.body.position.y, lessThan(nearEdgeY - 0.15));
     await tester.sendKeyUpEvent(LogicalKeyboardKey.space);
     await tester.sendKeyUpEvent(LogicalKeyboardKey.keyD);
-    await tester.sendKeyUpEvent(LogicalKeyboardKey.shiftLeft);
 
     await walkOffEdge();
     advance(game, GameConfig.coyoteTimeSeconds + 0.05, fps: 120);
@@ -131,7 +127,6 @@ void main() {
     advance(game, 0.05, fps: 120);
     await tester.sendKeyUpEvent(LogicalKeyboardKey.space);
     await tester.sendKeyUpEvent(LogicalKeyboardKey.keyD);
-    await tester.sendKeyUpEvent(LogicalKeyboardKey.shiftLeft);
     expect(player.isOnGround, isFalse);
     expect(player.body.linearVelocity.y, greaterThan(0));
     expect(player.body.position.y, greaterThan(lateY));
@@ -197,7 +192,6 @@ void main() {
   ) async {
     final (game, player) = await boot(tester);
     await tester.sendKeyDownEvent(LogicalKeyboardKey.keyD);
-    await tester.sendKeyDownEvent(LogicalKeyboardKey.shiftLeft);
     advance(game, 0.3, fps: 120);
     final takeoffSpeed = player.body.linearVelocity.x;
     expect(
@@ -208,12 +202,11 @@ void main() {
     advance(game, GameConfig.jumpAnticipationSeconds + 0.017, fps: 120);
     expect(player.isOnGround, isFalse);
     await tester.sendKeyUpEvent(LogicalKeyboardKey.keyD);
-    await tester.sendKeyUpEvent(LogicalKeyboardKey.shiftLeft);
     advance(game, 0.1, fps: 120);
     expect(
       player.body.linearVelocity.x,
       closeTo(takeoffSpeed, 0.05),
-      reason: 'releasing walk in the air should not brake the jump',
+      reason: 'releasing the run in the air should not brake the jump',
     );
 
     await tester.sendKeyDownEvent(LogicalKeyboardKey.keyA);
@@ -279,7 +272,6 @@ void main() {
     final restingY = player.body.position.y;
     var largestHeightError = 0.0;
     await tester.sendKeyDownEvent(LogicalKeyboardKey.keyD);
-    await tester.sendKeyDownEvent(LogicalKeyboardKey.shiftLeft);
     for (var frame = 0; frame < 54; frame++) {
       game.update(1 / 60);
       largestHeightError = math.max(
@@ -289,7 +281,6 @@ void main() {
       expect(player.isOnGround, isTrue, reason: 'lost flat log support');
     }
     await tester.sendKeyUpEvent(LogicalKeyboardKey.keyD);
-    await tester.sendKeyUpEvent(LogicalKeyboardKey.shiftLeft);
     expect(player.body.position.x, greaterThan(35.3));
     expect(largestHeightError, lessThan(0.025));
   });
@@ -311,11 +302,9 @@ void main() {
     var jumpHeld = false;
     var hasLeftGround = false;
     var reachedX = player.body.position.x;
-    var interactHeld = false;
     var climbedLedge = false;
     final platformJumps = <MovingPlatform>{};
     await tester.sendKeyDownEvent(LogicalKeyboardKey.keyD);
-    await tester.sendKeyDownEvent(LogicalKeyboardKey.shiftLeft);
 
     for (
       var frame = 0;
@@ -330,16 +319,9 @@ void main() {
           jumpHeld = false;
         }
       }
-      if (!interactHeld && player.body.position.x >= 72 && !climbedLedge) {
-        await tester.sendKeyDownEvent(LogicalKeyboardKey.keyE);
-        interactHeld = true;
-      }
+      // The ledge is caught and climbed by itself, as in LIMBO.
       if (player.interactions.mode == InteractionMode.climbing) {
         climbedLedge = true;
-      }
-      if (interactHeld && climbedLedge && !player.interactions.controlsMotion) {
-        await tester.sendKeyUpEvent(LogicalKeyboardKey.keyE);
-        interactHeld = false;
       }
       if (!jumpHeld &&
           nextJump < jumpAt.length &&
@@ -374,6 +356,7 @@ void main() {
 
       game.update(1 / 60);
 
+      expect(player.isDead, isFalse, reason: 'died near x=$reachedX');
       expect(
         player.body.position.x,
         greaterThanOrEqualTo(reachedX - 0.2),
@@ -382,9 +365,7 @@ void main() {
       reachedX = math.max(reachedX, player.body.position.x);
     }
     if (jumpHeld) await tester.sendKeyUpEvent(LogicalKeyboardKey.space);
-    if (interactHeld) await tester.sendKeyUpEvent(LogicalKeyboardKey.keyE);
     await tester.sendKeyUpEvent(LogicalKeyboardKey.keyD);
-    await tester.sendKeyUpEvent(LogicalKeyboardKey.shiftLeft);
     expect(
       nextJump,
       jumpAt.length,
