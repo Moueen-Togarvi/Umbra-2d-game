@@ -140,6 +140,13 @@ abstract final class GameConfig {
   static const double jumpAnticipationSeconds = 0.017;
   static const double pushForceNewtons = 500;
 
+  /// Crates are moved at a walk, not a run: a light one pushed briskly, a
+  /// heavy one slowly, and pulling slower still, metres a second. Between
+  /// the light (8 kg) and heavy (35 kg) crate the speed is in proportion.
+  static const double pushSpeedLight = 1.9, pushSpeedHeavy = 1.1;
+  static const double pullSpeedLight = 1.0, pullSpeedHeavy = 0.75;
+  static const double lightCrateKg = 8, heavyCrateKg = 35;
+
   /// Pushing, the arms brace against the crate: a shape this long grows on
   /// the front of the body, so he holds it at arm's length, not with his
   /// chest. It collides with props only.
@@ -190,6 +197,19 @@ abstract final class GameConfig {
   static const double cameraShakeImpact = 7;
   static const double cameraShakeMeters = 0.12;
   static const double cameraShakeSeconds = 0.5;
+
+  /// Stopped with his centre past an edge, he steps back onto the ground
+  /// this fast, metres a second.
+  static const double edgeStepBackSpeed = 0.7;
+
+  /// Stopping this close to an edge he faces (metres from his centre), he
+  /// balances for [teeterSeconds].
+  static const double teeterReach = 0.22;
+  static const double teeterSeconds = 1.0;
+
+  /// Climbing up onto a ledge — pull up, knee on top, stand — takes this
+  /// long.
+  static const double climbSeconds = 1.0;
 
   /// Turning round: the body passes through a front view in this long.
   static const double turnSeconds = 0.12;
@@ -314,6 +334,16 @@ abstract final class GameConfig {
     [68, 69.5],
     [88, 89.5],
   ];
+
+  /// Boulders half sunk in the ground across the path, by their x span;
+  /// like the logs, hopped over.
+  static const List<List<double>> rocks = [
+    [57.6, 58.5],
+    [84.0, 84.9],
+  ];
+
+  /// How high a boulder stands out of the ground.
+  static const double rockHeight = 0.42;
 
   /// Thickness of a ledge.
   static const double ledgeThickness = 0.5;

@@ -6,6 +6,7 @@ import 'package:flame_forge2d/flame_forge2d.dart';
 import '../config/game_config.dart';
 import '../config/palette.dart';
 import '../physics/collision_layers.dart';
+import '../render/culling.dart';
 import 'player.dart';
 
 /// A pit of sharpened stakes. Touching the stakes kills the boy: the body
@@ -16,7 +17,7 @@ import 'player.dart';
 /// touch without the stakes holding him up. Below their points a solid
 /// floor catches the limp body, so it comes to rest among the stakes rather
 /// than falling out of the world.
-class Hazard extends BodyComponent with ContactCallbacks {
+class Hazard extends BodyComponent with ContactCallbacks, OffScreenCulling {
   Hazard({required Vector2 center, required Vector2 size})
     : _size = size.clone(),
       super(
@@ -60,39 +61,132 @@ class Hazard extends BodyComponent with ContactCallbacks {
 
   final Vector2 _size;
 
-  /// The stakes, built once in body-local metres.
+  /// The stakes and the floor, built once in body-local metres.
   late final Path _stakes = _buildStakes();
+  late final Path _floor = _buildFloor();
 
+  double get _hw => _size.x / 2;
+  double get _hh => _size.y / 2;
+
+  /// The top of the floor the stakes stand in.
+  double get _base => -_hh + stakeHeight;
+
+  /// The level of the pit's lips, body-local.
+  double get _lip => -_hh - GameConfig.pitDepth;
+
+  /// Sharpened poles driven into the floor by hand: thick, uneven, leaning
+  /// every way, a few snapped short, two crossed.
   Path _buildStakes() {
-    final double hw = _size.x / 2;
-    final double hh = _size.y / 2;
-    final double base = -hh + stakeHeight;
-    // The floor runs under the undercut banks on both sides.
-    final Path path = Path()
-      ..moveTo(-hw - 0.15, hh)
-      ..lineTo(-hw - 0.15, base)
-      ..lineTo(hw + 0.15, base)
-      ..lineTo(hw + 0.15, hh)
-      ..close();
-    // Sharpened poles at uneven heights and angles, the way they would be
-    // driven into the bottom of a pit by hand.
+    final path = Path();
     final random = math.Random((_size.x * 1000).round());
+    final xs = <double>[];
     for (
-      double x = -hw + 0.08;
-      x < hw - 0.04;
+      double x = -_hw + 0.07 + random.nextDouble() * 0.05;
+      x < _hw - 0.05;
       x += 0.13 + random.nextDouble() * 0.09
     ) {
-      final double height = stakeHeight * (0.65 + random.nextDouble() * 0.45);
-      final double lean = (random.nextDouble() - 0.5) * 0.35;
-      final double width = 0.035 + random.nextDouble() * 0.02;
-      final double tipX = x + lean * height;
-      final double shoulderY = base - height * 0.78;
+      xs.add(x);
+    }
+    // Two neighbours lean into each other and cross.
+    final int crossed = xs.length > 3 ? 1 + random.nextInt(xs.length - 2) : -1;
+    for (var i = 0; i < xs.length; i++) {
+      final double x = xs[i];
+      final bool broken = random.nextDouble() < 0.22;
+      final double height = broken
+          ? 0.18 + random.nextDouble() * 0.2
+          : 0.38 + random.nextDouble() * 0.42;
+      double lean = (random.nextDouble() - 0.5) * 0.4;
+      if (i == crossed) lean = 0.42;
+      if (i == crossed + 1) lean = -0.42;
+      final double width = 0.06 + random.nextDouble() * 0.03;
+      _stake(path, x, height, lean, width, broken, random);
+    }
+    return path;
+  }
+
+  void _stake(
+    Path path,
+    double x,
+    double height,
+    double lean,
+    double width,
+    bool broken,
+    math.Random random,
+  ) {
+    // Built upright, then leaned about its foot.
+    final double c = math.cos(lean), s = math.sin(lean);
+    Offset at(double across, double up) =>
+        Offset(x + across * c + up * s, _base + 0.04 - (up * c - across * s));
+    final double w = width / 2;
+    final points = <Offset>[at(-w, -0.04)];
+    // Hewn sides with a knot or two.
+    for (var k = 1; k <= 3; k++) {
+      final double up = height * 0.62 * k / 3;
+      points.add(at(-w + (random.nextDouble() - 0.5) * 0.012, up));
+    }
+    if (broken) {
+      // Snapped: a splintered top.
+      points
+        ..add(at(-w * 0.6, height + 0.02))
+        ..add(at(-w * 0.1, height - 0.03))
+        ..add(at(w * 0.25, height + 0.035))
+        ..add(at(w * 0.7, height - 0.01));
+    } else {
+      // A long cut point.
+      points
+        ..add(at(-w * 0.55, height * 0.86))
+        ..add(at(0, height + 0.05));
+    }
+    for (var k = 3; k >= 1; k--) {
+      final double up = height * 0.62 * k / 3;
+      points.add(at(w + (random.nextDouble() - 0.5) * 0.012, up));
+    }
+    points.add(at(w, -0.04));
+    path.moveTo(points.first.dx, points.first.dy);
+    for (final point in points.skip(1)) {
+      path.lineTo(point.dx, point.dy);
+    }
+    path.close();
+  }
+
+  /// The floor: trodden mud with lumps, stones half sunk in it and a few
+  /// broken sticks lying across it. It reaches under the banks either side.
+  Path _buildFloor() {
+    final random = math.Random((_size.x * 311).round());
+    final double left = -_hw - 0.25, right = _hw + 0.25;
+    final path = Path()..moveTo(left, _hh);
+    for (double x = left; x <= right; x += 0.05) {
+      final double lump =
+          0.025 * math.sin(x * 9.1 + 1.3) + (random.nextDouble() - 0.5) * 0.02;
+      path.lineTo(x, _base + 0.02 + lump);
+    }
+    path
+      ..lineTo(right, _hh)
+      ..close();
+    for (var i = 0; i < 4; i++) {
+      final double r = 0.025 + random.nextDouble() * 0.035;
+      path.addOval(
+        Rect.fromCircle(
+          center: Offset(
+            left + 0.1 + random.nextDouble() * (right - left - 0.2),
+            _base + 0.03,
+          ),
+          radius: r,
+        ),
+      );
+    }
+    for (var i = 0; i < 2; i++) {
+      final double length = 0.3 + random.nextDouble() * 0.3;
+      final double angle = (random.nextDouble() - 0.5) * 0.5;
+      final double cx = left + 0.2 + random.nextDouble() * (right - left - 0.4);
+      final double dx = math.cos(angle) * length / 2;
+      final double dy = math.sin(angle) * length / 2;
+      const double t = 0.014;
       path
-        ..moveTo(x - width / 2, base + 0.02)
-        ..lineTo(x - width / 2 + lean * height * 0.78, shoulderY)
-        ..lineTo(tipX, base - height)
-        ..lineTo(x + width / 2 + lean * height * 0.78, shoulderY)
-        ..lineTo(x + width / 2, base + 0.02)
+        ..moveTo(cx - dx - t * math.sin(angle), _base + 0.01 - dy + t)
+        ..lineTo(cx + dx - t * math.sin(angle), _base + 0.01 + dy + t)
+        ..lineTo(cx + dx, _base - 0.015 + dy)
+        ..lineTo(cx - dx, _base - 0.015 - dy)
         ..close();
     }
     return path;
@@ -102,26 +196,38 @@ class Hazard extends BodyComponent with ContactCallbacks {
 
   @override
   void render(Canvas canvas) {
-    // The drop above the stakes: fog at the lip, black by the time it
-    // reaches them. Without this a pit shows bright fog all the way down to
-    // a hard black block at the bottom, which reads as a slab floating in
-    // mid-air rather than as a hole in the ground.
-    // It reaches under the undercut banks on both sides, so no fog shows
-    // between a crumbling cliff face and the shaft.
-    final double hw = _size.x / 2;
-    final double hh = _size.y / 2;
-    final double lip = -hh - GameConfig.pitDepth;
+    final centre = body.position;
+    if (!isOnScreen(
+      Rect.fromLTRB(
+        centre.x - _hw - 0.3,
+        centre.y + _lip,
+        centre.x + _hw + 0.3,
+        centre.y + _hh,
+      ),
+    )) {
+      return;
+    }
+    // The drop: fog at the lip, darkening with depth into the pit, but
+    // never so dark that the broken walls, the roots or the black stakes
+    // stop standing out against it. It reaches under the undercut banks.
+    final double wide = _hw + 0.2;
     _shadowPaint.shader = Gradient.linear(
-      Offset(0, lip),
-      Offset(0, -hh + stakeHeight),
-      const [Color(0x00000000), Color(0x38000000), Color(0x80000000)],
-      const [0.0, 0.55, 1.0],
+      Offset(0, _lip),
+      Offset(0, _base),
+      const [
+        Color(0x00000000),
+        Color(0x2A000000),
+        Color(0x5E000000),
+        Color(0x80000000),
+      ],
+      const [0.0, 0.4, 0.8, 1.0],
     );
     canvas.drawRect(
-      Rect.fromLTRB(-hw - 0.15, lip, hw + 0.15, -hh + stakeHeight + 0.05),
+      Rect.fromLTRB(-wide, _lip, wide, _base + 0.05),
       _shadowPaint,
     );
     canvas.drawPath(_stakes, paint);
+    canvas.drawPath(_floor, paint);
   }
 
   /// Builds a hazard from its edges, matching the way ground slabs are

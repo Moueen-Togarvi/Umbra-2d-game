@@ -3,13 +3,13 @@
 //
 //   flutter test tool/capture/arm_jitter_test.dart
 //
-// For each scene it follows each hand relative to its shoulder at the
-// 120 Hz simulation rate and prints:
-//   jitter  mean and largest frame-to-frame change of the hand's velocity
-//           (the second difference of its position), in millimetres; a
-//           smooth swing scores low, shaking scores high
-//   swing   how far the hand travels forward and back (the arm swing),
-//           in centimetres, so calming the shake can't hide a lost swing
+// For each scene it follows the hands (relative to the shoulders), the
+// ankles (relative to the hips) and the pelvis and head (relative to the
+// capsule) at the 120 Hz simulation rate and prints, for each, the mean and
+// largest frame-to-frame change of velocity (the second difference of
+// position) in millimetres: smooth motion scores low, shaking and popping
+// score high. "swing" is how far the front hand travels forward and back,
+// in centimetres, so calming the shake can't hide a lost swing.
 import 'dart:math' as math;
 
 import 'package:flame/game.dart';
@@ -45,37 +45,47 @@ void main() {
     return (game, player, level);
   }
 
-  /// Steps [seconds] at 120 Hz and reports the hands' jitter and swing.
+  /// Steps [seconds] at 120 Hz and reports the jitter of the hands
+  /// (relative to the shoulders), the ankles (relative to the hips) and the
+  /// pelvis and head (relative to the capsule), plus the arm swing.
   void measure(String scene, UmbraGame game, Player player, double seconds) {
-    final paths = <List<Vector2>>[[], []];
+    final tracks = <String, (RigJoint, RigJoint?)>{
+      'hand F': (RigJoint.frontHand, RigJoint.frontShoulder),
+      'hand B': (RigJoint.backHand, RigJoint.backShoulder),
+      'ankle F': (RigJoint.frontAnkle, RigJoint.frontHip),
+      'ankle B': (RigJoint.backAnkle, RigJoint.backHip),
+      'pelvis': (RigJoint.pelvis, null),
+      'head': (RigJoint.head, null),
+    };
+    final paths = {for (final name in tracks.keys) name: <Vector2>[]};
     for (var i = 0; i < (seconds * 120).round(); i++) {
       game.update(1 / 120);
       final pose = player.rigPoseWorld;
-      paths[0].add(pose[RigJoint.frontHand] - pose[RigJoint.frontShoulder]);
-      paths[1].add(pose[RigJoint.backHand] - pose[RigJoint.backShoulder]);
+      for (final MapEntry(key: name, value: (joint, base)) in tracks.entries) {
+        paths[name]!.add(
+          pose[joint] - (base == null ? player.body.position : pose[base]),
+        );
+      }
     }
-    final out = StringBuffer(scene.padRight(12));
-    for (var h = 0; h < 2; h++) {
-      final path = paths[h];
+    final out = StringBuffer(scene.padRight(11));
+    for (final MapEntry(key: name, value: path) in paths.entries) {
       var sum = 0.0, most = 0.0;
-      var low = double.infinity, high = -double.infinity;
       for (var i = 1; i + 1 < path.length; i++) {
         final double a = (path[i + 1] - path[i] * 2 + path[i - 1]).length;
         sum += a;
         most = math.max(most, a);
       }
-      for (final p in path) {
-        final double forward = p.x * player.facing;
-        low = math.min(low, forward);
-        high = math.max(high, forward);
-      }
       out.write(
-        '  ${h == 0 ? 'front' : 'back '} jitter '
-        '${(sum / (path.length - 2) * 1000).toStringAsFixed(2)} mm mean, '
-        '${(most * 1000).toStringAsFixed(1)} mm max, '
-        'swing ${((high - low) * 100).toStringAsFixed(1)} cm',
+        ' | $name ${(sum / (path.length - 2) * 1000).toStringAsFixed(1)}/'
+        '${(most * 1000).toStringAsFixed(0)}',
       );
     }
+    var low = double.infinity, high = -double.infinity;
+    for (final p in paths['hand F']!) {
+      low = math.min(low, p.x * player.facing);
+      high = math.max(high, p.x * player.facing);
+    }
+    out.write(' | swing ${((high - low) * 100).toStringAsFixed(0)} cm');
     // ignore: avoid_print
     print(out);
   }

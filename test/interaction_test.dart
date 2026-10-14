@@ -329,10 +329,27 @@ void main() {
       expect(system.mode, InteractionMode.climbing);
       var climbed = false;
       var largestStep = 0.0;
+      // How far the feet rise above the ledge top (3.0), whether the hands
+      // stay on the corner (0.5, 3.0) until he pushes himself up, and how
+      // far through the climb the front foot is up on the top.
+      var highest = double.negativeInfinity;
+      var handsLeft = true;
+      var kneeUpBy = 1.0;
       for (var i = 0; i < 360; i++) {
         final previous = player.position;
         _input(system, grounded: false);
+        final double? progress = system.climbProgress;
+        if (progress != null) {
+          if (progress < 0.55 &&
+              (system.gripWorld! - Vector2(0.5, 3)).length > 0.04) {
+            handsLeft = false;
+          }
+          if (system.climbFeet![0] != null) {
+            kneeUpBy = math.min(kneeUpBy, progress);
+          }
+        }
         world.update(_step);
+        highest = math.max(highest, 3.0 - (player.position.y + _height / 2));
         largestStep = math.max(
           largestStep,
           (player.position - previous).length,
@@ -346,6 +363,9 @@ void main() {
       expect(player.position.x, greaterThan(0.7));
       expect(player.position.y + _height / 2, lessThan(3.05));
       expect(largestStep, lessThan(0.05), reason: 'climbing must not teleport');
+      expect(highest, lessThan(0.1), reason: 'never flies up above the ledge');
+      expect(handsLeft, isTrue, reason: 'hands on the corner, then pressing');
+      expect(kneeUpBy, lessThanOrEqualTo(0.8), reason: 'knee on top early');
     },
   );
 

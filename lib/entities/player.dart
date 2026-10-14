@@ -47,6 +47,12 @@ class Player extends BodyComponent {
   /// the legs fold under it, and it springs back. Metres, positive down.
   double _pelvisDrop = 0;
   double _pelvisSpeed = 0;
+
+  /// How low the hips must sit to reach the planted feet, followed on a
+  /// critically damped spring so a new foothold is sunk into, not dropped
+  /// to (fractions of height; NaN until first worked out).
+  double _hipFloor = double.nan;
+  double _hipFloorSpeed = 0;
   List<bool> _wasPlanted = const [true, true];
   final CharacterSilhouette _figure = CharacterSilhouette(
     height: GameConfig.playerHeight,
@@ -61,6 +67,19 @@ class Player extends BodyComponent {
   bool _dead = false;
   double _deadSeconds = 0;
   bool _grounded = false;
+
+  /// Whether the ground is under his centre, not just under one side of
+  /// the capsule; if not, which side has it (+1 ahead in x, −1 behind).
+  bool _centreSupported = false;
+  double _edgeSide = 0;
+  bool _steppingBack = false;
+
+  // Balancing at an edge he has just stopped at.
+  double _teeterTime = -1;
+  bool _teeterArmed = true;
+  double _sinceRunning = double.infinity;
+  int _teeters = 0;
+  final Vector2 _teeterLip = Vector2.zero();
   double _supportSlope = 0;
   double _supportY = 0;
   Vector2 _supportVelocity = Vector2.zero();
@@ -69,6 +88,7 @@ class Player extends BodyComponent {
   double _anticipationTime = 0;
   bool _jumping = false;
   int _landings = 0;
+  double? _pendingLanding;
   double _lastLandingImpact = 0;
   final Vector2 _lastLandingAt = Vector2.zero();
   bool _sliding = false;
@@ -87,6 +107,9 @@ class Player extends BodyComponent {
   /// not for a moment's hop over a bump, and ease in and out of it.
   double _armAirWeight = 0;
   double _airSeconds = 0;
+
+  /// Legs kicking with a rope swing, −1 to 1.
+  double _swingKick = 0;
   double _fallLean = 0;
   double _bodyLean = 0;
   double _landing = 0;
@@ -97,6 +120,10 @@ class Player extends BodyComponent {
   /// than jumping into it.
   double _landingDrawn = 0;
   double _hardLandingDrawn = 0;
+
+  /// The jump's crouch and spring as drawn, eased the same way.
+  double _anticipationDrawn = 0;
+  double _takeoffDrawn = 0;
   double _hardLandingHold = 0;
   double _takeoff = 0;
   double _pushWeight = 0;
@@ -132,6 +159,27 @@ class Player extends BodyComponent {
 
   /// Holding a rope.
   bool get isOnRope => isLoaded && interactions.attachedRope != null;
+
+  /// Balancing at an edge he has just stopped at.
+  bool get isTeetering => _teeterTime >= 0;
+
+  /// How far into the balancing pose he is: in over 0.15 s, out over the
+  /// last 0.4 s.
+  double get _teeterWeight {
+    if (_teeterTime < 0) return 0;
+    final double t = _teeterTime;
+    final double rise = (t / 0.15).clamp(0.0, 1.0);
+    final double fall = ((GameConfig.teeterSeconds - t) / 0.4).clamp(0.0, 1.0);
+    return _smooth(math.min(rise, fall));
+  }
+
+  /// How many times he has started balancing at an edge, and the lip of
+  /// the last one, for the earth that crumbles off it.
+  int get teeters => _teeters;
+  Vector2 get teeterLip => _teeterLip;
+
+  /// Whether the ground is under the middle of him.
+  bool get isCentreSupported => _centreSupported;
 
   /// How many times he has landed, so dust and the camera can react to
   /// each new landing; and the last one's impact speed (m/s) and where his
@@ -224,6 +272,8 @@ class Player extends BodyComponent {
   RayHit? _supportBelow() {
     RayHit? closest;
     final soleY = body.position.y + GameConfig.playerHeight / 2;
+    var centre = false;
+    var sides = 0.0;
     for (final offset in const [0.0, -0.10, 0.10]) {
       world.castRay(
         Vector2(body.position.x + offset, soleY - 0.20),
@@ -243,10 +293,31 @@ class Player extends BodyComponent {
               body.linearVelocity - hit.shape.body.linearVelocity;
           if (relativeVelocity.dot(hit.normal) > 0.65) return -1;
           if (closest == null || hit.point.y < closest!.point.y) closest = hit;
+          if (offset == 0) {
+            centre = true;
+          } else {
+            sides += offset.sign;
+          }
           return hit.fraction;
         },
         filter: QueryFilter(maskBits: CollisionLayers.solid),
       );
+    }
+    _centreSupported = centre;
+    // Ground under only one side of him: which side. He steps back until
+    // it is under the middle and both sides of him — but only from a real
+    // drop, not from a slope or a bump falling away under the other side.
+    _edgeSide = sides.sign;
+    if (_edgeSide != 0 &&
+        probeGround(
+              world,
+              body.position.x - _edgeSide * 0.10,
+              soleY - 0.2,
+              0.6,
+              ignore: body,
+            ) !=
+            null) {
+      _edgeSide = 0;
     }
     return closest;
   }
@@ -304,6 +375,13 @@ class Player extends BodyComponent {
         die();
         return;
       }
+      // The body takes the landing from the next step, when the capsule
+      // has actually stopped: taken now, the hips would start sinking
+      // while it is still falling, and jolt.
+      _pendingLanding = impact;
+    } else if (_pendingLanding != null) {
+      final double impact = _pendingLanding!;
+      _pendingLanding = null;
       if (impact > GameConfig.hardLandingSpeed) {
         _hardLanding = 1;
         _hardLandingHold = GameConfig.hardLandingSeconds;
@@ -312,7 +390,7 @@ class Player extends BodyComponent {
       }
       // The landing's real speed goes into the pelvis spring: the body
       // keeps sinking for a moment and the knees fold to catch it.
-      _pelvisSpeed += impact.clamp(0.0, GameConfig.deathImpactSpeed) * 0.3;
+      _pelvisSpeed += impact.clamp(0.0, GameConfig.deathImpactSpeed) * 0.385;
     }
     for (final hit in world.physicsWorld.contactEvents.hit) {
       if (hit.approachSpeed > GameConfig.deathImpactSpeed &&
@@ -362,12 +440,39 @@ class Player extends BodyComponent {
     final axis = _intent.horizontalAxis;
     // A long drop folds the knees: he stays down for a moment, then runs on.
     final double held = _hardLandingHold > 0 ? 0.15 : 1;
-    final speed = GameConfig.moveSpeedMetersPerSecond * held;
+    var speed = GameConfig.moveSpeedMetersPerSecond * held;
+    // Moving a crate is a slow, heavy walk, slower the heavier it is.
+    final load = interactions.pushResistanceBody;
+    if (load != null && load.isValid) {
+      final double weight =
+          ((load.mass - GameConfig.lightCrateKg) /
+                  (GameConfig.heavyCrateKg - GameConfig.lightCrateKg))
+              .clamp(0.0, 1.0);
+      final bool pulling = interactions.mode == InteractionMode.pulling;
+      final double light = pulling
+          ? GameConfig.pullSpeedLight
+          : GameConfig.pushSpeedLight;
+      final double heavy = pulling
+          ? GameConfig.pullSpeedHeavy
+          : GameConfig.pushSpeedHeavy;
+      speed = math.min(speed, light + (heavy - light) * weight);
+    }
     final surfaceScale = _grounded
         ? 1 / math.sqrt(1 + _supportSlope * _supportSlope)
         : 1.0;
     final supportX = _grounded ? _supportVelocity.x : 0.0;
-    final target = !_grounded && axis == 0
+    // Stopped with only one side of him on the ground (his middle over a
+    // drop), he steps back onto it. Steering towards the drop walks off it.
+    _steppingBack =
+        _grounded &&
+        axis == 0 &&
+        _edgeSide != 0 &&
+        !_sliding &&
+        interactions.mode == InteractionMode.none &&
+        _anticipationTime <= 0;
+    final target = _steppingBack
+        ? supportX + _edgeSide * GameConfig.edgeStepBackSpeed * surfaceScale
+        : !_grounded && axis == 0
         ? measuredVelocity.x
         : supportX + axis * speed * surfaceScale;
     final traction = support == null
@@ -435,6 +540,25 @@ class Player extends BodyComponent {
     _previousVerticalSpeed = body.linearVelocity.y;
   }
 
+  /// The hips follow the height they need to reach the planted feet on a
+  /// critically damped spring (about 8 Hz), instead of dropping to a new
+  /// foothold in one frame.
+  void _followHipFloor(double dt, CharacterPose pose) {
+    final (base, need) = _figure.rig.hipHeights(pose);
+    final double target = math.max(base, need);
+    if (!_hipFloor.isFinite) {
+      _hipFloor = target;
+      _hipFloorSpeed = 0;
+      return;
+    }
+    const double omega = 2 * math.pi * 8;
+    final double decay = math.exp(-omega * dt);
+    final double x = _hipFloor - target;
+    final double c = _hipFloorSpeed + x * omega;
+    _hipFloor = target + (x + c * dt) * decay;
+    _hipFloorSpeed = (_hipFloorSpeed - c * omega * dt) * decay;
+  }
+
   /// Steep ground starts a slide; gentler ground ends it, and the speed
   /// carries on for a moment after.
   void _updateSliding(double dt) {
@@ -486,20 +610,27 @@ class Player extends BodyComponent {
     final planted = _feet.planted;
     for (var i = 0; i < 2; i++) {
       if (_grounded && planted[i] && !_wasPlanted[i]) {
-        _pelvisSpeed += 0.22 * _gaitWeight;
+        _pelvisSpeed += 0.28 * _gaitWeight;
       }
     }
     _wasPlanted = planted;
-    // About 3.3 Hz, a little under critically damped: one soft dip and
-    // a barely visible rebound.
-    const double stiffness = 420, damping = 24;
+    // About 3.3 Hz and nearly critically damped: one soft dip, no rebound.
+    const double stiffness = 420, damping = 37;
     _pelvisSpeed += (-stiffness * _pelvisDrop - damping * _pelvisSpeed) * dt;
     _pelvisDrop = (_pelvisDrop + _pelvisSpeed * dt).clamp(-0.01, 0.30);
 
     final bool turning = visualFacing.abs() < 0.999;
+    final climbFeet = interactions.climbFeet;
     final modes = interactions.ropeFeet != null
         // Feet clamping a rope.
         ? const [LegMode.planted, LegMode.planted]
+        // Climbing onto a ledge: each foot planted on the top once it is
+        // up, dangling until then.
+        : climbFeet != null
+        ? [
+            for (final foot in climbFeet)
+              foot == null ? LegMode.hang : LegMode.planted,
+          ]
         : interactions.mode == InteractionMode.hanging ||
               interactions.mode == InteractionMode.swinging
         ? const [LegMode.hang, LegMode.hang]
@@ -514,7 +645,10 @@ class Player extends BodyComponent {
         : _grounded && !interactions.controlsMotion
         ? const [ArmMode.ground, ArmMode.ground]
         : const [ArmMode.air, ArmMode.air];
-    final target = _figure.solve(_pose).translated(body.position);
+    final pose = _pose;
+    final target = _figure.solve(pose).translated(body.position);
+    // For the next step: where the hips must come down to for the feet.
+    _followHipFloor(dt, pose);
     final hands = _handTargets;
     if (turning && hands != null && _gripWeight > 0.6) {
       // The turn narrows the pose; the hands stay on what they hold.
@@ -528,7 +662,6 @@ class Player extends BodyComponent {
       armModes: armModes,
       ground: (x, fromY, depth) =>
           probeGround(world, x, fromY, depth, ignore: body),
-      gravity: GameConfig.gravityMetersPerSecondSquared,
     );
   }
 
@@ -590,7 +723,7 @@ class Player extends BodyComponent {
     final pulling = interactions.mode == InteractionMode.pulling;
     if (interactions.facingOverride != null) {
       _facing = interactions.facingOverride!;
-    } else if (!pulling && _actualSpeed.abs() > 0.18) {
+    } else if (!pulling && !_steppingBack && _actualSpeed.abs() > 0.18) {
       _facing = _actualSpeed.sign;
     } else if (!pulling &&
         body.linearVelocity.x.abs() < 0.18 &&
@@ -646,11 +779,26 @@ class Player extends BodyComponent {
     _updateBrace(dt);
     _airWeight = _approach(_airWeight, _grounded ? 0 : 1, dt * 12);
     _airSeconds = _grounded ? 0 : _airSeconds + dt;
+    // On a rope with the feet free, the legs kick the way he swings, and
+    // the way he pumps.
+    final bool freeSwing =
+        interactions.mode == InteractionMode.swinging &&
+        interactions.ropeFeet == null;
+    _swingKick = _approach(
+      _swingKick,
+      freeSwing
+          ? (body.linearVelocity.x * _facing / 2.2 +
+                    _intent.horizontalAxis * _facing * 0.5)
+                .clamp(-1.0, 1.0)
+          : 0,
+      dt * 4,
+    );
     final bool armsUp = !_grounded && (_jumping || _airSeconds > 0.15);
+    // On a jump the arms come up with him at once; on a fall, gently.
     _armAirWeight = _approach(
       _armAirWeight,
       armsUp ? 1 : 0,
-      dt * (armsUp ? 5 : 6),
+      dt * (armsUp ? (_jumping ? 9 : 5) : 6),
     );
     _slideWeight = _approach(_slideWeight, _sliding ? 1 : 0, dt * 6);
     _fallLean = _approach(
@@ -684,6 +832,12 @@ class Player extends BodyComponent {
     _takeoff = math.max(0, _takeoff - dt * 10);
     _landingDrawn = _ease(_landingDrawn, _landing, dt);
     _hardLandingDrawn = _ease(_hardLandingDrawn, _hardLanding, dt);
+    _anticipationDrawn = _approach(
+      _anticipationDrawn,
+      _anticipationTime > 0 ? 1 : 0,
+      dt * 20,
+    );
+    _takeoffDrawn = _ease(_takeoffDrawn, _takeoff, dt);
     _feet.update(
       world: world,
       body: body,
@@ -698,6 +852,7 @@ class Player extends BodyComponent {
       sliding: _sliding,
     );
     _updateIdle(dt);
+    _updateTeeter(dt);
     if (_blinkRemaining > 0) {
       _blinkRemaining -= dt;
     } else if (_time >= _nextBlinkAt) {
@@ -751,6 +906,49 @@ class Player extends BodyComponent {
     );
   }
 
+  /// Stopping right at an edge he faces, he balances a moment: arms out,
+  /// rocking over the drop, looking down into it. Once per stop.
+  void _updateTeeter(double dt) {
+    _sinceRunning = _actualSpeed.abs() > 1.0 ? 0 : _sinceRunning + dt;
+    final bool free =
+        _grounded &&
+        !_sliding &&
+        interactions.mode == InteractionMode.none &&
+        _hardLandingHold <= 0;
+    if (!free || _actualSpeed.abs() > 1.0) _teeterArmed = true;
+    if (_teeterTime >= 0) {
+      _teeterTime += dt;
+      if (_teeterTime > GameConfig.teeterSeconds ||
+          !free ||
+          _intent.horizontalAxis != 0) {
+        _teeterTime = -1;
+      }
+      return;
+    }
+    if (!_teeterArmed ||
+        !free ||
+        _actualSpeed.abs() > 0.4 ||
+        _sinceRunning > 0.5 ||
+        _intent.horizontalAxis != 0) {
+      return;
+    }
+    final double soleY = body.position.y + GameConfig.playerHeight / 2;
+    bool groundAt(double x) =>
+        probeGround(world, x, soleY - 0.25, 0.75, ignore: body) != null;
+    if (groundAt(body.position.x + _facing * GameConfig.teeterReach)) return;
+    // Where the ground ends: the lip the earth crumbles off.
+    var lip = body.position.x;
+    for (var i = 1; i <= 12; i++) {
+      final double x = body.position.x + _facing * i * 0.02;
+      if (!groundAt(x)) break;
+      lip = x;
+    }
+    _teeterLip.setValues(lip, _supportY);
+    _teeterTime = 0;
+    _teeterArmed = false;
+    _teeters++;
+  }
+
   void _updateIdle(double dt) {
     final bool still =
         _grounded &&
@@ -758,6 +956,7 @@ class Player extends BodyComponent {
         _intent.horizontalAxis == 0 &&
         !interactions.controlsMotion &&
         interactions.mode == InteractionMode.none &&
+        _teeterTime < 0 &&
         _actualSpeed.abs() < 0.12;
     _stillSeconds = still ? _stillSeconds + dt : 0;
     if (!still) {
@@ -861,7 +1060,10 @@ class Player extends BodyComponent {
     return grip == null ? null : [grip, grip + Vector2(0, 0.02)];
   }
 
-  CharacterPose get _pose {
+  CharacterPose get _pose =>
+      _buildPose(hipFloor: _hipFloor.isFinite ? _hipFloor : null);
+
+  CharacterPose _buildPose({double? hipFloor}) {
     Offset local(Vector2 point) => Offset(
       (point.x - body.position.x) * _facing / GameConfig.playerHeight,
       (point.y - body.position.y) / GameConfig.playerHeight,
@@ -875,11 +1077,37 @@ class Player extends BodyComponent {
     final ropeFeet = interactions.ropeFeet;
     final bool clamped = ropeFeet != null;
     const ropeSole = Offset(0.6, -0.8);
+    // Climbing onto a ledge: the feet that are up stand on its top.
+    final climbFeet = interactions.climbFeet;
+    final double? climb = interactions.climbProgress;
+    Offset? footAt(int i) {
+      if (clamped) {
+        return local(
+          i == 0 ? ropeFeet : ropeFeet + Vector2(-_facing * 0.02, 0.07),
+        );
+      }
+      if (climbFeet != null) {
+        final foot = climbFeet[i];
+        return foot == null ? null : local(foot);
+      }
+      return _grounded ? local(targets[i]) : null;
+    }
+
+    Offset? normalAt(int i) {
+      if (clamped) return ropeSole;
+      if (climbFeet != null) {
+        return climbFeet[i] == null ? null : const Offset(0, -1);
+      }
+      return _grounded ? localNormal(normals[i]) : null;
+    }
+
     return CharacterPose(
       facing: visualFacing,
       gaitPhase: _gaitPhase,
       gait: _gaitWeight,
-      air: _grounded ? 0 : _airWeight,
+      // Eased both ways, so a landing blends out of the air pose rather
+      // than snapping out of it.
+      air: _airWeight,
       armAir: _smooth(_armAirWeight),
       fallLean: _fallLean,
       blink: _blinkRemaining > 0,
@@ -889,46 +1117,38 @@ class Player extends BodyComponent {
       groundSlope: _grounded ? _supportSlope * _facing : 0,
       landing: _landingDrawn,
       hardLanding: _hardLandingDrawn,
-      takeoff: _takeoff,
+      takeoff: _takeoffDrawn,
       bodyLean: _bodyLean,
       push: _pushWeight,
       pull: _pullWeight,
       effort: _effort,
       slide: _slideWeight,
-      anticipation: _anticipationTime > 0 ? 1 : 0,
+      teeter: _teeterWeight,
+      teeterTime: math.max(0, _teeterTime),
+      anticipation: _smooth(_anticipationDrawn),
       hanging:
           interactions.mode == InteractionMode.hanging ||
               interactions.mode == InteractionMode.swinging
           ? 1
+          // Climbing: out of the hang as he pulls himself up.
+          : climb != null
+          ? 1 - _smooth((climb / 0.5).clamp(0.0, 1.0))
           : 0,
+      climb: climb ?? 0,
       hangLow: interactions.mode == InteractionMode.swinging ? 1 : 0,
+      swingKick: _swingKick,
       clock: _time,
       pelvisDrop: _pelvisDrop / GameConfig.playerHeight,
-      frontFoot: clamped
-          ? local(ropeFeet)
-          : _grounded
-          ? local(targets[0])
-          : null,
-      backFoot: clamped
-          ? local(ropeFeet + Vector2(-_facing * 0.02, 0.07))
-          : _grounded
-          ? local(targets[1])
-          : null,
-      frontFootNormal: clamped
-          ? ropeSole
-          : _grounded
-          ? localNormal(normals[0])
-          : null,
-      backFootNormal: clamped
-          ? ropeSole
-          : _grounded
-          ? localNormal(normals[1])
-          : null,
+      frontFoot: footAt(0),
+      backFoot: footAt(1),
+      frontFootNormal: normalAt(0),
+      backFootNormal: normalAt(1),
       frontRoll: _grounded ? rolls[0] : 0,
       backRoll: _grounded ? rolls[1] : 0,
       frontHand: hands == null ? null : local(hands[0]),
       backHand: hands == null ? null : local(hands[1]),
       interactionWeight: _gripWeight,
+      hipFloor: hipFloor,
       lookUp: _smooth(_lookUp),
       headTurn: _smooth(_headTurn / 0.85) * 0.85,
     );
@@ -1032,6 +1252,8 @@ class Player extends BodyComponent {
     _drawnPose = null;
     _pelvisDrop = 0;
     _pelvisSpeed = 0;
+    _hipFloor = double.nan;
+    _pendingLanding = null;
     _grounded = false;
     _jumping = false;
     _timeSinceGrounded = double.infinity;
@@ -1058,6 +1280,8 @@ class Player extends BodyComponent {
     interactions.braceLength = 0;
     _turnAngle = _facing > 0 ? 0 : math.pi;
     _idleAction = IdleAction.none;
+    _teeterTime = -1;
+    _teeterArmed = true;
     _stillSeconds = 0;
     _lookUp = 0;
     _headTurn = 0;

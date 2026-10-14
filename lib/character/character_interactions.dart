@@ -4,6 +4,7 @@ import 'package:flame_forge2d/flame_forge2d.dart';
 
 import '../entities/physics_props.dart';
 import '../config/game_config.dart';
+import '../physics/collision_layers.dart';
 import 'character_rig.dart';
 import 'rope_grips.dart';
 
@@ -59,8 +60,13 @@ class CharacterInteractions {
   Body? _ledgeBody;
   Vector2? _ledgeLocal;
   double _ledgeFacing = 1;
-  int _climbStage = 0;
-  double _climbTime = 0;
+
+  /// Climbing up onto a ledge: how far through it (0 to 1), where he
+  /// started, and the collision filters his shapes had before it (the
+  /// climb passes through the corner, so it switches them off).
+  double _climbProgress = 0;
+  final Vector2 _climbStart = Vector2.zero();
+  final List<(Shape, Filter)> _climbFilters = [];
   bool releasedThisStep = false;
   bool _requireInteractRelease = false;
 
@@ -92,20 +98,52 @@ class CharacterInteractions {
     }
     if (_ledgeBody?.isValid ?? false) {
       final grip = _ledgeBody!.worldPoint(_ledgeLocal!);
-      if (mode != InteractionMode.climbing ||
-          _handCanReach(grip, _ledgeFacing)) {
-        return grip;
-      }
-      // Once the torso rises past the rim, the hands press down on the top
-      // beside him to push the body over: a mantle.
+      if (mode != InteractionMode.climbing) return grip;
+      // Climbing, the hands hold the corner while he pulls up, then slide
+      // onto the top beside him and press down to push him over it.
+      final double press = _smoothstep((_climbProgress - 0.55) / 0.3);
       final brace = Vector2(
         playerBody.position.x + _ledgeFacing * 0.07,
         grip.y,
       );
-      return _handCanReach(brace, _ledgeFacing) ? brace : null;
+      return grip + (brace - grip) * press;
     }
     return _pushGrip?.clone();
   }
+
+  /// How far through climbing onto a ledge he is, 0 to 1, or null.
+  double? get climbProgress =>
+      mode == InteractionMode.climbing ? _climbProgress : null;
+
+  /// Climbing onto a ledge, where each foot (front, back) is planted on
+  /// its top, or null where that foot is not yet up: the front knee comes
+  /// up onto it first, the back foot follows, and both walk in to stand.
+  List<Vector2?>? get climbFeet {
+    if (mode != InteractionMode.climbing || !(_ledgeBody?.isValid ?? false)) {
+      return null;
+    }
+    final corner = _ledgeBody!.worldPoint(_ledgeLocal!);
+    final double p = _climbProgress;
+    final double f = _ledgeFacing;
+    final double walkIn = _smoothstep((p - 0.75) / 0.25);
+    final double stand = corner.x + f * (width / 2 + 0.14);
+    Vector2 on(double x) => Vector2(x, corner.y);
+    return [
+      p >= 0.45
+          ? on(_mix(corner.x + f * 0.10, stand + f * 0.09, walkIn))
+          : null,
+      p >= 0.72
+          ? on(_mix(corner.x + f * 0.03, stand - f * 0.08, walkIn))
+          : null,
+    ];
+  }
+
+  static double _smoothstep(double t) {
+    final double x = t.clamp(0.0, 1.0);
+    return x * x * (3 - 2 * x);
+  }
+
+  static double _mix(double a, double b, double t) => a + (b - a) * t;
 
   Vector2? _pushGrip;
 
@@ -218,9 +256,7 @@ class CharacterInteractions {
         _catchCooldown = _catchCooldownSeconds;
       } else if (mode == InteractionMode.hanging &&
           (jumpPressed || axis * _ledgeFacing > 0.5)) {
-        mode = InteractionMode.climbing;
-        _climbStage = 0;
-        _climbTime = 0;
+        _beginClimb();
       }
       if (mode == InteractionMode.climbing) _advanceClimb(dt);
       return;
@@ -490,55 +526,103 @@ class CharacterInteractions {
     return true;
   }
 
-  bool _clearPath(Vector2 from, Vector2 to) {
-    final delta = to - from;
-    final samples = math.max(1, (delta.length / 0.06).ceil());
-    for (var i = 1; i <= samples; i++) {
-      if (!_clearAt(from + delta * (i / samples))) return false;
+  /// Climbing onto a ledge is a short, scripted mantle — pull up with the
+  /// chest over the edge, a knee onto the top, stand — along a smooth path
+  /// that never rises above standing height. The path passes through the
+  /// corner, so the body's collision with the ground and with props is off
+  /// until he stands, and gravity with it.
+  void _beginClimb() {
+    if (_motor?.isValid ?? false) _motor!.destroy();
+    _motor = null;
+    mode = InteractionMode.climbing;
+    _climbProgress = 0;
+    _climbStart.setFrom(playerBody.position);
+    _climbFilters.clear();
+    for (final shape in playerBody.shapes) {
+      final filter = shape.filter;
+      _climbFilters.add((shape, filter));
+      shape.filter = Filter(
+        categoryBits: filter.categoryBits,
+        maskBits: filter.maskBits & ~CollisionLayers.solid,
+        groupIndex: filter.groupIndex,
+      );
     }
-    return true;
+    playerBody.gravityScale = 0;
   }
 
+  /// Puts the body's collision and gravity back after a climb.
+  void _endClimb() {
+    for (final (shape, filter) in _climbFilters) {
+      if (shape.isValid) shape.filter = filter;
+    }
+    _climbFilters.clear();
+    if (playerBody.isValid) playerBody.gravityScale = 1;
+  }
+
+  /// Where the body's centre is [p] of the way through the climb.
+  Vector2 _climbPath(double p, Vector2 corner) {
+    final double f = _ledgeFacing;
+    final points = [
+      _climbStart,
+      // Pulled up: chest over the edge, legs against the wall.
+      Vector2(corner.x - f * (width / 2 + 0.02), corner.y - height * 0.05),
+      // A knee on the top, crouched.
+      Vector2(corner.x + f * 0.12, corner.y - height / 2 + 0.18),
+      // Standing.
+      _standOn(corner),
+    ];
+    const times = [0.0, 0.45, 0.75, 1.0];
+    final double e = _smoothstep(p);
+    var segment = 0;
+    while (segment < 2 && e > times[segment + 1]) {
+      segment++;
+    }
+    final double t =
+        (e - times[segment]) / (times[segment + 1] - times[segment]);
+    // A Catmull-Rom curve through the four points: smooth through each.
+    Vector2 at(int i) => points[i.clamp(0, 3)];
+    final p0 = at(segment - 1), p1 = at(segment);
+    final p2 = at(segment + 1), p3 = at(segment + 2);
+    final double t2 = t * t, t3 = t2 * t;
+    return (p1 * 2 +
+            (p2 - p0) * t +
+            (p0 * 2 - p1 * 5 + p2 * 4 - p3) * t2 +
+            (p1 * 3 - p0 - p2 * 3 + p3) * t3) *
+        0.5;
+  }
+
+  Vector2 _standOn(Vector2 corner) => Vector2(
+    corner.x + _ledgeFacing * (width / 2 + 0.14),
+    corner.y - height / 2 - 0.015,
+  );
+
   void _advanceClimb(double dt) {
-    _climbTime += dt;
-    final ledge = _ledgeBody!.worldPoint(_ledgeLocal!);
-    final outsideX = ledge.x - _ledgeFacing * (width / 2 + 0.04);
-    final insideX = ledge.x + _ledgeFacing * (width / 2 + 0.14);
-    final raisedY = ledge.y - height / 2 - 0.08;
-    final target = switch (_climbStage) {
-      0 => Vector2(outsideX, raisedY),
-      1 => Vector2(insideX, raisedY),
-      _ => Vector2(insideX, ledge.y - height / 2 - 0.015),
-    };
-    if (_climbTime > 3 || !_clearPath(playerBody.position, target)) {
+    final corner = _ledgeBody!.worldPoint(_ledgeLocal!);
+    // Something has moved into where he would stand: while he is still
+    // below the top, he lets go.
+    if (_climbProgress < 0.7 && !_clearAt(_standOn(corner))) {
       release();
       releasedThisStep = true;
       return;
     }
-    final currentTarget = _ledgeBody!.worldPoint(_motor!.linearOffset);
-    final delta = target - currentTarget;
-    final distance = delta.length;
-    final next = distance == 0
-        ? target
-        : currentTarget + delta * (math.min(distance, 2.3 * dt) / distance);
-    _motor!.linearOffset = _ledgeBody!.localPoint(next);
-    final velocity = playerBody.linearVelocity;
-    if (velocity.length > 3.3) {
-      playerBody.linearVelocity = velocity.normalized() * 3.3;
+    _climbProgress = math.min(1, _climbProgress + dt / GameConfig.climbSeconds);
+    if (_climbProgress >= 1) {
+      release();
+      playerBody.setTransform(_standOn(corner), const Rot.identity());
+      playerBody.linearVelocity = Vector2.zero();
+      return;
     }
-    if ((playerBody.position - target).length < 0.065) {
-      if (_climbStage < 2) {
-        _climbStage++;
-      } else {
-        release();
-        playerBody.linearVelocity = Vector2.zero();
-      }
-    }
+    final next = _climbPath(
+      math.min(1, _climbProgress + dt / GameConfig.climbSeconds),
+      corner,
+    );
+    playerBody.linearVelocity = (next - playerBody.position) / dt;
   }
 
   /// Destroying constraints preserves the body's physical release velocity.
   void release() {
     attachedRope?.letGo();
+    _endClimb();
     ropeClimb = 0;
     _ropeLetGo = 0;
     if (_motor?.isValid ?? false) _motor!.destroy();

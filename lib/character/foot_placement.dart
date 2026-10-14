@@ -2,7 +2,7 @@ import 'dart:math' as math;
 
 import 'package:flame_forge2d/flame_forge2d.dart';
 
-import 'character_rig.dart' show Gait;
+import 'character_rig.dart' show CharacterRig, Gait;
 import 'ground_probe.dart';
 
 /// Stance feet are stored in their support body's local coordinates. They stay
@@ -68,6 +68,7 @@ class FootPlacement {
       foot.support = null;
       foot.initialized = false;
       foot.stepping = false;
+      foot.spotFor = double.nan;
       foot.roll = 0;
       foot.normal.setValues(0, -1);
     }
@@ -123,6 +124,7 @@ class FootPlacement {
     _facing = facing;
     _travelDirection = travelDirection;
     _wasGrounded = true;
+    final bool backwards = moving && travelDirection != facing;
     final root = body.position;
     final soleY = root.y + height / 2;
     final stanceFraction = Gait.stanceFraction(gait);
@@ -147,7 +149,14 @@ class FootPlacement {
       for (var i = 0; i < _feet.length; i++) {
         final foot = _feet[i];
         if (!foot.initialized || !foot.wasStance) continue;
-        final error = (foot.position.x - idleXOf(i)).abs();
+        // Compared with where the foot can actually stand: at a lip its
+        // usual spot may be over the drop.
+        final double idleX = idleXOf(i);
+        if ((foot.spotFor - idleX).abs() > 0.01) {
+          foot.spotFor = idleX;
+          foot.spotX = _findSpot(world, body, idleX, soleY, height).$1;
+        }
+        final error = (foot.position.x - foot.spotX).abs();
         if (error > worstError) {
           worst = i;
           worstError = error;
@@ -203,7 +212,18 @@ class FootPlacement {
         foot.swingFrom = foot.position.x - root.x;
       }
       if (stance) {
-        if (!foot.wasStance) {
+        if (!foot.wasStance && !moving) {
+          // Still swinging when he stops: the foot steps down where it is,
+          // from where it is in the air, and settles into place from there.
+          foot.stepFrom.setFrom(foot.position);
+          _plant(world, body, foot, foot.position.x, soleY, height);
+          foot.stepTo.setFrom(foot.position);
+          foot.position.setFrom(foot.stepFrom);
+          foot.stepTime = 0;
+          foot.stepping = true;
+          foot.wasStance = false;
+          continue;
+        } else if (!foot.wasStance) {
           _plant(
             world,
             body,
@@ -221,7 +241,9 @@ class FootPlacement {
         }
         // Heel strike, flat foot, then up onto the toes before toe-off.
         final t = moving ? cycle / stanceFraction : 0.5;
-        foot.roll = gait * _stanceRoll(t);
+        // Walking backwards (dragging a crate), the toes land first and
+        // the heel comes up last: the roll runs the other way.
+        foot.roll = gait * _stanceRoll(t) * (backwards ? -1 : 1);
       } else {
         // A swinging foot travels with the body: it starts where it left
         // the ground relative to the hips, trails behind with the heel kicked
@@ -235,20 +257,21 @@ class FootPlacement {
         final hit = _surface(world, body, x, soleY, height);
         foot.position.setValues(
           x,
-          (hit?.point.y ?? soleY) - Gait.swingLift(t, gait) * height,
+          (hit?.point.y ?? soleY) -
+              Gait.swingLift(t, gait) * height * (backwards ? 0.6 : 1),
         );
         foot.normal.setValues(0, -1);
         foot.support = null;
         // Toes trail down after push-off and come up for the next heel
         // strike.
-        foot.roll = gait * (-0.8 + 1.12 * _smooth(t));
+        foot.roll = gait * (-0.8 + 1.12 * _smooth(t)) * (backwards ? -0.5 : 1);
       }
       foot.wasStance = stance;
     }
   }
 
   /// Steps are shorter, and so quicker, while leaning on a crate.
-  static double strideScale(bool bracing) => bracing ? 0.45 : 1;
+  static double strideScale(bool bracing) => bracing ? 0.7 : 1;
 
   static double _smooth(double t) {
     final double x = t.clamp(0.0, 1.0);
@@ -261,9 +284,10 @@ class FootPlacement {
     return 0;
   }
 
-  /// Puts [foot] on the ground near [x]. Where there is no ground under
-  /// [x] — the step would land over a pit — it comes back towards the body,
-  /// a few centimetres at a time, onto the nearest lip.
+  /// Puts [foot] on the ground near [x]. Where the whole foot would not be
+  /// on the ground — the step would land over a pit, or with its toes or
+  /// heel over the lip — it comes back towards the body, a few centimetres
+  /// at a time, until heel and toe both stand on it.
   void _plant(
     Forge2DWorld world,
     Body body,
@@ -272,23 +296,75 @@ class FootPlacement {
     double soleY,
     double height,
   ) {
-    GroundContact? hit = _surface(world, body, x, soleY, height);
-    // Back towards the body — and past its centre, which may itself be
-    // over the gap when the capsule rests on the lip.
-    final double toward = x == body.position.x
-        ? -_travelDirection
-        : (body.position.x - x).sign;
-    for (var tries = 0; hit == null && tries < 16; tries++) {
-      x += toward * 0.03;
-      hit = _surface(world, body, x, soleY, height);
-    }
-    foot.position.setFrom(hit?.point ?? Vector2(x, soleY));
+    final (double spot, GroundContact? hit) = _findSpot(
+      world,
+      body,
+      x,
+      soleY,
+      height,
+    );
+    foot.position.setFrom(hit?.point ?? Vector2(spot, soleY));
     foot.normal.setFrom(hit?.normal ?? Vector2(0, -1));
     foot.support = hit?.body;
     if (foot.support != null) {
       foot.localAnchor.setFrom(foot.support!.localPoint(foot.position));
     }
     foot.initialized = true;
+  }
+
+  /// The nearest place to [x] a foot can stand, and the ground there.
+  (double, GroundContact?) _findSpot(
+    Forge2DWorld world,
+    Body body,
+    double x,
+    double soleY,
+    double height,
+  ) {
+    // The nearest spot where the whole foot stands, looking back towards
+    // the body first — though the body itself may be over the gap when the
+    // capsule rests on the lip, so the other way too.
+    final double toward = x == body.position.x
+        ? -_travelDirection
+        : (body.position.x - x).sign;
+    GroundContact? hit = _wholeFoot(world, body, x, soleY, height);
+    final double wanted = x;
+    for (var tries = 1; hit == null && tries <= 16; tries++) {
+      for (final direction in [toward, -toward]) {
+        final double candidate = wanted + direction * tries * 0.03;
+        hit = _wholeFoot(world, body, candidate, soleY, height);
+        if (hit != null) {
+          x = candidate;
+          break;
+        }
+      }
+    }
+    // Nowhere for the whole foot: at least the sole, back towards the body.
+    for (var tries = 0; hit == null && tries <= 16; tries++) {
+      x = wanted + toward * tries * 0.03;
+      hit = _surface(world, body, x, soleY, height);
+    }
+    return (x, hit);
+  }
+
+  /// The ground under the sole at [x], if there is ground under the heel
+  /// and the toe too, at about the same height.
+  GroundContact? _wholeFoot(
+    Forge2DWorld world,
+    Body body,
+    double x,
+    double soleY,
+    double height,
+  ) {
+    final hit = _surface(world, body, x, soleY, height);
+    if (hit == null) return null;
+    for (final reach in [
+      CharacterRig.toeReach * height * _facing,
+      -CharacterRig.heelReach * height * _facing,
+    ]) {
+      final end = _surface(world, body, x + reach, soleY, height);
+      if (end == null || (end.point.y - hit.point.y).abs() > 0.08) return null;
+    }
+    return hit;
   }
 
   GroundContact? _surface(
@@ -316,6 +392,10 @@ class _Foot {
   /// A step in place, from [stepFrom] to [stepTo].
   bool stepping = false;
   double stepTime = 0;
+
+  /// Where the foot can actually stand nearest its standing spot, and the
+  /// spot that was for.
+  double spotX = double.nan, spotFor = double.nan;
   final stepFrom = Vector2.zero();
   final stepTo = Vector2.zero();
 }

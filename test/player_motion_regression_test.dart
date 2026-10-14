@@ -294,6 +294,7 @@ void main() {
       for (var i = 0; i + 1 < level.terrain.segments.length; i++)
         level.terrain.segments[i].right - 0.32,
       for (final log in GameConfig.logs) log.first - 0.55,
+      for (final rock in GameConfig.rocks) rock.first - 0.55,
       for (final crate in game.world.descendants().whereType<PhysicsCrate>())
         crate.body.position.x - crate.size.x / 2 - 1.25,
       72.1,

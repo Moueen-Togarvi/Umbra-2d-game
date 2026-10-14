@@ -4,6 +4,7 @@ import 'package:flame/game.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:umbra/character/character_rig.dart';
+import 'package:umbra/character/ground_probe.dart';
 import 'package:umbra/character/character_state.dart';
 import 'package:umbra/config/game_config.dart';
 import 'package:umbra/entities/ground.dart';
@@ -214,6 +215,174 @@ void main() {
       expect(rose, isTrue);
       expect(player.isSliding, isFalse);
     });
+  });
+
+  group('at a pit edge', () {
+    // The pit between areas 04 and 05: the far bank starts at 63.4 m.
+    const double lip = 63.4;
+
+    Future<(UmbraGame, Player, Level)> bootAtPit(WidgetTester tester) async {
+      final (game, player) = await boot(tester);
+      final level = game.world.descendants().whereType<Level>().single;
+      return (game, player, level);
+    }
+
+    Vector2 standing(Level level, double x) =>
+        Vector2(x, level.terrain.heightAt(x)! - GameConfig.playerHeight / 2);
+
+    testWidgets('he steps back so he never stands over the drop', (
+      tester,
+    ) async {
+      final (game, player, level) = await bootAtPit(tester);
+      // Put down with his middle 6 cm out over the pit.
+      player.teleportTo(standing(level, lip + 0.15) - Vector2(0.21, 0));
+      advance(game, 1.5);
+      expect(player.isDead, isFalse);
+      expect(player.isOnGround, isTrue);
+      expect(player.isCentreSupported, isTrue);
+      expect(player.body.position.x, greaterThan(lip));
+      // Both feet stand on the ground from heel to toe.
+      final pose = player.rigPoseWorld;
+      for (final (heel, toe) in [
+        (RigJoint.frontHeel, RigJoint.frontToe),
+        (RigJoint.backHeel, RigJoint.backToe),
+      ]) {
+        for (final end in [pose[heel], pose[toe]]) {
+          final ground = probeGround(
+            game.world,
+            end.x,
+            end.y - 0.1,
+            0.2,
+            ignore: player.body,
+          );
+          expect(ground, isNotNull, reason: 'over the gap at x=${end.x}');
+        }
+      }
+    });
+
+    testWidgets('stopping at the lip he balances a moment, once', (
+      tester,
+    ) async {
+      final (game, player, level) = await bootAtPit(tester);
+      player.teleportTo(standing(level, lip + 2.2));
+      advance(game, 0.5);
+      await tester.sendKeyDownEvent(LogicalKeyboardKey.keyA);
+      for (var i = 0; i < 240 && player.body.position.x > lip + 0.35; i++) {
+        game.update(1 / 120);
+      }
+      await tester.sendKeyUpEvent(LogicalKeyboardKey.keyA);
+      var teetered = 0;
+      var was = false;
+      for (var i = 0; i < 360; i++) {
+        game.update(1 / 120);
+        if (player.isTeetering && !was) teetered++;
+        was = player.isTeetering;
+      }
+      expect(teetered, 1);
+      expect(player.isDead, isFalse);
+      expect(player.isTeetering, isFalse, reason: 'and then stands still');
+    });
+
+    testWidgets('on open ground he just stops', (tester) async {
+      final (game, player, level) = await bootAtPit(tester);
+      player.teleportTo(standing(level, 66));
+      advance(game, 0.5);
+      await tester.sendKeyDownEvent(LogicalKeyboardKey.keyD);
+      advance(game, 0.6);
+      await tester.sendKeyUpEvent(LogicalKeyboardKey.keyD);
+      for (var i = 0; i < 240; i++) {
+        game.update(1 / 120);
+        expect(player.isTeetering, isFalse);
+      }
+    });
+  });
+
+  testWidgets('the body sinks into a landing instead of jumping', (
+    tester,
+  ) async {
+    final (game, player) = await boot(tester);
+    player.teleportTo(GameConfig.playerSpawn - Vector2(0, 2.4));
+    final pelvis = <Vector2>[], capsule = <Vector2>[];
+    for (var i = 0; i < 150; i++) {
+      game.update(1 / 120);
+      pelvis.add(player.rigPoseWorld[RigJoint.pelvis].clone());
+      capsule.add(player.body.position.clone());
+    }
+    expect(player.isDead, isFalse);
+    double worst(List<Vector2> path) {
+      var most = 0.0;
+      for (var i = 1; i + 1 < path.length; i++) {
+        most = math.max(most, (path[i + 1] - path[i] * 2 + path[i - 1]).length);
+      }
+      return most;
+    }
+
+    // The capsule stops dead; the hips are cushioned.
+    expect(worst(pelvis), lessThan(worst(capsule) * 0.8));
+    // And never jump relative to the capsule.
+    for (var i = 1; i < pelvis.length; i++) {
+      final step = (pelvis[i] - capsule[i]) - (pelvis[i - 1] - capsule[i - 1]);
+      expect(step.length, lessThan(0.06));
+    }
+  });
+
+  testWidgets('swinging on a rope end the legs kick with the swing', (
+    tester,
+  ) async {
+    final (game, player) = await boot(tester);
+    final rope = game.world.descendants().whereType<SwingRope>().single;
+    player.teleportTo(rope.grip + Vector2(0, GameConfig.playerHeight * 0.40));
+    await tester.sendKeyDownEvent(LogicalKeyboardKey.keyD);
+    var forward = 0.0, samples = 0;
+    for (var i = 0; i < 720; i++) {
+      game.update(1 / 120);
+      if (player.interactionLabel != 'swinging') continue;
+      if (player.velocity.x * player.facing > 1.2) {
+        final pose = player.rigPoseWorld;
+        forward +=
+            (pose[RigJoint.frontAnkle].x - pose[RigJoint.frontHip].x) *
+            player.facing;
+        samples++;
+      }
+    }
+    await tester.sendKeyUpEvent(LogicalKeyboardKey.keyD);
+    expect(samples, greaterThan(20));
+    expect(forward / samples, greaterThan(0.06), reason: 'feet out ahead');
+  });
+
+  testWidgets('in a jump and a fall the arms stay bent, never stretched', (
+    tester,
+  ) async {
+    final (game, player) = await boot(tester);
+    const double full =
+        (CharacterRig.upperArm + CharacterRig.forearm) *
+        GameConfig.playerHeight;
+    var longest = 0.0;
+    void watch() {
+      final pose = player.rigPoseWorld;
+      for (final (shoulder, hand) in [
+        (RigJoint.frontShoulder, RigJoint.frontHand),
+        (RigJoint.backShoulder, RigJoint.backHand),
+      ]) {
+        longest = math.max(longest, (pose[hand] - pose[shoulder]).length);
+      }
+    }
+
+    await tester.sendKeyDownEvent(LogicalKeyboardKey.keyD);
+    advance(game, 0.4);
+    await tester.sendKeyDownEvent(LogicalKeyboardKey.space);
+    for (var i = 0; i < 90; i++) {
+      game.update(1 / 120);
+      if (!player.isOnGround) watch();
+    }
+    await tester.sendKeyUpEvent(LogicalKeyboardKey.space);
+    await tester.sendKeyUpEvent(LogicalKeyboardKey.keyD);
+    player.teleportTo(GameConfig.playerSpawn - Vector2(0, 2.4));
+    for (var i = 0; i < 70; i++) {
+      game.update(1 / 120);
+      if (!player.isOnGround) watch();
+    }
+    expect(longest, lessThan(full * 0.88));
   });
 
   testWidgets('a hard landing throws up dust and jolts the camera', (

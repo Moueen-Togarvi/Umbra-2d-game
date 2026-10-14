@@ -135,6 +135,69 @@ The run swing stays at about 41 cm. Tests: 91 pass, including new ones for:
 - still hands while standing
 - a small take-off trail with no bounce back
 
+## Legs, edges, landing, climb, rope, pull, pits, logs and stones (round 1e, 14 October 2026)
+
+The user picked items 1–8 of the next list. A phone screenshot showed three more problems:
+- he stood over air at a pit lip
+- the pit looked like a grey box
+- the logs floated
+
+Each was measured and fixed.
+
+- **Legs** (`lib/character/limb_physics.dart`):
+  - The same calm follower as the arms: a critically damped spring for the ankle and the foot angle in hip space, with knees by IK.
+  - The ground is probed only along the path the sole moved this step, so a foot swung into a ledge's side is never popped onto it.
+  - Measured with `tool/capture/arm_jitter_test.dart`, worst ankle jolt per step:
+    - running: 251/296 → 34/35 mm
+    - jump: 157 → 23 mm
+    - standing: 5 → 0 mm
+- **Edges** (`player.dart`, `foot_placement.dart`):
+  - Grounded only by a side ray over a real drop (not a slope), he steps back until the ground is under both sides of him.
+  - A foot is planted only where heel and toe both have ground.
+  - A foot still swinging when he stops steps down where it is, instead of teleporting a stride ahead.
+  - Stopping at a lip he faces, he balances once for about 1 s: arms out, rocking, looking down, a few crumbs falling off the lip.
+- **Landing:**
+  - The jump crouch, take-off and air pose ease in and out.
+  - The hips follow the height they need to reach the planted feet on a spring instead of dropping to it.
+  - The pelvis spring is nearly critically damped (ζ≈0.9).
+  - The landing reaction starts the step the capsule actually stops. The hips now jolt less than the capsule (40 mm against 89 mm per step²).
+- **Rope:** with the feet free, the legs kick forward on the forward swing and tuck back on the back swing. The rope below the hand is more damped and slightly stiff, so it sways rather than flicks.
+- **Pull:** walking backwards, the feet land toes-first with a lower step. Pulling leans back 0.12 + 0.25·effort.
+- **Crate speed:** pushing and pulling are now a slow walk, by crate weight:
+  - pushing: 1.9 m/s for the light crate, 1.1 m/s for the heavy one
+  - pulling: 1.0 m/s for the light crate, 0.75 m/s for the heavy one
+
+  The bracing stride is 0.7 × normal (it was 0.45). Pulling went from about 9 steps a second to at most 4.
+- **Arms in the air:**
+  - The elbows stay bent; in the air a hand stays within 86% of the arm's length.
+  - The arms rise as soon as he jumps, and feel less of the take-off jolt.
+  - Falling, the front hand rises by the head and the back arm trails behind, bent. Raised behind, that arm hid behind the head and showed only as a long stick.
+- **Ledge climb:** a scripted 1 s mantle on a smooth path:
+  - he pulls up with his chest over the edge, gets a knee on top, then stands
+  - collision with the ground and gravity are off during the climb
+  - the path never rises above standing height
+  - hands stay on the corner, then slide onto the top
+  - the feet plant on the top
+- **Pits** (`hill_ground.dart`, `hazard.dart`):
+  - Rounded lips with overhanging turf, crumbled clods and drooping grass.
+  - Broken, stepped, undercut walls with stones standing out of them.
+  - 8–14 swaying roots, some forked.
+  - A shaft that darkens with depth but keeps walls and stakes readable.
+  - An uneven floor with stones and fallen sticks.
+  - Thicker, hand-cut stakes, some snapped, two crossed.
+- **Logs and stones** (`ground.dart`, new `rock.dart`):
+  - Logs rest on the highest drawn ground under them, a soil mound fills underneath, and the collision reaches into the ground: no light shows under them.
+  - Each log tapers from a torn root plate to a splintered end, with tufts on the bark.
+  - Half-buried stones line the banks, and the pebbles in the ground are larger.
+  - Two real boulders sit on the route at 57.6 and 84 m.
+- **Speed:**
+  - Logs, rocks and pits are now culled off screen (`lib/render/culling.dart`).
+  - A pit's roots and drooping grass are one filled path per frame.
+  - In Chrome it matches the previous commit when measured back to back: about 60 FPS at 1280×576.
+- **Verification:**
+  - **Tests:** 102 pass (11 new).
+  - **Android emulator:** the APK renders the new pits and logs, and logcat shows no app errors.
+
 ## Architecture
 
 Physics authority hasn't changed. `Player` owns a fixed-rotation capsule (0.42 × 1.3 m, 40 kg). Movement is bounded velocity impulses, so crates and walls really resist it. `CharacterInteractions` owns the motor and distance joints for pulling, ropes and ledges. `CharacterRagdoll` takes over with 13 bodies and 12 limited revolute joints when he dies or is knocked down.

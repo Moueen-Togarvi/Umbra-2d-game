@@ -367,10 +367,15 @@ class SwingRope extends BodyComponent {
     // The drawn rope: points every [_segment] metres along it, with momentum
     // and weight, its segments never stretched, held at the anchor, at the
     // hold (which falls between two points) and at the feet.
-    final double keep = math.exp(-1.6 * dt);
+    // The rope below the hand is heavier with damping, so its end sways
+    // rather than flicks.
+    final int heldPoint = (_holdLength / _segment).floor();
+    final double keepAbove = math.exp(-1.6 * dt);
+    final double keepBelow = math.exp(-3.5 * dt);
     final double fall = 18 * dt * dt;
     for (var i = 1; i <= _count; i++) {
       final p = _points[i], q = _previous[i];
+      final double keep = i > heldPoint + 1 ? keepBelow : keepAbove;
       final double vx = (p.x - q.x) * keep, vy = (p.y - q.y) * keep;
       q.setFrom(p);
       p.x += vx;
@@ -433,6 +438,13 @@ class SwingRope extends BodyComponent {
         a.addScaled(fix, wa);
         b.addScaled(fix, -wb);
       }
+    }
+    // A little stiffness: each free point below the hand is drawn a touch
+    // towards the line of the two above it, so the rope bends in curves.
+    for (var i = k + 3; i <= _count; i++) {
+      if (i == clamped) continue;
+      final Vector2 straight = _points[i - 1] * 2 - _points[i - 2];
+      _points[i].add((straight - _points[i])..scale(0.08));
     }
   }
 

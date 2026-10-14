@@ -20,6 +20,7 @@ class DustField extends Component {
   final List<_Mote> _motes = [];
   final math.Random _random = math.Random(5);
   int _seenLandings = 0;
+  int _seenTeeters = 0;
   double _slideDebt = 0;
 
   /// More than this and new motes replace nothing: a cap on the draw cost.
@@ -49,6 +50,11 @@ class DustField extends Component {
       if (player.lastLandingImpact >= minimumImpact) {
         burst(player.lastLandingAt, player.lastLandingImpact);
       }
+    }
+    // Balancing at a lip, he knocks a little earth off it into the drop.
+    if (player.teeters != _seenTeeters) {
+      _seenTeeters = player.teeters;
+      crumble(player.teeterLip, player.facing);
     }
     if (player.isSliding && player.isOnGround) {
       // About 45 specks a second, from under the front foot.
@@ -108,6 +114,26 @@ class DustField extends Component {
           velocity: Vector2(side * (0.5 + strength), -0.1),
           size: 0.12 + 0.08 * strength,
           life: 0.5 + 0.25 * strength,
+        ),
+      );
+    }
+  }
+
+  /// A few crumbs of earth knocked off the lip at [lip], falling into the
+  /// drop on the [side] it faces.
+  void crumble(Vector2 lip, double side) {
+    final int count = 5 + _random.nextInt(4);
+    for (var i = 0; i < count; i++) {
+      _add(
+        _Mote(
+          kind: _Kind.speck,
+          position: lip + Vector2(side * _random.nextDouble() * 0.05, -0.01),
+          velocity: Vector2(
+            side * (0.1 + _random.nextDouble() * 0.35),
+            -0.1 - _random.nextDouble() * 0.4,
+          ),
+          size: 0.007 + _random.nextDouble() * 0.012,
+          life: 0.7 + _random.nextDouble() * 0.5,
         ),
       );
     }

@@ -335,6 +335,48 @@ void main() {
     await tester.sendKeyUpEvent(LogicalKeyboardKey.keyD);
   });
 
+  testWidgets('round 1e: pit edge, logs, rocks, teeter, pull', (tester) async {
+    final (game, player) = await boot(tester);
+    final level = game.world.descendants().whereType<Level>().single;
+    Vector2 standing(double x) =>
+        Vector2(x, level.terrain.heightAt(x)! - GameConfig.playerHeight / 2);
+
+    // The spot of the user's phone screenshot: the pit between areas 04
+    // and 05, walked up to from the right and stopped at the lip.
+    player.teleportTo(standing(65.4));
+    step(game, 1.0);
+    await tester.sendKeyDownEvent(LogicalKeyboardKey.keyA);
+    for (var i = 0; i < 200 && player.body.position.x > 63.75; i++) {
+      step(game, 1 / 60);
+    }
+    await tester.sendKeyUpEvent(LogicalKeyboardKey.keyA);
+    await burst(tester, game, player, 'teeter', 24, every: 1 / 20);
+    step(game, 1.5);
+    await shot(tester, game, player, 'pit_phone', 'at_lip');
+
+    // Logs and boulders, each seen from just before it.
+    for (final x in const [37.4, 51.8, 56.6, 66.8, 82.8]) {
+      player.teleportTo(standing(x));
+      step(game, 2.5);
+      await shot(tester, game, player, 'props', 'x${x.round()}');
+    }
+
+    // Pulling the heavy crate backwards.
+    final heavy = game.world.descendants().whereType<PhysicsCrate>().firstWhere(
+      (c) => c.massKg > 20,
+    );
+    // Next to it, facing it: take hold and back away dragging it.
+    player.teleportTo(standing(heavy.body.position.x - heavy.size.x / 2 - 0.3));
+    step(game, 0.5);
+    await tester.sendKeyDownEvent(LogicalKeyboardKey.keyE);
+    step(game, 0.2);
+    await tester.sendKeyDownEvent(LogicalKeyboardKey.keyA);
+    step(game, 0.4);
+    await burst(tester, game, player, 'pull', 16, every: 1 / 15);
+    await tester.sendKeyUpEvent(LogicalKeyboardKey.keyA);
+    await tester.sendKeyUpEvent(LogicalKeyboardKey.keyE);
+  });
+
   testWidgets('environment along the level', (tester) async {
     final (game, player) = await boot(tester);
     final level = game.world.descendants().whereType<Level>().single;

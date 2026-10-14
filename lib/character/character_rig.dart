@@ -48,6 +48,11 @@ class CharacterPose {
     this.effort = 0,
     this.slide = 0,
     this.armAir,
+    this.hipFloor,
+    this.teeter = 0,
+    this.teeterTime = 0,
+    this.swingKick = 0,
+    this.climb = 0,
   });
 
   /// +1 facing right, -1 facing left; in between while turning round,
@@ -94,6 +99,25 @@ class CharacterPose {
   /// How far the arms are in their airborne pose, if not simply [air]: a
   /// moment's hop over a bump while running should not throw them up.
   final double? armAir;
+
+  /// The lowest the hips are allowed to sit, as a fraction of height, so
+  /// planted feet can be reached. A controller passes it smoothed (see
+  /// [CharacterRig.hipHeights]) so the hips sink to a new foothold instead
+  /// of dropping to it in one frame; when null the rig works it out.
+  final double? hipFloor;
+
+  /// 1 while balancing at an edge he has just stopped at: arms out,
+  /// rocking over the drop and looking down into it. [teeterTime] is how
+  /// long he has been at it, seconds.
+  final double teeter, teeterTime;
+
+  /// Swinging on a rope with the feet free: +1 kicking the legs forward on
+  /// the forward swing, −1 tucking them back on the back swing.
+  final double swingKick;
+
+  /// How far through climbing up onto a ledge, 0 to 1: the body bends
+  /// forward over the edge in the middle of it.
+  final double climb;
 
   /// 1 while hanging from a ledge or rope.
   final double hanging;
@@ -343,6 +367,59 @@ class CharacterRig {
         lean,
       );
 
+  /// The hips' height before reaching for the feet, and the height they
+  /// must come down to so every planted foot can be reached
+  /// (`double.negativeInfinity` when no foot is planted), both as fractions
+  /// of height. [solve] uses the larger.
+  (double, double) hipHeights(CharacterPose pose) {
+    final double gait = pose.gait.clamp(0.0, 1.0);
+    final double air = pose.air.clamp(0.0, 1.0);
+    final double grounded = 1 - air;
+    final double stance = Gait.stanceFraction(gait);
+    final double cycle = (pose.gaitPhase / (2 * math.pi)) % 1;
+    final double breath = math.sin(pose.clock * 2.1);
+    final double idle = (1 - gait) * grounded * (1 - pose.push);
+    // The body is lowest as each foot takes the weight, highest in the
+    // flight between steps: two dips per cycle. The pelvis spring adds the
+    // physical bounce of each footstrike on top.
+    final double bob =
+        gait * grounded * 0.012 * math.cos(4 * math.pi * (cycle - stance / 2));
+    // Hanging from a rope, the whole body drops below the hands.
+    final double base =
+        pose.hangLow * 0.08 +
+        _standingHipY +
+        gait * grounded * 0.024 +
+        bob +
+        pose.pelvisDrop +
+        pose.hardLanding * 0.10 +
+        pose.takeoff * 0.02 +
+        pose.anticipation * 0.04 +
+        pose.push * (0.025 + 0.035 * pose.effort) +
+        pose.slide * 0.045 +
+        pose.teeter * 0.012 +
+        breath * 0.0018 * idle;
+    final double sway = idle * 0.011 * math.sin(pose.clock * 1.55);
+    double floor = double.negativeInfinity;
+    const double leg = (thigh + shin) * 0.995;
+    for (final front in const [false, true]) {
+      final target = front ? pose.frontFoot : pose.backFoot;
+      if (target == null) continue;
+      final normal = front ? pose.frontFootNormal : pose.backFootNormal;
+      final (ankle, _) = footOnGround(
+        Vector2(target.dx, target.dy),
+        normal == null ? Vector2(0, -1) : Vector2(normal.dx, normal.dy),
+        front ? pose.frontRoll : pose.backRoll,
+      );
+      final double horizontal =
+          ankle.x - (sway + (front ? hipSpacing : -hipSpacing));
+      final double verticalReach = math.sqrt(
+        math.max(0, leg * leg - horizontal * horizontal),
+      );
+      floor = math.max(floor, ankle.y - verticalReach);
+    }
+    return (base, floor);
+  }
+
   CharacterRigPose solve(CharacterPose pose) {
     final points = <RigJoint, Vector2>{};
     final double gait = pose.gait.clamp(0.0, 1.0);
@@ -358,27 +435,12 @@ class CharacterRig {
     final double speed = gait * GameConfig.moveSpeedMetersPerSecond;
     final double reach = Gait.reachMeters(speed, gait) / height;
 
-    // The body is lowest as each foot takes the weight, highest in the
-    // flight between steps: two dips per cycle. The pelvis spring adds the
-    // physical bounce of each footstrike on top.
-    final double bob =
-        gait * grounded * 0.012 * math.cos(4 * math.pi * (cycle - stance / 2));
     // Hanging from a rope, the whole body drops below the hands, so they
     // hold it above the head rather than inside it.
     final double hang = pose.hangLow * 0.08;
     final double shrug = pose.hanging * hangShrug;
-    double hipY =
-        hang +
-        _standingHipY +
-        gait * grounded * 0.024 +
-        bob +
-        pose.pelvisDrop +
-        pose.hardLanding * 0.10 +
-        pose.takeoff * 0.02 +
-        pose.anticipation * 0.04 +
-        pose.push * (0.025 + 0.035 * pose.effort) +
-        pose.slide * 0.045 +
-        breath * 0.0018 * idle;
+    final (double baseHipY, double footFloor) = hipHeights(pose);
+    double hipY = baseHipY;
 
     // Where each foot stands: the ankle above its sole, rolled about the
     // heel or the ball of the foot and tilted to the ground under it.
@@ -398,18 +460,9 @@ class CharacterRig {
     final double sway = idle * 0.011 * math.sin(pose.clock * 1.55);
 
     // Lower the pelvis enough to reach a planted foot on a slope, a stone or
-    // at toe-off. Moving the root with every target would fight the
-    // controller.
-    const double leg = (thigh + shin) * 0.995;
-    for (final entry in groundFeet.entries) {
-      final ankle = entry.value.$1;
-      final double horizontal =
-          ankle.x - (sway + (entry.key ? hipSpacing : -hipSpacing));
-      final double verticalReach = math.sqrt(
-        math.max(0, leg * leg - horizontal * horizontal),
-      );
-      hipY = math.max(hipY, ankle.y - verticalReach);
-    }
+    // at toe-off (see [hipHeights]). Moving the root with every target
+    // would fight the controller.
+    hipY = math.max(hipY, pose.hipFloor ?? footFloor);
     hipY = math.min(hipY, 0.36);
 
     // Forward lean, in radians: into the run, into a push, over bent knees
@@ -417,15 +470,22 @@ class CharacterRig {
     double lean =
         gait * grounded * (0.07 + 0.11 * gait) * (1 - pose.push) +
         pose.bodyLean +
-        // Into a push, back from a pull: more the heavier it is.
-        pose.push * (0.08 + 0.22 * pose.effort) * (1 - 2 * pose.pull) -
+        // Into a push, back from a pull — further back, the arms straight
+        // to the crate — more the heavier it is.
+        pose.push *
+            ((0.08 + 0.22 * pose.effort) * (1 - pose.pull) -
+                (0.12 + 0.25 * pose.effort) * pose.pull) -
         pose.slide * 0.2 +
         pose.landing * 0.14 +
         pose.hardLanding * 0.45 +
         pose.anticipation * 0.12 +
         rising * 0.06 -
         falling * 0.03 -
-        pose.hanging * 0.05;
+        pose.hanging * 0.05 +
+        // Balancing at an edge: peering over, rocking back and forth.
+        pose.teeter * (0.03 + 0.07 * _rock(pose.teeterTime)) +
+        // Climbing onto a ledge: over the edge, then upright to stand.
+        0.32 * math.sin(math.pi * pose.climb.clamp(0.0, 1.0));
 
     // Hands on a crate or rope must not be dragged away by the lean. Find
     // the lean nearest the desired one that keeps both shoulders within
@@ -484,6 +544,7 @@ class CharacterRig {
         pose.push * (0.12 - 0.22 * pose.effort * (1 - pose.pull)) -
         pose.lookUp * 0.42 +
         pose.headTurn * 0.06 +
+        pose.teeter * 0.22 +
         pose.hardLanding * 0.2;
     points[RigJoint.head] = neck + _rotate(Vector2(0.026, -0.14), headTilt);
 
@@ -519,6 +580,11 @@ class CharacterRig {
         final dangle = front ? Vector2(0.075, 0.475) : Vector2(-0.05, 0.455);
         final airSole = tuck + (dangle - tuck) * descend;
         airSole.y += hang;
+        // Pumping a rope swing: legs out ahead going forward, tucked back
+        // underneath coming back.
+        final double kick = pose.swingKick.clamp(-1.0, 1.0) * pose.hangLow;
+        airSole.x += kick > 0 ? kick * 0.15 : kick * 0.07;
+        airSole.y -= kick > 0 ? kick * 0.07 : -kick * 0.04;
         sole += (airSole - sole) * air;
         sole.x += (front ? 0.05 : -0.05) * pose.hardLanding;
         final double footAngle = _mix(
@@ -560,13 +626,23 @@ class CharacterRig {
           0.06 *
           armAir *
           pose.fallLean.clamp(0.0, 1.0);
+      // The elbows stay well bent so the arms never stretch out long:
+      // going up, the front hand comes up by the face and the back one
+      // stays by the hip; coming down, the front arm rises with the hand
+      // by the head and the back one trails behind, bent. (Raised behind,
+      // the back arm would hide behind the head and leave only a forearm
+      // sticking out of it.)
       final double airAngle = _mix(
-        front ? 1.7 : -0.5,
-        front ? 2.05 + flail : -2.35 - flail,
+        front ? 1.4 : -0.45,
+        front ? 2.0 + flail : -0.9 - flail,
         descend,
       );
       angle = _mix(angle, airAngle, armAir);
-      bend = _mix(bend, _mix(front ? 1.1 : 0.9, 0.8, descend), armAir);
+      bend = _mix(
+        bend,
+        _mix(front ? 1.6 : 1.3, front ? 1.3 : 1.3, descend),
+        armAir,
+      );
       // Landing: arms forward; a hard landing puts the hands to the ground.
       angle = _mix(angle, 0.55, pose.landing * 0.7);
       angle = _mix(angle, 0.30, pose.hardLanding);
@@ -574,6 +650,10 @@ class CharacterRig {
       // Sliding: arms out to both sides for balance.
       angle = _mix(angle, front ? 1.3 : -1.1, pose.slide);
       bend = _mix(bend, front ? 0.55 : 0.35, pose.slide);
+      // Balancing at an edge: arms out to both sides, circling a little.
+      final double circle = 0.12 * _rock(pose.teeterTime + (front ? 0 : 0.11));
+      angle = _mix(angle, (front ? 1.55 : -1.35) + circle, pose.teeter);
+      bend = _mix(bend, 0.35, pose.teeter);
       // Hanging with nothing to hold: reach straight up.
       angle = _mix(angle, math.pi - 0.12, pose.hanging);
       bend = _mix(bend, 0.08, pose.hanging);
@@ -635,6 +715,11 @@ class CharacterRig {
   }
 
   static double _mix(double a, double b, double t) => a + (b - a) * t;
+
+  /// The rocking of a boy balancing at an edge: about 2.5 times a second,
+  /// dying away as he finds his balance.
+  static double _rock(double t) =>
+      math.sin(2 * math.pi * 2.5 * t) * math.exp(-1.6 * t);
 
   static double _smooth(double edge0, double edge1, double x) {
     final double t = ((x - edge0) / (edge1 - edge0)).clamp(0.0, 1.0);

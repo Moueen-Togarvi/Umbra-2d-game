@@ -6,6 +6,7 @@ import '../entities/ground.dart';
 import '../entities/hazard.dart';
 import '../entities/hill_ground.dart';
 import '../entities/player.dart';
+import '../entities/rock.dart';
 import '../entities/physics_props.dart';
 import '../input/player_intent.dart';
 import '../render/dust.dart';
@@ -117,19 +118,35 @@ class Level extends Component {
       );
     }
 
-    // --- Logs lying on the hill, to hop over ------------------------------------
+    // --- Logs and boulders lying on the hill, to hop over ---------------------
+    // Each rests on the ground as drawn — the highest of it under it — and
+    // sits into the rest, so no light shows underneath.
+    double drawnGround(double x) {
+      for (final bank in banks) {
+        if (x >= bank.segment.left && x <= bank.segment.right) {
+          return bank.drawnHeightAt(x);
+        }
+      }
+      return terrain.heightAt(x) ?? GameConfig.floorSurfaceY;
+    }
+
     for (final span in GameConfig.logs) {
-      final double left = span[0];
-      final double right = span[1];
-      final double ground =
-          terrain.heightAt((left + right) / 2) ?? GameConfig.floorSurfaceY;
       pieces.add(
-        Ground.slab(
-          left: left,
-          right: right,
-          top: ground - GameConfig.ledgeThickness,
-          thickness: GameConfig.ledgeThickness,
-          style: GroundStyle.log,
+        Ground.restingLog(
+          left: span[0],
+          right: span[1],
+          diameter: GameConfig.ledgeThickness,
+          groundBelow: drawnGround,
+        ),
+      );
+    }
+    for (final span in GameConfig.rocks) {
+      pieces.add(
+        Rock(
+          left: span[0],
+          right: span[1],
+          height: GameConfig.rockHeight,
+          groundBelow: drawnGround,
         ),
       );
     }

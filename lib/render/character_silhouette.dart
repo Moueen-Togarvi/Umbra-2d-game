@@ -43,6 +43,9 @@ class CharacterSilhouette {
 
   CharacterRigPose solve(CharacterPose pose) => _rig.solve(pose);
 
+  /// The rig this silhouette draws.
+  CharacterRig get rig => _rig;
+
   void draw(Canvas canvas, CharacterPose pose) => drawRig(canvas, solve(pose));
 
   /// [hairSway] bends the hair tips backwards (positive) or forwards, in

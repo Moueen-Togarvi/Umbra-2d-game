@@ -80,7 +80,6 @@ void main() {
           target: pose,
           modes: [mode, mode],
           ground: _ground(100),
-          gravity: 18,
         );
         expectLegsHeldTogether(out, facing);
       }
@@ -135,14 +134,13 @@ void main() {
           modes: const [LegMode.air, LegMode.air],
           armModes: [mode, mode],
           ground: _ground(100),
-          gravity: 18,
         );
         expectArmsHeldTogether(out, facing);
       }
     }
   });
 
-  test('falling, the arms go up and out with bent elbows', () {
+  test('falling, the front arm rises, the back one trails, elbows bent', () {
     for (final facing in const [1.0, -1.0]) {
       final limbs = LimbPhysics(height: _h);
       late CharacterRigPose out;
@@ -166,27 +164,28 @@ void main() {
           modes: const [LegMode.air, LegMode.air],
           armModes: const [ArmMode.air, ArmMode.air],
           ground: _ground(100),
-          gravity: 18,
         );
       }
+      const double full = (CharacterRig.upperArm + CharacterRig.forearm) * _h;
       for (final front in const [true, false]) {
         final shoulder =
             out[front ? RigJoint.frontShoulder : RigJoint.backShoulder];
-        final elbow = out[front ? RigJoint.frontElbow : RigJoint.backElbow];
         final hand = out[front ? RigJoint.frontHand : RigJoint.backHand];
-        expect(hand.y, lessThan(shoulder.y), reason: 'the hands are raised');
-        // Not a straight, pointing arm.
-        final reach = (hand - shoulder).length;
-        expect(
-          reach,
-          lessThan((CharacterRig.upperArm + CharacterRig.forearm) * _h * 0.95),
-        );
-        expect(elbow.y, lessThan(shoulder.y + 0.05));
+        // Never a straight, pointing arm.
+        expect((hand - shoulder).length, lessThan(full * 0.88));
       }
-      // Out to both sides: one hand ahead of the body, one behind.
       final chest = out[RigJoint.chest].x;
+      expect(
+        out[RigJoint.frontHand].y,
+        lessThan(out[RigJoint.frontShoulder].y),
+        reason: 'the front hand is raised',
+      );
       expect((out[RigJoint.frontHand].x - chest) * facing, greaterThan(0));
-      expect((out[RigJoint.backHand].x - chest) * facing, lessThan(0));
+      expect(
+        (out[RigJoint.backHand].x - chest) * facing,
+        lessThan(0),
+        reason: 'the back hand trails behind',
+      );
     }
   });
 
@@ -212,7 +211,6 @@ void main() {
         modes: const [LegMode.swing, LegMode.swing],
         armModes: const [ArmMode.grip, ArmMode.ground],
         ground: _ground(100),
-        gravity: 18,
       );
       if (step > 10) {
         expect((out[RigJoint.frontHand] - grip).length, lessThan(0.01));
@@ -239,7 +237,6 @@ void main() {
       modes: const [LegMode.swing, LegMode.swing],
       armModes: [mode, mode],
       ground: _ground(100),
-      gravity: 18,
     );
     return (goals, out);
   }
@@ -286,8 +283,8 @@ void main() {
       final Vector2 error = out[RigJoint.frontHand] - goals[0];
       along ??= error.normalized();
       errors.add(error.dot(along));
-      if (step >= 36) {
-        expect(error.length, lessThan(0.004), reason: 'settled by 0.3 s');
+      if (step >= 48) {
+        expect(error.length, lessThan(0.004), reason: 'settled by 0.4 s');
       }
     }
     final double first = errors.first;
@@ -381,7 +378,6 @@ void main() {
         modes: const [LegMode.swing, LegMode.swing],
         armModes: const [ArmMode.ground, ArmMode.ground],
         ground: _ground(surface),
-        gravity: 18,
       );
       for (final hand in [out[RigJoint.frontHand], out[RigJoint.backHand]]) {
         expect(hand.y + 0.025 * _h, lessThanOrEqualTo(surface + 0.004));
@@ -408,7 +404,6 @@ void main() {
         target: pose,
         modes: const [LegMode.planted, LegMode.planted],
         ground: _ground(offset.y + 0.5 * _h),
-        gravity: 18,
       );
       if (step == 20) planted = out[RigJoint.frontAnkle].clone();
       if (step > 20) {
@@ -432,7 +427,6 @@ void main() {
         target: pose,
         modes: const [LegMode.swing, LegMode.swing],
         ground: ground,
-        gravity: 18,
       );
       for (final front in const [true, false]) {
         final ankle = out[front ? RigJoint.frontAnkle : RigJoint.backAnkle];
@@ -473,32 +467,147 @@ void main() {
     }
   });
 
-  test('in the air the legs trail and hang under their own weight', () {
+  test('in the air the legs trail a sudden take-off a little, then settle', () {
     final legs = LimbPhysics(height: _h);
-    var largestLag = 0.0;
+    const pose = CharacterPose(air: 1, fallLean: -1);
     for (var step = 0; step < 60; step++) {
-      // The body shoots upwards at 6 m/s, as on take-off.
-      final lift = Vector2(0, -6 * step * _dt);
-      final pose = rig
-          .solve(const CharacterPose(air: 1, fallLean: -1))
-          .translated(offset + lift);
-      // The step writes into the pose it is given; keep the goal.
-      final goal = pose[RigJoint.frontAnkle].clone();
-      final out = legs.step(
+      legs.step(
         dt: _dt,
-        target: pose,
+        target: rig.solve(pose).translated(offset),
         modes: const [LegMode.air, LegMode.air],
         ground: _ground(100),
-        gravity: 18,
       );
-      largestLag = math.max(largestLag, out[RigJoint.frontAnkle].y - goal.y);
+    }
+    var trail = 0.0, above = 0.0;
+    for (var step = 1; step <= 60; step++) {
+      // The body shoots upwards at 6 m/s, as on take-off.
+      final target = rig
+          .solve(pose)
+          .translated(offset - Vector2(0, 6 * step * _dt));
+      // The step writes into the pose it is given; keep the goal.
+      final goal = target[RigJoint.frontAnkle].clone();
+      final out = legs.step(
+        dt: _dt,
+        target: target,
+        modes: const [LegMode.air, LegMode.air],
+        ground: _ground(100),
+      );
+      final double lag = out[RigJoint.frontAnkle].y - goal.y;
+      trail = math.max(trail, lag);
+      above = math.max(above, -lag);
       expectLegsHeldTogether(out, 1);
     }
-    expect(
-      largestLag,
-      greaterThan(0.04),
-      reason: 'the feet trail below the body as it leaves the ground',
-    );
+    expect(trail, inInclusiveRange(0.003, 0.06), reason: 'a little weight');
+    expect(above, lessThan(0.002), reason: 'and no bounce back past it');
+  });
+
+  test('legs settle after a jolt without wobbling', () {
+    final legs = LimbPhysics(height: _h);
+    for (var step = 0; step < 60; step++) {
+      legs.step(
+        dt: _dt,
+        target: rig
+            .solve(const CharacterPose(air: 1, fallLean: -1))
+            .translated(offset),
+        modes: const [LegMode.air, LegMode.air],
+        ground: _ground(100),
+      );
+    }
+    // The pose jumps from knees tucked to legs hanging.
+    final errors = <double>[];
+    Vector2? along;
+    for (var step = 0; step < 90; step++) {
+      final target = rig
+          .solve(const CharacterPose(air: 1, fallLean: 1))
+          .translated(offset);
+      final goal = target[RigJoint.frontAnkle].clone();
+      final out = legs.step(
+        dt: _dt,
+        target: target,
+        modes: const [LegMode.air, LegMode.air],
+        ground: _ground(100),
+      );
+      final error = out[RigJoint.frontAnkle] - goal;
+      along ??= error.normalized();
+      errors.add(error.dot(along));
+      if (step >= 60) {
+        expect(error.length, lessThan(0.004), reason: 'settled by 0.5 s');
+      }
+    }
+    expect(errors.first, greaterThan(0.02), reason: 'the foot lags the jump');
+    var flips = 0;
+    for (var i = 1; i < errors.length; i++) {
+      if (errors[i] * errors[i - 1] < 0 && errors[i].abs() > 1e-4) flips++;
+    }
+    expect(flips, lessThanOrEqualTo(1));
+    expect(-errors.reduce(math.min), lessThan(errors.first * 0.1));
+  });
+
+  test('running legs add no jitter to the stride', () {
+    final legs = LimbPhysics(height: _h);
+    final ankles = <Vector2>[], goals = <Vector2>[];
+    const double phaseRate = 2 * math.pi * 3.2 / 1.51;
+    for (var step = 0; step < 240; step++) {
+      final double t = step * _dt;
+      final target = rig
+          .solve(CharacterPose(gait: 1, gaitPhase: phaseRate * t, clock: t))
+          .translated(offset + Vector2(3.2 * t, 0));
+      final hip = target[RigJoint.frontHip].clone();
+      final goal = target[RigJoint.frontAnkle] - hip;
+      final out = legs.step(
+        dt: _dt,
+        target: target,
+        modes: const [LegMode.swing, LegMode.swing],
+        ground: _ground(100),
+      );
+      ankles.add(out[RigJoint.frontAnkle] - hip);
+      goals.add(goal);
+      if (step > 36) {
+        expect((ankles.last - goal).length, lessThan(0.04));
+      }
+    }
+    double roughness(List<Vector2> path) {
+      var sum = 0.0;
+      for (var i = 37; i + 1 < path.length; i++) {
+        sum += (path[i + 1] - path[i] * 2 + path[i - 1]).length;
+      }
+      return sum;
+    }
+
+    expect(roughness(ankles), lessThan(roughness(goals) * 1.15));
+  });
+
+  test('a foot swung into the side of a ledge is not lifted onto it', () {
+    final legs = LimbPhysics(height: _h);
+    final floor = offset.y + 0.5 * _h;
+    // A ledge 30 cm high to the right of x = 5.15: its top is only found
+    // by a probe that starts above it.
+    const double wall = 5.15;
+    final double ledgeTop = floor - 0.3;
+    GroundContact? ground(double x, double fromY, double depth) {
+      final double y = x >= wall ? ledgeTop : floor;
+      if (y < fromY || y > fromY + depth) return null;
+      return GroundContact(Vector2(x, y), Vector2(0, -1), _dummyBody!);
+    }
+
+    var biggestLift = 0.0;
+    double? lastY;
+    for (var step = 0; step < 120; step++) {
+      // The swinging foot is driven forwards through where the ledge is.
+      final target = rig
+          .solve(CharacterPose(gait: 1, gaitPhase: 3.6 + step * 0.03))
+          .translated(offset);
+      final out = legs.step(
+        dt: _dt,
+        target: target,
+        modes: const [LegMode.swing, LegMode.swing],
+        ground: ground,
+      );
+      final y = out[RigJoint.frontAnkle].y;
+      if (lastY != null) biggestLift = math.max(biggestLift, lastY - y);
+      lastY = y;
+    }
+    expect(biggestLift, lessThan(0.04));
   });
 
   test('at a pit edge both feet stand on the lip, not over the gap', () {

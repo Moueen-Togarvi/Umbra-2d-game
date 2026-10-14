@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flame/game.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -165,6 +167,79 @@ void main() {
       expect(leans.last, greaterThan(leans.first + 0.08));
     },
   );
+
+  testWidgets('moving a crate is a slow walk, not a run', (tester) async {
+    for (final pull in [false, true]) {
+      for (final mass in [8.0, 35.0]) {
+        final (game, player, crate) = await _flatFixture(tester, mass);
+        await tester.sendKeyDownEvent(LogicalKeyboardKey.keyD);
+        _advance(game, pull ? 18 : 30);
+        if (pull) {
+          await tester.sendKeyUpEvent(LogicalKeyboardKey.keyD);
+          _advance(game, 20);
+          await tester.sendKeyDownEvent(LogicalKeyboardKey.keyE);
+          _advance(game, 12);
+          await tester.sendKeyDownEvent(LogicalKeyboardKey.keyA);
+        }
+        _advance(game, 30);
+        var steps = 0;
+        var fastest = 0.0;
+        var was = player.rigFeetPlanted;
+        // A second and a half: before he reaches the end of the floor.
+        for (var tick = 0; tick < 180; tick++) {
+          game.update(_step);
+          final planted = player.rigFeetPlanted;
+          for (var f = 0; f < 2; f++) {
+            if (planted[f] && !was[f]) steps++;
+          }
+          was = planted;
+          fastest = math.max(fastest, player.velocity.x.abs());
+        }
+        await tester.sendKeyUpEvent(
+          pull ? LogicalKeyboardKey.keyA : LogicalKeyboardKey.keyD,
+        );
+        if (pull) await tester.sendKeyUpEvent(LogicalKeyboardKey.keyE);
+        final label = '${pull ? 'pulling' : 'pushing'} $mass kg';
+        // Steps a second.
+        expect(steps / 1.5, lessThanOrEqualTo(pull ? 4.0 : 5.5), reason: label);
+        expect(steps, greaterThan(0), reason: '$label: his feet step');
+        expect(
+          fastest,
+          lessThan(
+            (pull ? GameConfig.pullSpeedLight : GameConfig.pushSpeedLight) +
+                0.15,
+          ),
+          reason: label,
+        );
+      }
+    }
+  });
+
+  testWidgets('pulling the heavy crate he leans well back from it', (
+    tester,
+  ) async {
+    final (game, player, crate) = await _flatFixture(tester, 35);
+    await tester.sendKeyDownEvent(LogicalKeyboardKey.keyD);
+    _advance(game, 18);
+    await tester.sendKeyUpEvent(LogicalKeyboardKey.keyD);
+    _advance(game, 20);
+    await tester.sendKeyDownEvent(LogicalKeyboardKey.keyE);
+    _advance(game, 12);
+    expect(player.interactions.mode, InteractionMode.pulling);
+    await tester.sendKeyDownEvent(LogicalKeyboardKey.keyA);
+    _advance(game, 60);
+    var lean = 0.0;
+    for (var tick = 0; tick < 60; tick++) {
+      game.update(_step);
+      final pose = player.rigPoseWorld;
+      final spine = pose[RigJoint.neck] - pose[RigJoint.pelvis];
+      // Leaning back from the crate: the neck behind the pelvis.
+      lean += spine.x * player.facing / -spine.y;
+    }
+    await tester.sendKeyUpEvent(LogicalKeyboardKey.keyA);
+    await tester.sendKeyUpEvent(LogicalKeyboardKey.keyE);
+    expect(lean / 60, lessThan(-0.15));
+  });
 
   testWidgets('a crate pushed off a ledge tips over and comes to rest', (
     tester,
