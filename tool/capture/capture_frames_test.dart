@@ -11,6 +11,7 @@ import 'dart:io';
 import 'dart:ui' as ui;
 
 import 'package:flame/game.dart';
+import 'package:flame_forge2d/flame_forge2d.dart' show Rot;
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -125,9 +126,14 @@ void main() {
   }
 
   tearDownAll(() {
-    File(
-      '${out.path}/scenes.json',
-    ).writeAsStringSync(const JsonEncoder.withIndent(' ').convert(scenes));
+    // Merged into what is there, so one scene can be re-captured alone.
+    final file = File('${out.path}/scenes.json');
+    final merged = <String, Object?>{
+      if (file.existsSync())
+        ...(jsonDecode(file.readAsStringSync()) as Map<String, Object?>),
+      ...scenes,
+    };
+    file.writeAsStringSync(const JsonEncoder.withIndent(' ').convert(merged));
   });
 
   testWidgets('idle, run cycle, stop and turn', (tester) async {
@@ -207,6 +213,16 @@ void main() {
     await burst(tester, game, player, 'rope', 40, every: 1 / 20);
     await tester.sendKeyUpEvent(LogicalKeyboardKey.space);
     await tester.sendKeyUpEvent(LogicalKeyboardKey.keyD);
+    // Climb up, then down, then jump off.
+    await tester.sendKeyDownEvent(LogicalKeyboardKey.keyW);
+    await burst(tester, game, player, 'rope_climb', 24, every: 1 / 15);
+    await tester.sendKeyUpEvent(LogicalKeyboardKey.keyW);
+    await tester.sendKeyDownEvent(LogicalKeyboardKey.keyS);
+    await burst(tester, game, player, 'rope_down', 12, every: 1 / 15);
+    await tester.sendKeyUpEvent(LogicalKeyboardKey.keyS);
+    await tester.sendKeyDownEvent(LogicalKeyboardKey.space);
+    await burst(tester, game, player, 'rope_jump', 12, every: 1 / 20);
+    await tester.sendKeyUpEvent(LogicalKeyboardKey.space);
 
     const ledgeX = 73.0;
     final gx = ledgeX - 1.6;
@@ -266,6 +282,56 @@ void main() {
       every: 1 / 30,
       prefix: 'run',
     );
+    await tester.sendKeyUpEvent(LogicalKeyboardKey.keyD);
+  });
+
+  testWidgets('round 1c: idle, slide, heavy push, tumbling crate', (
+    tester,
+  ) async {
+    final (game, player) = await boot(tester);
+    final level = game.world.descendants().whereType<Level>().single;
+    Vector2 standing(double x) =>
+        Vector2(x, level.terrain.heightAt(x)! - GameConfig.playerHeight / 2);
+
+    // Standing about long enough to look around and shift his feet, where
+    // the fog is light enough to see his face.
+    player.teleportTo(standing(22));
+    step(game, 2.4);
+    await burst(tester, game, player, 'idle_life', 36, every: 0.25);
+
+    // Running over the crest of the quarry bank and sliding down it.
+    player.teleportTo(standing(34.2));
+    step(game, 0.3);
+    await tester.sendKeyDownEvent(LogicalKeyboardKey.keyD);
+    step(game, 0.25);
+    await burst(tester, game, player, 'slide', 30, every: 1 / 30);
+    await tester.sendKeyUpEvent(LogicalKeyboardKey.keyD);
+
+    // Pushing the heavy crate.
+    final heavy = game.world.descendants().whereType<PhysicsCrate>().firstWhere(
+      (c) => c.massKg > 20,
+    );
+    player.teleportTo(standing(heavy.body.position.x - 1.4));
+    step(game, 0.3);
+    await tester.sendKeyDownEvent(LogicalKeyboardKey.keyD);
+    step(game, 0.8);
+    await burst(tester, game, player, 'push_heavy', 12, every: 0.1);
+    await tester.sendKeyUpEvent(LogicalKeyboardKey.keyD);
+
+    // The light crate shoved to the lip of the first pit and over it.
+    final light = game.world.descendants().whereType<PhysicsCrate>().firstWhere(
+      (c) => c.massKg < 20,
+    );
+    const lipX = GameConfig.gapStartX - 0.9;
+    light.body.setTransform(
+      Vector2(lipX, level.terrain.heightAt(lipX)! - light.size.y / 2 - 0.03),
+      const Rot.identity(),
+    );
+    light.body.linearVelocity = Vector2.zero();
+    player.teleportTo(standing(lipX - 1.3));
+    step(game, 0.4);
+    await tester.sendKeyDownEvent(LogicalKeyboardKey.keyD);
+    await burst(tester, game, player, 'crate_tumble', 30, every: 1 / 15);
     await tester.sendKeyUpEvent(LogicalKeyboardKey.keyD);
   });
 

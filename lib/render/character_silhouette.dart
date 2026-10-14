@@ -86,7 +86,7 @@ class CharacterSilhouette {
     // Bare legs: a sturdy knee and a shin narrowing to the ankle.
     _taper(canvas, hem, knee, h * 0.035, h * 0.031);
     _taper(canvas, knee, ankle, h * 0.031, h * 0.024);
-    _boot(canvas, ankle, heel, toe, pose.facing, h);
+    _boot(canvas, ankle, heel, toe, pose.side, h);
   }
 
   /// A chunky little boot: rounded heel, flat sole, a rounded toe that
@@ -156,7 +156,9 @@ class CharacterSilhouette {
     canvas.save();
     canvas.translate(neck.x, neck.y);
     canvas.rotate(math.atan2(spine.y, spine.x) - math.pi / 2);
-    canvas.scale(h * pose.facing, h);
+    // Mid-turn the chest narrows towards a front view, but a child seen
+    // from the front is still a body, not a sliver.
+    canvas.scale(h * pose.side * math.max(0.55, pose.facing.abs()), h);
     final double l = length;
     // A loose shirt: rounded shoulders, a fuller chest, and a hem that
     // hangs a little wider than the waist over the shorts.
@@ -180,7 +182,8 @@ class CharacterSilhouette {
     canvas.save();
     canvas.translate(head.x, head.y);
     canvas.rotate(pose.headAngle);
-    canvas.scale(h * pose.facing, h);
+    // A head is round: from the front it is nearly as wide as in profile.
+    canvas.scale(h * pose.side * math.max(0.88, pose.facing.abs()), h);
 
     // The skull: a slightly egg-shaped ball, fuller at the back, with a
     // small rounded chin at the front.
@@ -226,8 +229,17 @@ class CharacterSilhouette {
 
     if (!pose.blink) {
       // Two small white eyes close together at the front of the face, the
-      // far one a touch smaller, in a faint halo of their own light.
-      const glowCentre = Offset(0.077, 0.004);
+      // far one a touch smaller, in a faint halo of their own light. As the
+      // face turns to the camera they slide to the middle of it, level and
+      // the same size: the front view LIMBO's boy passes through as he
+      // turns round. At the middle the two sides are mirror images, so the
+      // flip of the drawing there cannot be seen.
+      final double toCamera = math.max(
+        1 - pose.facing.abs(),
+        pose.headTurn.clamp(0.0, 1.0),
+      );
+      double mix(double a, double b) => a + (b - a) * toCamera;
+      final glowCentre = Offset(mix(0.077, 0.0), mix(0.004, 0.004));
       _glow.shader = Gradient.radial(
         glowCentre,
         0.055,
@@ -235,8 +247,16 @@ class CharacterSilhouette {
         const [0, 0.45, 1],
       );
       canvas.drawCircle(glowCentre, 0.055, _glow);
-      canvas.drawCircle(const Offset(0.100, 0.006), 0.0135, _eye);
-      canvas.drawCircle(const Offset(0.054, 0.001), 0.0115, _eye);
+      canvas.drawCircle(
+        Offset(mix(0.100, 0.035), mix(0.006, 0.004)),
+        mix(0.0135, 0.0125),
+        _eye,
+      );
+      canvas.drawCircle(
+        Offset(mix(0.054, -0.035), mix(0.001, 0.004)),
+        mix(0.0115, 0.0125),
+        _eye,
+      );
     }
     canvas.restore();
   }

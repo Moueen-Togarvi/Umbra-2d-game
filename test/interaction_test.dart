@@ -254,6 +254,26 @@ void main() {
     },
   );
 
+  test('a rope pulls when taut but never pushes', () {
+    final world = _world();
+    final rope = _create(world, SwingRope(anchor: Vector2.zero(), length: 2));
+    // Lifted to half way up its length and let go, the end falls freely
+    // instead of being thrown back out to the rope's length.
+    rope.bob.setTransform(Vector2(0, 1), const Rot.identity());
+    rope.bob.linearVelocity = Vector2.zero();
+    for (var i = 0; i < 10; i++) {
+      world.update(_step);
+    }
+    final double fallen = rope.bob.position.y - 1;
+    final double t = 10 * _step;
+    expect(fallen, closeTo(0.5 * 22 * t * t, 0.03));
+    // Taut, it holds.
+    for (var i = 0; i < 240; i++) {
+      world.update(_step);
+    }
+    expect(rope.bob.position.length, closeTo(2, 0.02));
+  });
+
   test(
     'horizontal and vertical platforms move through velocities and carry riders',
     () {

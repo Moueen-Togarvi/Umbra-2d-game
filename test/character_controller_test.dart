@@ -10,6 +10,8 @@ import 'package:umbra/entities/ground.dart';
 import 'package:umbra/entities/physics_props.dart';
 import 'package:umbra/entities/player.dart';
 import 'package:umbra/game/umbra_game.dart';
+import 'package:umbra/render/dust.dart';
+import 'package:umbra/world/level.dart';
 
 void main() {
   Future<(UmbraGame, Player)> boot(WidgetTester tester) async {
@@ -57,6 +59,196 @@ void main() {
     expect(player.velocity.x, lessThan(-2));
     expect(player.facing, -1);
     await tester.sendKeyUpEvent(LogicalKeyboardKey.keyA);
+  });
+
+  testWidgets('turning round passes quickly through a front view', (
+    tester,
+  ) async {
+    final (game, player) = await boot(tester);
+    expect(player.visualFacing, 1);
+    await tester.sendKeyDownEvent(LogicalKeyboardKey.keyA);
+    var sawFront = false;
+    double? frontAt;
+    for (var i = 0; i < 120; i++) {
+      game.update(1 / 120);
+      if (!sawFront && player.visualFacing.abs() < 0.2) {
+        sawFront = true;
+        frontAt = i / 120;
+      }
+      // The body stays whole through the turn.
+      final pose = player.rigPoseWorld;
+      for (final (a, b, length) in [
+        (RigJoint.frontHip, RigJoint.frontKnee, CharacterRig.thigh),
+        (RigJoint.backKnee, RigJoint.backAnkle, CharacterRig.shin),
+        (RigJoint.frontShoulder, RigJoint.frontElbow, CharacterRig.upperArm),
+        (RigJoint.backElbow, RigJoint.backHand, CharacterRig.forearm),
+      ]) {
+        expect(
+          (pose[a] - pose[b]).length,
+          closeTo(length * GameConfig.playerHeight, 0.02),
+        );
+      }
+    }
+    expect(sawFront, isTrue);
+    // He faces about as soon as he moves the other way; the turn itself is
+    // over in a moment.
+    expect(frontAt, lessThan(0.25));
+    expect(player.visualFacing, -1);
+    await tester.sendKeyUpEvent(LogicalKeyboardKey.keyA);
+  });
+
+  testWidgets('standing about, he looks around and shifts his feet', (
+    tester,
+  ) async {
+    final (game, player) = await boot(tester);
+    advance(game, 1.0);
+    final seen = <IdleAction>{};
+    var lastFeet = player.rigFootTargets;
+    for (var i = 0; i < 30 * 120; i++) {
+      game.update(1 / 120);
+      seen.add(player.idleAction);
+      // Feet move only by stepping: a planted foot never slides.
+      final feet = player.rigFootTargets;
+      final planted = player.rigFeetPlanted;
+      for (var f = 0; f < 2; f++) {
+        if (planted[f] && !player.isSteppingInPlace) {
+          expect((feet[f] - lastFeet[f]).length, lessThan(1e-4));
+        }
+      }
+      lastFeet = feet;
+      if (i == 8 * 120) {
+        expect(
+          seen.difference({IdleAction.none}),
+          isNotEmpty,
+          reason: 'something happens within eight seconds',
+        );
+      }
+    }
+    expect(
+      seen,
+      containsAll(IdleAction.values),
+      reason: 'over half a minute he does each of them',
+    );
+    expect(player.state, CharacterState.idle);
+  });
+
+  testWidgets('after a stop the feet step into place instead of sliding', (
+    tester,
+  ) async {
+    final (game, player) = await boot(tester);
+    await tester.sendKeyDownEvent(LogicalKeyboardKey.keyD);
+    advance(game, 0.8);
+    await tester.sendKeyUpEvent(LogicalKeyboardKey.keyD);
+    var steps = 0;
+    var wasStepping = false;
+    var lastFeet = player.rigFootTargets;
+    for (var i = 0; i < 240; i++) {
+      game.update(1 / 120);
+      if (player.isSteppingInPlace && !wasStepping) steps++;
+      wasStepping = player.isSteppingInPlace;
+      final feet = player.rigFootTargets;
+      if (player.velocity.x.abs() < 0.05 && !player.isSteppingInPlace) {
+        for (var f = 0; f < 2; f++) {
+          if (player.rigFeetPlanted[f]) {
+            expect((feet[f] - lastFeet[f]).length, lessThan(1e-4));
+          }
+        }
+      }
+      lastFeet = feet;
+    }
+    expect(steps, inInclusiveRange(1, 4));
+    expect(player.isSteppingInPlace, isFalse);
+  });
+
+  group('sliding', () {
+    Future<(UmbraGame, Player)> standAt(WidgetTester tester, double x) async {
+      final (game, player) = await boot(tester);
+      final level = game.world.descendants().whereType<Level>().single;
+      player.teleportTo(
+        Vector2(x, level.terrain.heightAt(x)! - GameConfig.playerHeight / 2),
+      );
+      return (game, player);
+    }
+
+    testWidgets('a steep bank slides him down it on his feet', (tester) async {
+      final (game, player) = await standAt(tester, 35.6);
+      var slid = false;
+      var fastest = 0.0;
+      for (var i = 0; i < 180; i++) {
+        game.update(1 / 120);
+        if (player.state == CharacterState.sliding) slid = true;
+        fastest = math.max(fastest, player.velocity.x);
+        expect(player.isDead, isFalse);
+      }
+      expect(slid, isTrue);
+      expect(fastest, greaterThan(3.5), reason: 'faster than he runs');
+      expect(player.body.position.x, greaterThan(37));
+      // At the bottom he is back on his feet.
+      advance(game, 1.0);
+      expect(player.isSliding, isFalse);
+      expect(player.isDead, isFalse);
+    });
+
+    testWidgets('ordinary slopes do not slide', (tester) async {
+      final (game, player) = await standAt(tester, 9.3);
+      for (var i = 0; i < 180; i++) {
+        game.update(1 / 120);
+        expect(player.isSliding, isFalse);
+      }
+      expect(player.velocity.x.abs(), lessThan(0.05));
+    });
+
+    testWidgets('he can jump out of a slide', (tester) async {
+      final (game, player) = await standAt(tester, 35.6);
+      for (var i = 0; i < 120 && !player.isSliding; i++) {
+        game.update(1 / 120);
+      }
+      expect(player.isSliding, isTrue);
+      await tester.sendKeyDownEvent(LogicalKeyboardKey.space);
+      var rose = false;
+      for (var i = 0; i < 30; i++) {
+        game.update(1 / 120);
+        if (player.velocity.y < -3) rose = true;
+      }
+      await tester.sendKeyUpEvent(LogicalKeyboardKey.space);
+      expect(rose, isTrue);
+      expect(player.isSliding, isFalse);
+    });
+  });
+
+  testWidgets('a hard landing throws up dust and jolts the camera', (
+    tester,
+  ) async {
+    final (game, player) = await boot(tester);
+    final dust = game.world.descendants().whereType<DustField>().single;
+    // A small hop: no dust to speak of, no shake.
+    await tester.sendKeyDownEvent(LogicalKeyboardKey.space);
+    advance(game, 0.1);
+    await tester.sendKeyUpEvent(LogicalKeyboardKey.space);
+    var shook = 0.0;
+    for (var i = 0; i < 120; i++) {
+      game.update(1 / 120);
+      shook = math.max(shook, game.cameraTrauma);
+    }
+    expect(player.lastLandingImpact, lessThan(GameConfig.cameraShakeImpact));
+    expect(shook, 0);
+
+    // A long drop.
+    player.teleportTo(GameConfig.playerSpawn - Vector2(0, 2.6));
+    var most = 0;
+    for (var i = 0; i < 120; i++) {
+      game.update(1 / 120);
+      shook = math.max(shook, game.cameraTrauma);
+      most = math.max(most, dust.liveMotes);
+    }
+    expect(player.isDead, isFalse);
+    expect(player.lastLandingImpact, greaterThan(GameConfig.hardLandingSpeed));
+    expect(shook, greaterThan(0.3));
+    expect(most, greaterThanOrEqualTo(10));
+    // Both die away.
+    advance(game, 1.5);
+    expect(game.cameraTrauma, 0);
+    expect(dust.liveMotes, 0);
   });
 
   testWidgets('a landing sinks the pelvis on its spring, then it recovers', (

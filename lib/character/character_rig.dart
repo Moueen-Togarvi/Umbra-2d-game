@@ -42,9 +42,16 @@ class CharacterPose {
     this.backRoll = 0,
     this.frontHand,
     this.backHand,
+    this.lookUp = 0,
+    this.headTurn = 0,
+    this.pull = 0,
+    this.effort = 0,
+    this.slide = 0,
+    this.armAir,
   });
 
-  /// +1 facing right, -1 facing left.
+  /// +1 facing right, -1 facing left; in between while turning round,
+  /// through a front view at 0.
   final double facing;
 
   /// Position in the run cycle, radians. One turn is two steps.
@@ -72,8 +79,21 @@ class CharacterPose {
   /// Extra forward lean from acceleration, radians. Negative leans back.
   final double bodyLean;
 
-  /// 1 while leaning into a crate.
+  /// 1 while leaning into a crate, pushing or pulling.
   final double push;
+
+  /// 1 while pulling: the body leans back from the crate instead of into
+  /// it. [effort] is how hard it is, 0 for a light crate sliding easily to
+  /// 1 for a heavy or stuck one.
+  final double pull, effort;
+
+  /// 1 while sliding down a steep slope on his feet: upright, leaning back
+  /// a little, knees soft, arms out for balance.
+  final double slide;
+
+  /// How far the arms are in their airborne pose, if not simply [air]: a
+  /// moment's hop over a bump while running should not throw them up.
+  final double? armAir;
 
   /// 1 while hanging from a ledge or rope.
   final double hanging;
@@ -101,6 +121,10 @@ class CharacterPose {
   /// heel strike; negative lifts the heel, as at push-off.
   final double frontRoll, backRoll;
   final Offset? frontHand, backHand;
+
+  /// Idle life: 1 lifts the head to look up; [headTurn] 1 turns the face
+  /// round to the camera.
+  final double lookUp, headTurn;
 }
 
 enum RigJoint {
@@ -136,14 +160,22 @@ class CharacterRigPose {
     required this.facing,
     this.blink = false,
     this.headAngle = 0,
+    this.headTurn = 0,
     this.ragdoll = false,
   });
 
   final Map<RigJoint, Vector2> joints;
 
-  /// [headAngle] is a world rotation in radians, clockwise on screen.
-  final double height, facing, headAngle;
+  /// [facing] is 1 side-on to the right and −1 to the left; in between,
+  /// mid-turn, the body is seen from the front at 0. [headAngle] is a world
+  /// rotation in radians, clockwise on screen. [headTurn] turns just the
+  /// face towards the camera, from 0 (profile) to 1.
+  final double height, facing, headAngle, headTurn;
   final bool blink, ragdoll;
+
+  /// Which way the body faces, ±1, even mid-turn: the way knees and elbows
+  /// bend.
+  double get side => facing >= 0 ? 1 : -1;
   Vector2 operator [](RigJoint joint) => joints[joint]!;
   Vector2 get pelvis => this[RigJoint.pelvis];
   Vector2 get head => this[RigJoint.head];
@@ -156,6 +188,7 @@ class CharacterRigPose {
     facing: facing,
     blink: blink,
     headAngle: headAngle,
+    headTurn: headTurn,
     ragdoll: ragdoll,
   );
 
@@ -172,6 +205,7 @@ class CharacterRigPose {
       facing: other.facing,
       blink: other.blink,
       headAngle: headAngle + angleDelta * weight,
+      headTurn: headTurn + (other.headTurn - headTurn) * weight,
       ragdoll: weight < 1 && ragdoll,
     );
   }
@@ -342,7 +376,8 @@ class CharacterRig {
         pose.hardLanding * 0.10 +
         pose.takeoff * 0.02 +
         pose.anticipation * 0.04 +
-        pose.push * 0.03 +
+        pose.push * (0.025 + 0.035 * pose.effort) +
+        pose.slide * 0.045 +
         breath * 0.0018 * idle;
 
     // Where each foot stands: the ankle above its sole, rolled about the
@@ -380,9 +415,11 @@ class CharacterRig {
     // Forward lean, in radians: into the run, into a push, over bent knees
     // on landing, and back against a skid (a negative bodyLean).
     double lean =
-        gait * grounded * (0.07 + 0.11 * gait) +
+        gait * grounded * (0.07 + 0.11 * gait) * (1 - pose.push) +
         pose.bodyLean +
-        pose.push * 0.10 +
+        // Into a push, back from a pull: more the heavier it is.
+        pose.push * (0.08 + 0.22 * pose.effort) * (1 - 2 * pose.pull) -
+        pose.slide * 0.2 +
         pose.landing * 0.14 +
         pose.hardLanding * 0.45 +
         pose.anticipation * 0.12 +
@@ -438,16 +475,15 @@ class CharacterRig {
 
     // The head counters most of the body's lean, which keeps the eyes
     // level through the run: the steadiness LIMBO's boy has. An idle child
-    // sometimes lifts his head and looks about.
-    final double glance =
-        idle * math.pow(math.max(0, math.sin(pose.clock * 0.29)), 6) * 0.16;
+    // sometimes lifts his head to look up, or round at the camera.
     final double headTilt =
         lean * 0.42 -
         rising * 0.10 +
         falling * 0.05 -
         pose.hanging * 0.18 -
-        pose.push * 0.12 -
-        glance +
+        pose.push * (0.12 - 0.22 * pose.effort * (1 - pose.pull)) -
+        pose.lookUp * 0.42 +
+        pose.headTurn * 0.06 +
         pose.hardLanding * 0.2;
     points[RigJoint.head] = neck + _rotate(Vector2(0.026, -0.14), headTilt);
 
@@ -509,25 +545,35 @@ class CharacterRig {
       // Opposite to the same-side leg: back when that foot strikes. Elbows
       // bend to about a right angle and the arms pump close to the body,
       // further back than forward.
-      final double run = gait * grounded * (1 - pose.push);
+      final double armAir = (pose.armAir ?? air).clamp(0.0, 1.0);
+      final double run = gait * (1 - armAir) * (1 - pose.push);
       final double swing =
-          -run * (0.20 + 0.40 * gait) * math.cos(2 * math.pi * legCycle);
+          -run * (0.17 + 0.34 * gait) * math.cos(2 * math.pi * legCycle);
       double angle = 0.05 + 0.025 * breath * idle + swing - run * 0.14;
       double bend = 0.28 + run * 1.25;
-      // Airborne: up and forward on the way up, out for balance on the way
-      // down, with a little flailing in a long fall.
-      final double flail = math.sin(pose.clock * 9 + (front ? 0 : 2)) * 0.12;
+      // Airborne, the elbows stay bent and the arms never point straight
+      // ahead. Going up, the front arm lifts with the hand near the face and
+      // the back arm trails; coming down, both go up and out for balance,
+      // drifting a little in a long fall. The limb physics adds the weight.
+      final double flail =
+          math.sin(pose.clock * 3.5 + (front ? 0 : 2.1)) *
+          0.06 *
+          armAir *
+          pose.fallLean.clamp(0.0, 1.0);
       final double airAngle = _mix(
-        front ? 1.05 : 0.45,
-        front ? 1.25 + flail : -0.85 - flail,
+        front ? 1.7 : -0.5,
+        front ? 2.05 + flail : -2.35 - flail,
         descend,
       );
-      angle = _mix(angle, airAngle, air);
-      bend = _mix(bend, _mix(0.75, 0.55, descend), air);
+      angle = _mix(angle, airAngle, armAir);
+      bend = _mix(bend, _mix(front ? 1.1 : 0.9, 0.8, descend), armAir);
       // Landing: arms forward; a hard landing puts the hands to the ground.
       angle = _mix(angle, 0.55, pose.landing * 0.7);
       angle = _mix(angle, 0.30, pose.hardLanding);
       bend = _mix(bend, 0.15, pose.hardLanding);
+      // Sliding: arms out to both sides for balance.
+      angle = _mix(angle, front ? 1.3 : -1.1, pose.slide);
+      bend = _mix(bend, front ? 0.55 : 0.35, pose.slide);
       // Hanging with nothing to hold: reach straight up.
       angle = _mix(angle, math.pi - 0.12, pose.hanging);
       bend = _mix(bend, 0.08, pose.hanging);
@@ -564,6 +610,7 @@ class CharacterRig {
       facing: pose.facing,
       blink: pose.blink || pose.limp > 0.5,
       headAngle: headTilt * 0.7 * pose.facing,
+      headTurn: pose.headTurn,
     );
   }
 

@@ -14,6 +14,9 @@ enum CharacterState {
   jumpApex,
   falling,
   landing,
+
+  /// Sliding down a steep slope on his feet.
+  sliding,
   pushing,
   pulling,
   grabbing,

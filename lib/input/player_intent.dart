@@ -2,18 +2,25 @@
 /// Sources stay separate so releasing a key cannot cancel a held touch button.
 ///
 /// The vocabulary is deliberately the one LIMBO has: move, jump and a single
-/// action. The boy always runs; there is no run button and no crouch. "Down"
-/// exists only to let go of a ledge or rope.
+/// action. The boy always runs; there is no run button and no crouch. "Up"
+/// and "down" climb a rope; down also lets go of a ledge.
 class PlayerIntent {
   double _keyboardAxis = 0, _touchAxis = 0;
   bool _keyboardJump = false, _touchJump = false;
   bool _keyboardInteract = false, _touchInteract = false;
-  bool _keyboardDown = false;
+  bool _keyboardDown = false, _touchDown = false;
+  bool _keyboardUp = false, _touchUp = false;
   double get horizontalAxis => (_keyboardAxis + _touchAxis).clamp(-1.0, 1.0);
   bool get isJumpHeld => _keyboardJump || _touchJump;
   bool get isInteractHeld => _keyboardInteract || _touchInteract;
-  bool get isDownHeld => _keyboardDown;
+  bool get isDownHeld => _keyboardDown || _touchDown;
+  bool get isUpHeld => _keyboardUp || _touchUp;
   bool _jumpRequested = false;
+  bool _jumpFromUp = false;
+
+  /// Whether the last jump request came from an up key (W or ↑), which on
+  /// a rope climbs instead of jumping off.
+  bool get lastJumpFromUp => _jumpFromUp;
   bool _interactRequested = false, _interactReleaseRequested = false;
   bool _resetRequested = false, _debugRequested = false;
   bool _knockdownRequested = false;
@@ -24,20 +31,30 @@ class PlayerIntent {
     bool? jump,
     bool? interact,
     bool? down,
+    bool? up,
   }) {
     final wasInteracting = isInteractHeld;
     if (axis != null) _keyboardAxis = axis;
     if (jump != null) _keyboardJump = jump;
     if (interact != null) _keyboardInteract = interact;
     if (down != null) _keyboardDown = down;
+    if (up != null) _keyboardUp = up;
     _interactionEdge(wasInteracting);
   }
 
-  void setTouchState({double? axis, bool? jump, bool? interact}) {
+  void setTouchState({
+    double? axis,
+    bool? jump,
+    bool? interact,
+    bool? down,
+    bool? up,
+  }) {
     final wasInteracting = isInteractHeld;
     if (axis != null) _touchAxis = axis;
     if (jump != null) _touchJump = jump;
     if (interact != null) _touchInteract = interact;
+    if (down != null) _touchDown = down;
+    if (up != null) _touchUp = up;
     _interactionEdge(wasInteracting);
   }
 
@@ -53,7 +70,10 @@ class PlayerIntent {
   void requestKnockdown() => _knockdownRequested = true;
   void requestAudioToggle() => _audioRequested = true;
 
-  void requestJump() => _jumpRequested = true;
+  void requestJump({bool fromUp = false}) {
+    _jumpRequested = true;
+    _jumpFromUp = fromUp;
+  }
 
   bool consumeJumpRequest() {
     final value = _jumpRequested;
@@ -103,8 +123,10 @@ class PlayerIntent {
     _keyboardAxis = _touchAxis = 0;
     _keyboardJump = _touchJump = false;
     _keyboardInteract = _touchInteract = false;
-    _keyboardDown = false;
+    _keyboardDown = _touchDown = false;
+    _keyboardUp = _touchUp = false;
     _jumpRequested = _interactRequested = false;
+    _jumpFromUp = false;
     _resetRequested = _debugRequested = _knockdownRequested = false;
     _audioRequested = false;
     _interactReleaseRequested = release;

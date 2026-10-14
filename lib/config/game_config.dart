@@ -139,11 +139,27 @@ abstract final class GameConfig {
   /// knees, not a wind-up.
   static const double jumpAnticipationSeconds = 0.017;
   static const double pushForceNewtons = 500;
+
+  /// Pushing, the arms brace against the crate: a shape this long grows on
+  /// the front of the body, so he holds it at arm's length, not with his
+  /// chest. It collides with props only.
+  static const double pushBraceMeters = 0.22;
+
+  /// Straining against a heavy crate he leans in further, so the brace
+  /// reaches this much further out to keep the arms straight.
+  static const double pushBraceStrainMeters = 0.10;
+  static const double pushBraceSeconds = 0.2;
   static const double pullForceNewtons = 220;
   static const double swingAcceleration = 4;
 
   /// Upward speed added when kicking off a rope with jump.
   static const double ropeJumpSpeed = 3.6;
+
+  /// Climbing a rope, hand over hand: up is slower than sliding down. At
+  /// the bottom of the rope, holding down this long lets go.
+  static const double ropeClimbUpSpeed = 0.9;
+  static const double ropeClimbDownSpeed = 1.4;
+  static const double ropeLetGoSeconds = 0.3;
 
   /// A landing faster than this, or a hit from anything this fast, kills: the
   /// body goes limp. About a 4.5 m drop, three and a half times his height.
@@ -153,6 +169,36 @@ abstract final class GameConfig {
   /// holds the boy for a moment before he runs on.
   static const double hardLandingSpeed = 8.2;
   static const double hardLandingSeconds = 0.32;
+
+  /// Ground steeper than this starts a slide down it on his feet; it ends
+  /// when the ground is gentler than [slideStopRadians].
+  static const double slideStartRadians = 32 * math.pi / 180;
+  static const double slideStopRadians = 28 * math.pi / 180;
+
+  /// Sliding: friction along the slope, top speed along it, and how much
+  /// steering nudges it.
+  static const double slideFriction = 0.15;
+  static const double slideMaxSpeed = 7;
+  static const double slideSteerAcceleration = 2;
+
+  /// After a slide the speed carries on, braking only gently, this long.
+  static const double slideCarrySeconds = 0.6;
+  static const double slideCarryDeceleration = 5;
+
+  /// Landings faster than this shake the camera, by up to
+  /// [cameraShakeMeters], dying away over [cameraShakeSeconds].
+  static const double cameraShakeImpact = 7;
+  static const double cameraShakeMeters = 0.12;
+  static const double cameraShakeSeconds = 0.5;
+
+  /// Turning round: the body passes through a front view in this long.
+  static const double turnSeconds = 0.12;
+
+  /// Idle life: the first idle action after standing still this long, then
+  /// one every few seconds.
+  static const double idleFirstSeconds = 2.5;
+  static const double idleMinGapSeconds = 3;
+  static const double idleMaxGapSeconds = 6;
 
   /// Used by the debug knockdown (K), which still gets back up.
   static const double recoveryBlendSeconds = 0.45;
@@ -248,8 +294,8 @@ abstract final class GameConfig {
     [0, floorSurfaceY, 4, floorSurfaceY, 8, 7.3, 11.5, 6.7, gapStartX, 6.6],
     // 02 Broken bridge ravine.
     [gapEndX, 7.0, 19, 7.3, 22.5, 7.1, 26, 6.4, 30, 6.0],
-    // 03 Quarry.
-    [31.4, 6.5, 35, 6.2, 39, 6.6, 43, 5.9, 46, 6.0],
+    // 03 Quarry: a steep bank (up to 46°) that he slides down on his feet.
+    [31.4, 6.5, 34, 5.65, 35.2, 5.35, 37.2, 6.75, 39.4, 6.6, 43, 5.9, 46, 6.0],
     // 04 Root thicket.
     [47.4, 6.5, 51, 6.3, 55, 6.8, 59, 6.1, 62, 6.2],
     // 05 Marsh and waterwheel.
@@ -263,7 +309,7 @@ abstract final class GameConfig {
   /// capsule does not step over things) but are cleared by the smallest hop.
   static const List<List<double>> logs = [
     [19, 21],
-    [36, 38],
+    [38.6, 40.0],
     [53, 55],
     [68, 69.5],
     [88, 89.5],

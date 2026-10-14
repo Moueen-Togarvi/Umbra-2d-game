@@ -21,7 +21,7 @@ This round rebuilt the boy, his movement, the ground surface and the environment
 
 After testing on a phone, the legs looked stiff, the feet were thin slivers, and at a pit edge the feet hung in the air. LIMBO close-ups (0:39 on the log, 0:48–0:55 at the crate) show shorts, knees that are always soft, and chunky boots that sit flat on whatever they touch. The legs were rebuilt on that basis.
 
-- **Leg physics** (`lib/character/leg_physics.dart`):
+- **Leg physics** (`lib/character/leg_physics.dart`, now `limb_physics.dart`):
   - Each leg is a small Verlet chain (knee, ankle, toe) hanging from the solved hip.
   - The points have momentum and gravity and are pulled toward the animated pose. The pull is strong while swinging, loose in the air (legs trail on take-off) and weak when hanging from a rope (legs swing).
   - Constraints hold the bones at fixed length, keep knees bending forward and keep the ankle in range.
@@ -41,6 +41,99 @@ After testing on a phone, the legs looked stiff, the feet were thin slivers, and
   - **Tests:** 71 pass, including 6 new leg-physics tests and the no-skating, landing-spring and soft-knee checks.
   - **Chrome:** about 60 FPS.
   - **Android emulator:** the APK renders the new legs, and logcat shows no app errors.
+
+## Arms, rope climbing, turn, idle, push, slide, crates and dust (round 1c, 13 October 2026)
+
+The user's next eight picks were checked against the walkthrough's rope (0:58–1:04), slope (0:41.7–0:42.4), turn (0:52.6–0:53.2), and jump and fall frames.
+
+- **Arm physics** (`lib/character/limb_physics.dart`, renamed from `leg_physics.dart`):
+  - The arms are Verlet chains (shoulder → elbow → hand), like the legs.
+    - Elbows only bend backwards.
+    - A gripping hand is pinned to what it holds.
+    - A hand can be put down on the ground but not through it.
+    - They are loose in the air, so they trail on take-off.
+  - Limb damping is now relative to the body. This keeps a long fall from blowing the arms and legs up over the head.
+  - The air pose no longer points the arms straight ahead. Going up, the elbows are bent and the front hand is near the face. Falling, both arms go up and out with a slow flail.
+- **Rope climbing** (`SwingRope`, `CharacterInteractions`, `rope_grips.dart`):
+  - The rope is a real rope joint (no stiffness, a length limit), so it pulls when taut and never pushes.
+  - It is caught anywhere along it: the bob moves to the catch point and the joint shortens to it.
+  - The visible rope is a chain of points along its whole length. Taut above his hands, it is a straight line. Below his hands it hangs and swings, and his feet clamp it once enough rope hangs below him.
+  - **Up** (W/↑, or the touch ˄) climbs at 0.9 m/s; **down** (S/↓, or ˅) at 1.4 m/s.
+  - The hands go hand over hand: each grip stays put until the body has climbed past it, then that hand takes a new grip on the far side of the other.
+  - Holding down at the bottom for 0.3 s lets go. The jump button kicks off; W/↑ on a rope climbs instead of jumping.
+  - The two climb buttons only appear while he holds a rope.
+- **Turn**:
+  - The drawn facing turns on an angle and passes through a front view in 0.12 s.
+  - The eyes slide to the middle of the face. The head stays at least 88% wide and the chest at least 55%.
+  - The feet step round under him.
+  - It replaces the old squash of the whole figure.
+- **Idle life**: after 2.5 s standing still, every 3–6 s he does one of three things:
+  - looks up
+  - turns his face to the camera
+  - shifts his feet to a new stance
+
+  He goes through all three before repeating one. After a stop the feet take real little steps (0.2 s each) into place, instead of sliding.
+- **Push and pull**:
+  - While pushing, a brace shape (props only) grows out of the front of the body, 0.22 m plus up to 0.10 m with effort. He holds the crate at arm's length with nearly straight arms.
+  - Effort comes from the crate's mass and how little it moves. It sets the lean (0.08–0.30 rad into a push, back from a pull), the crouch and how far the head drops.
+  - The run lean no longer adds on top.
+- **Sliding**:
+  - Ground steeper than 32° starts a slide, which ends below 28°.
+  - Speed along the slope gains g(sin θ − 0.15 cos θ), up to 7 m/s, and steering only nudges it.
+  - He slides upright on both feet, leaning back, with his arms out.
+  - After the slide the speed carries on, braking gently, for 0.6 s.
+  - Jumping still works.
+  - Area 03 now has a steep bank (up to 46°) to show it. The log there moved to 38.6–40.0 m.
+- **Crates tip over**:
+  - Crates can rotate now (angular damping 0.4). They tumble off edges and lie flat on slopes.
+  - A steady push on flat ground can't topple one (tested below 0.05 rad).
+- **Landing reactions** (`lib/render/dust.dart`):
+  - Landings faster than 4 m/s throw up dark earth specks and grass bits, with a soft pale haze.
+  - Sliding sprays specks behind him.
+  - Landings faster than 7 m/s jolt the camera, by up to 0.12 m, fading over 0.5 s.
+  - All of it is plain circles, lines and a radial gradient, with no blur filters.
+- **Verification**:
+  - **Tests:** 87 pass. They include new tests for:
+    - the arms: bone lengths, elbows, falling pose, grips, hands on the ground
+    - the turn
+    - idle actions and stepping without sliding
+    - push brace, straight arms and heavy-crate lean
+    - crates tumbling off a ledge
+    - sliding, no sliding on ordinary slopes, and jumping out of a slide
+    - the rope: never pushing, catching part way down, climbing up and down, letting go at the bottom
+    - landing dust and camera shake
+    - the climb buttons
+  - **Chrome:** about 60 FPS at 1280×576 and 1920×864.
+  - **Android emulator:** the APK runs, touch running and pushing work, and logcat shows no app errors.
+
+## Calm arms (round 1d, 14 October 2026)
+
+On a phone the arms shook all the time. Two causes:
+- **The arm physics was a bouncy spring.** Each step it pulled the points toward the pose while keeping their momentum. A 5 cm jolt overshot by 37% on the ground (53% in the air) and swung back and forth about 20 times.
+- **The arm pose itself jumped.** Every moment's hop over a bump while running threw the arms into the raised air pose in about 0.08 s, and dropped them again on landing. A hand also swung into the side of the moving platform and was popped 25 cm up onto its top.
+
+The fix:
+- **One hand per arm.** It is followed in its shoulder's frame, so the torso's bob and lean carry the arm along without shaking it.
+  - The spring is critically damped (6 Hz on the ground, 3.5 Hz in the air, 12 Hz and pinned when gripping), so it never overshoots.
+  - The hand follows the pose at no more than 3 m/s, moves at no more than 5 m/s, and feels a small, capped share of the shoulder's jolts.
+- **The elbow is solved by IK** from shoulder and hand, so it always bends backwards and the bones never stretch.
+- **Arms go up only on a jump or a fall longer than 0.15 s**, and ease in and out of that pose. The landing crouches also come on over a few frames.
+- **Calmer poses:** the fall flail went from ±0.25 rad to a slow ±0.06 rad drift, and the run swing is about 15% smaller.
+- **Hand ground contact** only looks between where the palm was last step and where it is now.
+
+Measured in the real game with `flutter test tool/capture/arm_jitter_test.dart` (worst one-step jolt of a hand relative to its shoulder, front/back hand):
+
+| Scene | Before | After |
+|---|---|---|
+| Running | 194 / 213 mm | 8 / 12 mm |
+| Jump | 152 / 216 mm | 13 / 14 mm |
+| Fall and landing | 478 / 383 mm | 16 / 17 mm |
+
+The run swing stays at about 41 cm. Tests: 91 pass, including new ones for:
+- no wobble after a jolt
+- no added jitter while running
+- still hands while standing
+- a small take-off trail with no bounce back
 
 ## Architecture
 

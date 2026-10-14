@@ -122,6 +122,98 @@ void main() {
   );
 
   testWidgets(
+    'pushing, the arms hold the crate off; a heavy one makes him strain',
+    (tester) async {
+      final leans = <double>[];
+      for (final mass in [8.0, 35.0]) {
+        final (game, player, crate) = await _flatFixture(tester, mass);
+        await tester.sendKeyDownEvent(LogicalKeyboardKey.keyD);
+        _advance(game, 60);
+        var lean = 0.0;
+        var reaches = 0.0;
+        var samples = 0;
+        for (var tick = 0; tick < 60; tick++) {
+          game.update(_step);
+          expect(player.interactions.mode, InteractionMode.pushing);
+          final gap =
+              (crate.body.position.x - crate.size.x / 2) -
+              (player.body.position.x + GameConfig.playerWidth / 2);
+          expect(gap, greaterThan(0.1), reason: 'held at arm\'s length');
+          final pose = player.rigPoseWorld;
+          final reach =
+              (pose[RigJoint.frontHand] - pose[RigJoint.frontShoulder]).length;
+          final spine = pose[RigJoint.neck] - pose[RigJoint.pelvis];
+          reaches += reach;
+          expect(
+            crate.body.angle.abs(),
+            lessThan(0.05),
+            reason: 'a steady push on the flat does not tip it',
+          );
+          lean += spine.x / -spine.y;
+          samples++;
+        }
+        await tester.sendKeyUpEvent(LogicalKeyboardKey.keyD);
+        // The arms reach out nearly straight to the crate.
+        expect(
+          reaches / samples,
+          greaterThan(CharacterRig.armReach * GameConfig.playerHeight * 0.85),
+          reason: '$mass kg',
+        );
+        leans.add(lean / samples);
+      }
+      expect(leans.first, greaterThan(0.05), reason: 'leans into the push');
+      expect(leans.last, greaterThan(leans.first + 0.08));
+    },
+  );
+
+  testWidgets('a crate pushed off a ledge tips over and comes to rest', (
+    tester,
+  ) async {
+    final (game, player) = await _boot(tester);
+    // A high shelf ending at x = 35, with a floor 1.6 m below it.
+    final shelf = Ground.slab(
+      left: 32,
+      right: 35,
+      top: 4,
+      thickness: 0.4,
+      style: GroundStyle.wall,
+    );
+    final floor = Ground.slab(
+      left: 30,
+      right: 42,
+      top: 5.6,
+      thickness: 0.4,
+      style: GroundStyle.wall,
+    );
+    final crate = PhysicsCrate(
+      position: Vector2(34.8, 4 - 0.72 / 2),
+      size: Vector2(0.75, 0.72),
+      massKg: 8,
+    );
+    await game.world.addAll([shelf, floor, crate]);
+    player.teleportTo(Vector2(38, 5.6 - GameConfig.playerHeight / 2));
+    _advance(game, 10);
+    expect(crate.body.angle.abs(), lessThan(0.01));
+    // Shoved over the edge.
+    crate.body.linearVelocity = Vector2(2, 0);
+    var turned = 0.0;
+    for (var tick = 0; tick < 360; tick++) {
+      game.update(_step);
+      turned = turned < crate.body.angle.abs()
+          ? crate.body.angle.abs()
+          : turned;
+    }
+    expect(
+      turned,
+      greaterThan(0.5),
+      reason: "it tumbles off the edge ${crate.body.position}",
+    );
+    expect(crate.body.position.y, greaterThan(5));
+    expect(crate.body.linearVelocity.length, lessThan(0.05));
+    expect(crate.body.angularVelocity.abs(), lessThan(0.05));
+  });
+
+  testWidgets(
     'actual E and backward movement pull both masses with synchronized hands',
     (tester) async {
       final distances = <double>[];
@@ -227,6 +319,52 @@ void main() {
       );
     },
   );
+
+  testWidgets('a rope is caught part way down and climbed up and down', (
+    tester,
+  ) async {
+    final (game, player) = await _boot(tester);
+    final rope = SwingRope(anchor: Vector2(34, -0.5), length: 3.6);
+    await game.world.add(rope);
+    _advance(game, 10);
+    // Jumping at the middle of the rope, not its end.
+    player.teleportTo(Vector2(33.92, 1.4 + GameConfig.playerHeight * 0.3));
+    _advance(game, 2);
+    expect(player.interactions.mode, InteractionMode.swinging);
+    expect(rope.holdLength, inInclusiveRange(1.4, 2.5));
+    _advance(game, 60);
+    // The rope hangs on below his hands, and his feet clamp it.
+    expect(rope.length - rope.holdLength, greaterThan(1));
+    expect(player.interactions.ropeFeet, isNotNull);
+
+    final held = rope.holdLength;
+    await tester.sendKeyDownEvent(LogicalKeyboardKey.keyW);
+    _advance(game, 120);
+    await tester.sendKeyUpEvent(LogicalKeyboardKey.keyW);
+    expect(
+      player.interactions.mode,
+      InteractionMode.swinging,
+      reason: 'W climbs',
+    );
+    expect(rope.holdLength, lessThan(held - 0.5));
+    // He went up with the hold.
+    expect((player.body.position - rope.grip).length, lessThan(0.6));
+    final high = rope.holdLength;
+
+    await tester.sendKeyDownEvent(LogicalKeyboardKey.keyS);
+    _advance(game, 60);
+    expect(
+      player.interactions.mode,
+      InteractionMode.swinging,
+      reason: 'S climbs down',
+    );
+    expect(rope.holdLength, greaterThan(high + 0.6));
+    // Down at the bottom of the rope, held a moment, lets go.
+    _advance(game, 240);
+    await tester.sendKeyUpEvent(LogicalKeyboardKey.keyS);
+    expect(player.interactions.mode, InteractionMode.none);
+    expect(rope.holdLength, rope.length);
+  });
 
   testWidgets(
     'a rope is caught by itself, jump kicks off it, and it is caught again later',

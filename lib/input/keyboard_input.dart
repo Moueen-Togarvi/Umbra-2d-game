@@ -40,7 +40,13 @@ class KeyboardInput extends Component with KeyboardHandler {
     LogicalKeyboardKey.controlRight,
   };
 
-  /// Only lets go of a ledge or rope; there is no crouch.
+  /// Up jumps, and on a rope climbs.
+  static final Set<LogicalKeyboardKey> _upKeys = {
+    LogicalKeyboardKey.arrowUp,
+    LogicalKeyboardKey.keyW,
+  };
+
+  /// Climbs down a rope and lets go of a ledge; there is no crouch.
   static final Set<LogicalKeyboardKey> _downKeys = {
     LogicalKeyboardKey.keyS,
     LogicalKeyboardKey.arrowDown,
@@ -59,13 +65,14 @@ class KeyboardInput extends Component with KeyboardHandler {
       jump: keysPressed.any(_jumpKeys.contains),
       interact: keysPressed.any(_actionKeys.contains),
       down: keysPressed.any(_downKeys.contains),
+      up: keysPressed.any(_upKeys.contains),
     );
 
     // Jump is edge-triggered, so only a genuine key-down counts. Checking for
     // KeyDownEvent specifically also excludes KeyRepeatEvent, which the OS
     // fires while a key is held and which would otherwise machine-gun jumps.
     if (event is KeyDownEvent && _jumpKeys.contains(event.logicalKey)) {
-      _intent.requestJump();
+      _intent.requestJump(fromUp: _upKeys.contains(event.logicalKey));
     }
     if (event is KeyDownEvent) {
       switch (event.logicalKey) {

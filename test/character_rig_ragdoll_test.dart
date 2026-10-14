@@ -259,7 +259,7 @@ void main() {
     },
   );
 
-  testWidgets('rendered hands remain on the real rope grip during a swing', (
+  testWidgets('rendered hands stay on the rope, at the hold, in a swing', (
     tester,
   ) async {
     final game = UmbraGame();
@@ -292,16 +292,14 @@ void main() {
       expect(player.interactionLabel, 'swinging');
       final grip = player.interactions.gripWorld!;
       final pose = player.rigPoseWorld;
-      maximumGap = math.max(
-        maximumGap,
-        (pose[RigJoint.frontHand] - grip).length,
-      );
-      maximumGap = math.max(
-        maximumGap,
-        (pose[RigJoint.backHand] - grip - Vector2(0, 0.02)).length,
-      );
+      for (final hand in [pose[RigJoint.frontHand], pose[RigJoint.backHand]]) {
+        // On the rope itself, one above and one below the hold.
+        final (onRope, _) = rope.nearestOnRope(hand);
+        maximumGap = math.max(maximumGap, (hand - onRope).length);
+        expect((hand - grip).length, lessThan(0.35));
+      }
     }
-    expect(maximumGap, lessThan(0.025));
+    expect(maximumGap, lessThan(0.03));
     await tester.sendKeyUpEvent(LogicalKeyboardKey.keyD);
   });
 }

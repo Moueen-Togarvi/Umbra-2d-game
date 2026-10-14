@@ -60,6 +60,7 @@ class UmbraGame extends Forge2DGame with HasKeyboardHandlerComponents {
   /// the button callbacks close over it and it has to outlive [onLoad].
   late final TouchControls _touchControls = TouchControls(
     _intent,
+    onRope: () => _player?.isOnRope ?? false,
     debugVisible: () => _debugVisible,
     debugTools: debugTools,
   );
@@ -79,8 +80,17 @@ class UmbraGame extends Forge2DGame with HasKeyboardHandlerComponents {
   /// Where the camera is heading. Kept separate from the camera's actual
   /// position so it can ease towards it.
   final Vector2 _cameraTarget = Vector2.zero();
+
+  /// The smoothly following camera position, before any shake.
+  final Vector2 _cameraBase = Vector2.zero();
   double _cameraVelocityX = 0;
   double _lookAhead = 0;
+
+  /// Camera shake from hard landings: 0 to 1, dying away.
+  double _trauma = 0;
+  double _shakeClock = 0;
+  int _seenLandings = 0;
+  double get cameraTrauma => _trauma;
 
   static const double _simulationStep = 1 / 120;
   double _simulationAccumulator = 0;
@@ -130,6 +140,7 @@ class UmbraGame extends Forge2DGame with HasKeyboardHandlerComponents {
       _clampCamera(_idealCameraFor(GameConfig.playerSpawn, 0)),
     );
     camera.viewfinder.position = _cameraTarget.clone();
+    _cameraBase.setFrom(_cameraTarget);
 
     // The fog and forest behind the world; out-of-focus shapes and the lens
     // in front of it; and the black the picture fades to when he dies.
@@ -250,7 +261,7 @@ class UmbraGame extends Forge2DGame with HasKeyboardHandlerComponents {
     _lookAhead += (lead - _lookAhead).clamp(-maxLeadChange, maxLeadChange);
 
     final Vector2 ideal = _idealCameraFor(player.cameraPosition, _lookAhead);
-    final current = camera.viewfinder.position;
+    final current = _cameraBase;
     // Ignore small vertical landing corrections and idle motion.
     if ((ideal.y - current.y).abs() < 0.35) ideal.y = current.y;
     _cameraTarget.setFrom(_clampCamera(ideal));
@@ -265,9 +276,30 @@ class UmbraGame extends Forge2DGame with HasKeyboardHandlerComponents {
       frameDt,
     );
     final double t = 1 - math.exp(-GameConfig.cameraFollowSpeed * frameDt);
-    camera.viewfinder.position = Vector2(
-      nextX,
-      current.y + (_cameraTarget.y - current.y) * t,
+    _cameraBase.setValues(nextX, current.y + (_cameraTarget.y - current.y) * t);
+    camera.viewfinder.position = _cameraBase + _shake(player, frameDt);
+  }
+
+  /// A hard landing jolts the view: mostly up and down, a little sideways,
+  /// fading out fast.
+  Vector2 _shake(Player player, double dt) {
+    if (player.landings != _seenLandings) {
+      _seenLandings = player.landings;
+      final double impact = player.lastLandingImpact;
+      if (impact > GameConfig.cameraShakeImpact) {
+        _trauma = math.min(
+          1,
+          _trauma + (impact - GameConfig.cameraShakeImpact + 1) / 7,
+        );
+      }
+    }
+    _trauma = math.max(0, _trauma - dt / GameConfig.cameraShakeSeconds);
+    if (_trauma <= 0) return Vector2.zero();
+    _shakeClock += dt;
+    final double amount = GameConfig.cameraShakeMeters * _trauma * _trauma;
+    return Vector2(
+      amount * 0.4 * math.sin(_shakeClock * 41 + 0.7),
+      amount * math.sin(_shakeClock * 53),
     );
   }
 

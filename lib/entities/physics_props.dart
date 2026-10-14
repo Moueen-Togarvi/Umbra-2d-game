@@ -38,7 +38,11 @@ class PhysicsCrate extends BodyComponent {
       BodyDef(
         type: BodyType.dynamic,
         position: _initialPosition,
-        fixedRotation: true,
+        // Crates can tip: pushed off an edge they tumble, and they settle
+        // on uneven ground. A steady push at mid-height cannot topple one
+        // on the flat: friction times the push height stays below half its
+        // width times its weight.
+        angularDamping: 0.4,
         linearDamping: 0.12,
         userData: this,
         isBullet: true,
@@ -191,8 +195,17 @@ class MovingPlatform extends BodyComponent {
   }
 }
 
-/// A gravity-driven rope end connected to a fixed anchor by a distance joint.
-/// Its player attachment is a second constraint, owned by CharacterInteractions.
+/// A hanging rope, caught anywhere along it, swung on and climbed.
+///
+/// The physics is a static anchor and one dynamic bob — the point on the
+/// rope being held, or its free end — on a real rope joint: it pulls when
+/// taut and never pushes, so a slack rope lets the bob fall. Holding the
+/// rope partway down moves the bob to that point and shortens the joint to
+/// it; climbing changes that length.
+///
+/// What is drawn is a light chain of points along the whole rope, pinned at
+/// the anchor, at the bob and, while the boy's feet clamp it, at his feet.
+/// The rope below his hands keeps hanging and swinging with him.
 class SwingRope extends BodyComponent {
   SwingRope({required Vector2 anchor, required this.length})
     : anchor = anchor.clone(),
@@ -204,7 +217,29 @@ class SwingRope extends BodyComponent {
   late DistanceJoint constraint;
   bool _created = false;
   bool get isReady => _created && body.isValid && bob.isValid;
+
+  /// Where the rope is held (or, free, its end): the bob.
   Vector2 get grip => bob.position;
+
+  /// The length of rope from the anchor to the bob.
+  double get holdLength => _holdLength;
+  double _holdLength = 0;
+
+  /// The shortest hold, near the branch.
+  static const double minimumHold = 0.5;
+
+  // The drawn rope: points every [_segment] metres from the anchor.
+  late final int _count = math.max(4, (length / 0.15).ceil());
+  late final double _segment = length / _count;
+  late final List<Vector2> _points = [
+    for (var i = 0; i <= _count; i++) Vector2.zero(),
+  ];
+  late final List<Vector2> _previous = [
+    for (var i = 0; i <= _count; i++) Vector2.zero(),
+  ];
+
+  /// Where the feet clamp the rope, if they do.
+  Vector2? clamp;
 
   @override
   Body createBody() {
@@ -233,12 +268,188 @@ class SwingRope extends BodyComponent {
         material: SurfaceMaterial(friction: 0.4),
       ),
     );
+    // A rope, not a rod: a spring of no stiffness, so nothing holds the bob
+    // out, and a limit that stops it going further than the rope's length.
     constraint = world.physicsWorld.createDistanceJoint(
-      DistanceJointDef(bodyA: fixed, bodyB: bob, length: length),
+      DistanceJointDef(
+        bodyA: fixed,
+        bodyB: bob,
+        length: length,
+        enableSpring: true,
+        hertz: 0,
+        enableLimit: true,
+        minLength: 0,
+        maxLength: length,
+      ),
     );
+    _holdLength = length;
+    for (var i = 0; i <= _count; i++) {
+      _points[i].setFrom(anchor + Vector2(0, i * _segment));
+      _previous[i].setFrom(_points[i]);
+    }
     _created = true;
     return fixed;
   }
+
+  /// Sets how much rope is between the anchor and the hold: climbing up
+  /// shortens it, down lengthens it.
+  set holdLength(double value) {
+    _holdLength = value.clamp(minimumHold, length);
+    if (constraint.isValid) {
+      constraint.setLengthRange(min: 0, max: _holdLength);
+    }
+  }
+
+  /// The nearest point of the rope to [point], and how far along the rope
+  /// it is, ignoring the first [from] metres.
+  (Vector2, double) nearestOnRope(Vector2 point, {double from = 0}) {
+    var best = _points.last.clone();
+    var bestArc = length;
+    var bestDistance = double.infinity;
+    for (var i = 0; i < _count; i++) {
+      final a = _points[i], b = _points[i + 1];
+      final Vector2 d = b - a;
+      final double l2 = d.length2;
+      double t = l2 < 1e-12 ? 0 : ((point - a).dot(d) / l2).clamp(0.0, 1.0);
+      if ((i + t) * _segment < from) {
+        if ((i + 1) * _segment < from) continue;
+        t = (from / _segment - i).clamp(0.0, 1.0);
+      }
+      final Vector2 at = a + d * t;
+      final double distance = (at - point).length;
+      if (distance < bestDistance) {
+        bestDistance = distance;
+        best = at;
+        bestArc = (i + t) * _segment;
+      }
+    }
+    return (best, bestArc);
+  }
+
+  /// The point [arc] metres along the rope.
+  Vector2 pointAt(double arc) {
+    final double k = (arc / _segment).clamp(0.0, _count.toDouble());
+    final int i = math.min(k.floor(), _count - 1);
+    final double t = k - i;
+    return _points[i] + (_points[i + 1] - _points[i]) * t;
+  }
+
+  /// Takes hold of the rope at [point] ([arc] metres down it): the bob
+  /// moves there, keeping the rope's swing, and the joint shortens to it.
+  void catchAt(Vector2 point, double arc) {
+    if (!isReady) return;
+    final double reach = (bob.position - anchor).length;
+    final double hold = arc.clamp(minimumHold, length);
+    final Vector2 velocity =
+        bob.linearVelocity *
+        (reach > 1e-3 ? (point - anchor).length / reach : 1);
+    holdLength = hold;
+    bob.setTransform(point, const Rot.identity());
+    bob.linearVelocity = velocity;
+  }
+
+  /// Lets go: the bob goes back to being the rope's free end, where the
+  /// rope's end hangs right now, moving as it moves.
+  void letGo({double dt = 1 / 120}) {
+    clamp = null;
+    if (!isReady) return;
+    if (_holdLength < length - 0.05) {
+      bob.setTransform(_points.last, const Rot.identity());
+      bob.linearVelocity = (_points.last - _previous.last) / dt;
+    }
+    holdLength = length;
+  }
+
+  @override
+  void update(double dt) {
+    super.update(dt);
+    if (!isReady) return;
+    // The drawn rope: points every [_segment] metres along it, with momentum
+    // and weight, its segments never stretched, held at the anchor, at the
+    // hold (which falls between two points) and at the feet.
+    final double keep = math.exp(-1.6 * dt);
+    final double fall = 18 * dt * dt;
+    for (var i = 1; i <= _count; i++) {
+      final p = _points[i], q = _previous[i];
+      final double vx = (p.x - q.x) * keep, vy = (p.y - q.y) * keep;
+      q.setFrom(p);
+      p.x += vx;
+      p.y += vy + fall;
+    }
+    final double at = _holdLength / _segment;
+    final int k = math.min(at.floor(), _count - 1);
+    final double t = at - k;
+    final Vector2 grip = bob.position;
+    final Vector2 span = grip - anchor;
+    // Taut, the rope above the hold is a straight line, and runs straight
+    // on through the hand.
+    final bool taut = span.length >= _holdLength - 0.02;
+    final Vector2? feet = clamp;
+    final int clamped = feet == null || k + 2 > _count
+        ? -1
+        : ((_holdLength + (feet - grip).length) / _segment).round().clamp(
+            k + 2,
+            _count,
+          );
+    bool pinned(int i) =>
+        i == 0 || (taut && i <= k) || i == k || i == k + 1 || i == clamped;
+    for (var iteration = 0; iteration < 10; iteration++) {
+      _points[0].setFrom(anchor);
+      if (taut) {
+        for (var i = 1; i <= k; i++) {
+          _points[i]
+            ..setFrom(span)
+            ..scale(i * _segment / _holdLength)
+            ..add(anchor);
+        }
+      }
+      // Through the hand: the point above the hold on the rope's line, the
+      // one below it hanging on from the hand, half way to straight down.
+      final Vector2 before = _points[k];
+      final Vector2 through = taut || k == 0 ? span : grip - before;
+      if (through.length2 > 1e-12) {
+        final Vector2 direction = through.normalized();
+        if (!taut && k > 0) {
+          before
+            ..setFrom(direction)
+            ..scale(-t * _segment)
+            ..add(grip);
+        }
+        final Vector2 hang = (direction + Vector2(0, 1))..normalize();
+        _points[k + 1]
+          ..setFrom(hang)
+          ..scale((1 - t) * _segment)
+          ..add(grip);
+      }
+      if (clamped > 0) _points[clamped].setFrom(feet!);
+      for (var i = 0; i < _count; i++) {
+        final a = _points[i], b = _points[i + 1];
+        final Vector2 d = b - a;
+        final double l = d.length;
+        if (l <= _segment || l < 1e-9) continue;
+        final double wa = pinned(i) ? 0 : 1, wb = pinned(i + 1) ? 0 : 1;
+        if (wa + wb == 0) continue;
+        final Vector2 fix = d * ((l - _segment) / l / (wa + wb));
+        a.addScaled(fix, wa);
+        b.addScaled(fix, -wb);
+      }
+    }
+  }
+
+  static final Paint _branch = Paint()..color = const Color(0xFF0B0B0B);
+  static final Paint _fastening = Paint()..color = const Color(0xFF242424);
+  static final Paint _nail = Paint()..color = const Color(0xFF606060);
+  static final Paint _cord = Paint()
+    ..color = const Color(0xFF181818)
+    ..style = PaintingStyle.stroke
+    ..strokeWidth = 0.032
+    ..strokeCap = StrokeCap.round
+    ..strokeJoin = StrokeJoin.round;
+  static final Paint _fray = Paint()
+    ..color = const Color(0xFF181818)
+    ..strokeWidth = 0.012
+    ..strokeCap = StrokeCap.round;
+  static final Paint _knot = Paint()..color = const Color(0xFF181818);
 
   @override
   void render(Canvas canvas) {
@@ -254,41 +465,42 @@ class SwingRope extends BodyComponent {
       ..lineTo(1.48, -0.92)
       ..quadraticBezierTo(0.70, -0.04, 0.06, 0.09)
       ..close();
-    canvas.drawPath(support, Paint()..color = const Color(0xFF0B0B0B));
+    canvas.drawPath(support, _branch);
     canvas.drawRRect(
       RRect.fromRectAndRadius(
         const Rect.fromLTWH(-0.085, -0.065, 0.16, 0.11),
         const Radius.circular(0.025),
       ),
-      Paint()..color = const Color(0xFF242424),
+      _fastening,
     );
-    canvas.drawCircle(
-      const Offset(-0.012, -0.025),
-      0.016,
-      Paint()..color = const Color(0xFF606060),
-    );
-    final end = bob.position - body.position;
-    final rope = Paint()
-      ..color = const Color(0xFF181818)
-      ..strokeWidth = 0.032
-      ..strokeCap = StrokeCap.round;
-    canvas.drawLine(Offset.zero, Offset(end.x, end.y), rope);
+    canvas.drawCircle(const Offset(-0.012, -0.025), 0.016, _nail);
+    // The rope, as a smooth curve through its points (this canvas is
+    // centred on the anchor).
+    Offset at(int i) =>
+        Offset(_points[i].x - anchor.x, _points[i].y - anchor.y);
+    final rope = Path()..moveTo(0, 0);
+    for (var i = 1; i < _count; i++) {
+      final a = at(i), b = at(i + 1);
+      rope.quadraticBezierTo(a.dx, a.dy, (a.dx + b.dx) / 2, (a.dy + b.dy) / 2);
+    }
+    final end = at(_count);
+    rope.lineTo(end.dx, end.dy);
+    canvas.drawPath(rope, _cord);
     // A knot and a frayed end below it, rather than a ball.
-    final double length = end.length;
-    if (length > 0) {
-      final Offset dir = Offset(end.x / length, end.y / length);
-      final Offset knot = Offset(end.x, end.y);
-      canvas.drawCircle(knot, 0.03, Paint()..color = const Color(0xFF181818));
-      rope.strokeWidth = 0.012;
+    final Offset last = end - at(_count - 1);
+    final double run = last.distance;
+    if (run > 0) {
+      final Offset dir = last / run;
+      canvas.drawCircle(end, 0.03, _knot);
       for (final splay in const [-0.25, 0.0, 0.3]) {
         final Offset tip =
-            knot +
+            end +
             Offset(
                   dir.dx * math.cos(splay) - dir.dy * math.sin(splay),
                   dir.dx * math.sin(splay) + dir.dy * math.cos(splay),
                 ) *
                 0.09;
-        canvas.drawLine(knot, tip, rope);
+        canvas.drawLine(end, tip, _fray);
       }
     }
   }

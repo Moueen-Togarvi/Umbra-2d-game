@@ -32,15 +32,17 @@ LIMBO's whole vocabulary: move, jump and one action. The boy always runs; there 
 | Jump (always the same height) | Space, W, Up | ▲ |
 | Grab and pull an object | Hold E or Ctrl | Hold ✋ |
 | Climb a caught ledge | Toward it, or jump | Toward it, or ▲ |
-| Let go of a ledge or rope | S/Down, or steer away | Steer away |
-| Kick off a rope | Jump | ▲ |
+| Let go of a ledge | S/Down, or steer away | Steer away |
+| Climb up / down a rope | W/Up, S/Down | ˄ ˅ (shown only on a rope) |
+| Let go of a rope | Hold S/Down at its bottom | Hold ˅ at its bottom |
+| Kick off a rope | Space | ▲ |
 
-Ledges and ropes are caught automatically when the boy reaches them in the air. Pushing happens by running into a crate.
+Ledges and ropes are caught automatically when the boy reaches them in the air, a rope anywhere along it. Pushing happens by running into a crate. Steep banks (over 32°) are slid down on his feet.
 
 Development builds (`--dart-define=UMBRA_DEBUG=true`) add on-screen DBG, RESET, FALL and SOUND buttons; on a keyboard F1 toggles the physics overlay, R resets to the checkpoint, K knocks the boy down and M toggles the wind.
 
 ## Verification
 
-`flutter test` exercises the actual native physics: running speed and reversal, the fixed jump height at 30/60/120 fps, coyote time and jump buffering, ceilings, moving platforms, planted feet with a real flight phase in the run, push/pull mass resistance, automatic rope and ledge catches, letting go, hard landings, deaths on the stakes and from long falls with the fade and respawn, the complete level route, touch controls, and seamless baked fog layers.
+`flutter test` exercises the actual native physics: running speed and reversal, the fixed jump height at 30/60/120 fps, coyote time and jump buffering, ceilings, moving platforms, planted feet with a real flight phase in the run, push/pull mass resistance, automatic rope and ledge catches, rope climbing, letting go, sliding, tipping crates, arm and leg physics, the turn, idle life, landing dust and camera shake, hard landings, deaths on the stakes and from long falls with the fade and respawn, the complete level route, touch controls, and seamless baked fog layers.
 
 To look at the result frame by frame, `flutter test tool/capture/capture_frames_test.dart` renders gameplay scenes to `build/limbo-preview/`, and `python3 tools/contact_sheet.py run` crops the boy into contact sheets. `python3 tools/playtest.py` plays the level in real Chrome on a release web build, records a video and reports FPS.

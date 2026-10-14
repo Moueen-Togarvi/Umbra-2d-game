@@ -22,10 +22,29 @@ class FootPlacement {
   double _facing = 1;
   double _travelDirection = 1;
   bool _wasGrounded = false;
+  int _stance = 0;
 
   /// Idle stance, as fractions of height ahead of the centre: one foot a
   /// little forward, one a little back, the way a child stands.
   static const double idleFront = 0.07, idleBack = -0.06;
+
+  /// The stances he shifts between while standing about, the first being
+  /// [idleFront] and [idleBack].
+  static const List<(double, double)> _stances = [
+    (idleFront, idleBack),
+    (0.035, -0.09),
+    (0.10, -0.035),
+  ];
+
+  /// A step in place (settling after a stop, or shifting his feet) takes
+  /// this long and lifts the foot this far, as a fraction of height.
+  static const double stepSeconds = 0.2, stepLift = 0.035;
+
+  /// Shifts to another standing stance: the feet step there one at a time.
+  void shiftStance() => _stance = (_stance + 1) % _stances.length;
+
+  /// Whether a foot is stepping in place right now.
+  bool get stepping => _feet.any((foot) => foot.stepping);
 
   /// Front foot first, then back foot, in world metres: where the sole
   /// touches (or, swinging, would touch) the ground.
@@ -48,6 +67,7 @@ class FootPlacement {
     for (final foot in _feet) {
       foot.support = null;
       foot.initialized = false;
+      foot.stepping = false;
       foot.roll = 0;
       foot.normal.setValues(0, -1);
     }
@@ -64,9 +84,33 @@ class FootPlacement {
     required double speed,
     required double dt,
     bool bracing = false,
+    bool sliding = false,
   }) {
     if (!grounded) {
       reset();
+      return;
+    }
+    if (sliding) {
+      // Sliding on his feet: both soles stay on the ground and travel with
+      // him, the front foot a little ahead down the slope.
+      _facing = facing;
+      _wasGrounded = true;
+      final soleY = body.position.y + height / 2;
+      for (var i = 0; i < _feet.length; i++) {
+        final foot = _feet[i];
+        _plant(
+          world,
+          body,
+          foot,
+          body.position.x + (i == 0 ? 0.06 : -0.05) * height * facing,
+          soleY,
+          height,
+        );
+        foot.stepping = false;
+        foot.wasStance = true;
+        foot.roll = 0;
+        foot.swingFrom = foot.position.x - body.position.x;
+      }
       return;
     }
     final moving = speed.abs() > 0.12;
@@ -86,11 +130,67 @@ class FootPlacement {
     // Leaning on a crate, the short steps land a little behind the hips,
     // so the legs drive the body into it instead of stepping in under it.
     final double land = reach - (bracing ? height * 0.04 : 0);
+    double idleXOf(int i) =>
+        root.x +
+        (i == 0 ? _stances[_stance].$1 : _stances[_stance].$2) *
+            height *
+            facing;
+    if (moving) {
+      for (final foot in _feet) {
+        foot.stepping = false;
+      }
+    } else if (!stepping) {
+      // Standing, the foot furthest from where it should stand steps
+      // there: a real little step, not a slide.
+      int? worst;
+      var worstError = 0.025;
+      for (var i = 0; i < _feet.length; i++) {
+        final foot = _feet[i];
+        if (!foot.initialized || !foot.wasStance) continue;
+        final error = (foot.position.x - idleXOf(i)).abs();
+        if (error > worstError) {
+          worst = i;
+          worstError = error;
+        }
+      }
+      if (worst != null) {
+        final foot = _feet[worst];
+        foot.stepFrom.setFrom(foot.position);
+        _plant(world, body, foot, idleXOf(worst), soleY, height);
+        foot.stepTo.setFrom(foot.position);
+        foot.position.setFrom(foot.stepFrom);
+        foot.stepTime = 0;
+        foot.stepping = true;
+      }
+    }
     for (var i = 0; i < _feet.length; i++) {
       final foot = _feet[i];
       final cycle = (phase / (math.pi * 2) + i * 0.5) % 1;
       final stance = !moving || cycle < stanceFraction;
-      final idleX = root.x + (i == 0 ? idleFront : idleBack) * height * facing;
+      final idleX = idleXOf(i);
+      if (foot.stepping) {
+        foot.stepTime += dt;
+        final double t = math.min(1, foot.stepTime / stepSeconds);
+        if (t >= 1) {
+          foot.stepping = false;
+          foot.position.setFrom(
+            (foot.support?.isValid ?? false)
+                ? foot.support!.worldPoint(foot.localAnchor)
+                : foot.stepTo,
+          );
+          foot.roll = 0;
+          foot.wasStance = true;
+        } else {
+          final double s = _smooth(t);
+          foot.position
+            ..setFrom(foot.stepFrom + (foot.stepTo - foot.stepFrom) * s)
+            ..y -= math.sin(math.pi * t) * stepLift * height;
+          // The heel comes up first, and the foot is put down flat.
+          foot.roll = -0.35 * math.sin(math.pi * t) * (1 - t);
+          foot.wasStance = false;
+        }
+        continue;
+      }
       if (!foot.initialized) {
         final x = moving
             ? root.x +
@@ -114,14 +214,6 @@ class FootPlacement {
           );
         } else if (foot.support?.isValid ?? false) {
           foot.position.setFrom(foot.support!.worldPoint(foot.localAnchor));
-        }
-        // Settle a final step after braking, without tying a planted foot to
-        // every millimetre of root motion during the gait.
-        if (!moving && (foot.position.x - idleX).abs() > 0.025) {
-          final x =
-              foot.position.x +
-              (idleX - foot.position.x) * (1 - math.exp(-9 * dt));
-          _plant(world, body, foot, x, soleY, height);
         }
         if ((foot.position.x - root.x).abs() > height * 0.32 ||
             (foot.position.y - soleY).abs() > height * 0.3) {
@@ -220,4 +312,10 @@ class _Foot {
   Body? support;
   bool initialized = false;
   bool wasStance = false;
+
+  /// A step in place, from [stepFrom] to [stepTo].
+  bool stepping = false;
+  double stepTime = 0;
+  final stepFrom = Vector2.zero();
+  final stepTo = Vector2.zero();
 }

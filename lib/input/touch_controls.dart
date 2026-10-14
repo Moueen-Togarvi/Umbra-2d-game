@@ -25,6 +25,9 @@ import 'player_intent.dart';
 /// component would break that, so instead this class just owns the shared state
 /// the two walk buttons need and hands back the components to mount.
 ///
+/// Two smaller climb buttons, ˄ and ˅, appear above the walk buttons only
+/// while he holds a rope.
+///
 /// Development builds (`UMBRA_DEBUG`) add four small labelled buttons along
 /// the top: physics overlay, checkpoint reset, ragdoll knockdown and sound.
 /// Release builds have no text on screen at all.
@@ -32,11 +35,14 @@ class TouchControls {
   TouchControls(
     this._intent, {
     bool Function()? debugVisible,
+    bool Function()? onRope,
     this.debugTools = false,
-  }) : _debugVisible = debugVisible ?? (() => false);
+  }) : _debugVisible = debugVisible ?? (() => false),
+       _onRope = onRope ?? (() => false);
 
   final PlayerIntent _intent;
   final bool Function() _debugVisible;
+  final bool Function() _onRope;
 
   /// Whether the development buttons exist at all.
   final bool debugTools;
@@ -52,12 +58,14 @@ class TouchControls {
   List<HudButtonComponent> _buttons = [];
 
   /// The HUD components to add to `camera.viewport`: left, right, jump and
-  /// action first, then the development buttons when [debugTools] is set.
+  /// action first, then climb up and down, then the development buttons
+  /// when [debugTools] is set.
   List<HudButtonComponent> buildButtons() {
     const double diameter = GameConfig.controlButtonDiameterPx;
     const double edge = GameConfig.controlEdgeMarginPx;
     const double gap = GameConfig.controlGapPx;
     const double small = 46;
+    const double climb = diameter * 0.78;
 
     _buttons = [
       // Walk left — bottom-left corner.
@@ -102,6 +110,31 @@ class TouchControls {
         ),
         onPress: () => _intent.setTouchState(interact: true),
         onRelease: () => _intent.setTouchState(interact: false),
+      ),
+
+      // Climb up and down a rope: only there while he holds one, above the
+      // walk buttons.
+      _controlButton(
+        glyph: _Glyph.up,
+        diameter: climb,
+        visible: _onRope,
+        margin: const EdgeInsets.only(
+          left: edge + (diameter - climb) / 2,
+          bottom: edge + diameter + gap,
+        ),
+        onPress: () => _intent.setTouchState(up: true),
+        onRelease: () => _intent.setTouchState(up: false),
+      ),
+      _controlButton(
+        glyph: _Glyph.down,
+        diameter: climb,
+        visible: _onRope,
+        margin: const EdgeInsets.only(
+          left: edge + diameter + gap + (diameter - climb) / 2,
+          bottom: edge + diameter + gap,
+        ),
+        onPress: () => _intent.setTouchState(down: true),
+        onRelease: () => _intent.setTouchState(down: false),
       ),
 
       if (debugTools) ...[
@@ -202,7 +235,13 @@ class TouchControls {
 
   void clear() {
     _isHoldingLeft = _isHoldingRight = false;
-    _intent.setTouchState(axis: 0, jump: false, interact: false);
+    _intent.setTouchState(
+      axis: 0,
+      jump: false,
+      interact: false,
+      up: false,
+      down: false,
+    );
     for (final button in _buttons) {
       if (button.buttonDown?.parent == button) {
         button.buttonDown!.removeFromParent();
@@ -212,7 +251,7 @@ class TouchControls {
   }
 }
 
-enum _Glyph { left, right, jump, hand }
+enum _Glyph { left, right, jump, hand, up, down }
 
 /// A hidden development action neither draws nor receives a stray tap.
 class _VisibilityButton extends HudButtonComponent {
@@ -262,6 +301,11 @@ class _ControlFace extends PositionComponent {
     ..style = PaintingStyle.stroke
     ..strokeWidth = 1.2;
   static final Paint _glyphPaint = Paint()..color = Palette.controlGlyph;
+  static final Paint _strokeGlyph = Paint()
+    ..color = Palette.controlGlyph
+    ..style = PaintingStyle.stroke
+    ..strokeCap = StrokeCap.round
+    ..strokeJoin = StrokeJoin.round;
 
   @override
   void render(Canvas canvas) {
@@ -301,6 +345,10 @@ class _ControlFace extends PositionComponent {
         _triangle(canvas, center, r, -math.pi / 2);
       case _Glyph.hand:
         _hand(canvas, center, r);
+      case _Glyph.up:
+        _chevron(canvas, center, r, -1);
+      case _Glyph.down:
+        _chevron(canvas, center, r, 1);
     }
   }
 
@@ -316,6 +364,16 @@ class _ControlFace extends PositionComponent {
           : path.lineTo(point.dx, point.dy);
     }
     canvas.drawPath(path..close(), _glyphPaint);
+  }
+
+  /// A climbing chevron, ˄ or ˅: open, so it reads differently from the
+  /// solid jump triangle.
+  void _chevron(Canvas canvas, Offset center, double r, double direction) {
+    final path = Path()
+      ..moveTo(center.dx - r * 0.75, center.dy - direction * r * 0.35)
+      ..lineTo(center.dx, center.dy + direction * r * 0.45)
+      ..lineTo(center.dx + r * 0.75, center.dy - direction * r * 0.35);
+    canvas.drawPath(path, _strokeGlyph..strokeWidth = r * 0.28);
   }
 
   /// An open hand: a rounded palm and four fingers, with the thumb out.

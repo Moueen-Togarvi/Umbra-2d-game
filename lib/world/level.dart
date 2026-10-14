@@ -8,6 +8,7 @@ import '../entities/hill_ground.dart';
 import '../entities/player.dart';
 import '../entities/physics_props.dart';
 import '../input/player_intent.dart';
+import '../render/dust.dart';
 import '../render/grass.dart';
 import 'checkpoint_service.dart';
 import 'terrain.dart';
@@ -193,6 +194,9 @@ class Level extends Component {
       spawnPosition: checkpoints.activeCheckpoint,
     );
     pieces.add(player);
+
+    // Dirt and grass kicked up by his landings and slides.
+    pieces.add(DustField(player: player));
 
     // The short grass in front of his feet draws over everything else.
     pieces.add(FrontGrass(banks: banks, wind: wind));

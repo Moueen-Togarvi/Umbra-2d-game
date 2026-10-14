@@ -112,7 +112,7 @@ void main() {
     final intent = PlayerIntent();
     final controls = TouchControls(intent);
     final buttons = controls.buildButtons();
-    expect(buttons, hasLength(4), reason: 'left, right, jump and action');
+    expect(buttons, hasLength(6), reason: 'walk, jump, action and climb');
     buttons[1].onPressed!();
     buttons[2].onPressed!();
     buttons[3].onPressed!();
@@ -124,8 +124,15 @@ void main() {
     expect(intent.isInteractHeld, isFalse);
     expect(intent.consumeInteractRelease(), isTrue);
     expect(intent.horizontalAxis, 1);
+    buttons[4].onPressed!();
+    expect(intent.isUpHeld, isTrue);
+    buttons[4].onReleased!();
+    buttons[5].onPressed!();
+    expect(intent.isUpHeld, isFalse);
+    expect(intent.isDownHeld, isTrue);
     controls.clear();
     expect(intent.horizontalAxis, 0);
     expect(intent.isJumpHeld, isFalse);
+    expect(intent.isDownHeld, isFalse);
   });
 }

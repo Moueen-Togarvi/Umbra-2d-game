@@ -5,6 +5,7 @@ import 'package:flame_forge2d/flame_forge2d.dart';
 import '../entities/physics_props.dart';
 import '../config/game_config.dart';
 import 'character_rig.dart';
+import 'rope_grips.dart';
 
 enum InteractionMode { none, pushing, pulling, hanging, swinging, climbing }
 
@@ -32,15 +33,28 @@ class CharacterInteractions {
   PhysicsCrate? grabbedCrate;
   SwingRope? attachedRope;
   Body? pushResistanceBody;
+
+  /// How far the arms currently brace out in front of the body, metres:
+  /// the push reach extends past it.
+  double braceLength = 0;
   MotorJoint? _motor;
   DistanceJoint? _ropeHand;
 
   /// Where on the body the rope is held, in body-local metres. A rope caught
-  /// low is drawn up hand over hand until it is held overhead.
+  /// low is drawn in until it runs down his front, held at the head and
+  /// the chest.
   Vector2? _ropeHold;
   Vector2? _ropeHoldTarget;
   double _ropeFacing = 1;
   static const double _ropePullSpeed = 1.1;
+
+  /// Where along the rope each hand holds, climbing hand over hand.
+  final RopeGrips ropeGrips = RopeGrips();
+
+  /// +1 climbing up the rope, -1 down, 0 holding still.
+  double ropeClimb = 0;
+  double _ropeLetGo = 0;
+  double _ropeClimbClock = 0;
   Vector2? _crateGripLocal;
   Body? _ledgeBody;
   Vector2? _ledgeLocal;
@@ -95,6 +109,32 @@ class CharacterInteractions {
 
   Vector2? _pushGrip;
 
+  /// On a rope, the front and back hands' grips on it, world metres. A hand
+  /// moving to a new grip comes off the rope towards the body.
+  List<Vector2>? get ropeHands {
+    final rope = attachedRope;
+    if (rope == null || !rope.isReady) return null;
+    return [
+      for (var i = 0; i < 2; i++)
+        rope.pointAt(ropeGrips.arcs[i]) +
+            Vector2(-_ropeFacing * 0.045 * ropeGrips.lift(i), 0),
+    ];
+  }
+
+  /// On a rope with enough of it hanging below him, where his feet clamp
+  /// it: in front of the shins, the knees bent, pumping as he climbs.
+  Vector2? get ropeFeet {
+    final rope = attachedRope;
+    if (rope == null || !rope.isReady) return null;
+    if (rope.length - rope.holdLength < 0.95) return null;
+    final double pump = ropeClimb == 0
+        ? 0
+        : 0.5 + 0.5 * math.sin(_ropeClimbClock * 2 * math.pi * 1.6);
+    return playerBody.worldPoint(
+      Vector2(_ropeFacing * height * 0.12, height * (0.36 - 0.07 * pump)),
+    );
+  }
+
   void update(
     double dt, {
     required double axis,
@@ -104,6 +144,7 @@ class CharacterInteractions {
     required bool interactHeld,
     required bool jumpPressed,
     bool downHeld = false,
+    bool upHeld = false,
   }) {
     releasedThisStep = false;
     _catchCooldown = math.max(0, _catchCooldown - dt);
@@ -117,7 +158,14 @@ class CharacterInteractions {
     if (mode == InteractionMode.pushing) mode = InteractionMode.none;
 
     if (mode == InteractionMode.swinging) {
-      if (!(attachedRope?.isReady ?? false) || jumpPressed || downHeld) {
+      final rope = attachedRope;
+      // Down at the bottom of the rope, held a moment, lets go.
+      final bool atBottom =
+          rope != null && rope.holdLength >= rope.length - 0.1 - 1e-6;
+      _ropeLetGo = downHeld && atBottom ? _ropeLetGo + dt : 0;
+      if (!(rope?.isReady ?? false) ||
+          jumpPressed ||
+          _ropeLetGo >= GameConfig.ropeLetGoSeconds) {
         release();
         releasedThisStep = true;
         _catchCooldown = _catchCooldownSeconds;
@@ -130,6 +178,26 @@ class CharacterInteractions {
         }
       } else {
         _settleRopeHold(dt);
+        // Climbing: up and down change how much rope is above the hold.
+        ropeClimb = 0;
+        if (upHeld && rope!.holdLength > SwingRope.minimumHold + 1e-6) {
+          rope.holdLength -= GameConfig.ropeClimbUpSpeed * dt;
+          ropeClimb = 1;
+        } else if (downHeld && !atBottom) {
+          rope!.holdLength = math.min(
+            rope.length - 0.1,
+            rope.holdLength + GameConfig.ropeClimbDownSpeed * dt,
+          );
+          ropeClimb = -1;
+        }
+        if (ropeClimb != 0) _ropeClimbClock += dt;
+        ropeGrips.update(
+          rope!.holdLength,
+          dt,
+          top: SwingRope.minimumHold - 0.25,
+          end: rope.length - 0.03,
+        );
+        rope.clamp = ropeFeet;
         final radius = playerBody.position - attachedRope!.anchor;
         final tangent = Vector2(radius.y, -radius.x)..normalize();
         if (playerBody.linearVelocity.length < 8) {
@@ -176,7 +244,11 @@ class CharacterInteractions {
     if (grounded &&
         !_requireInteractRelease &&
         (interactPressed || interactHeld)) {
-      final crateHit = _crateInReach(facing, width / 2 + 0.13);
+      // Far enough for a crate he has just been pushing at arm's length.
+      final crateHit = _crateInReach(
+        facing,
+        width / 2 + GameConfig.pushBraceMeters + 0.06,
+      );
       if (crateHit != null) {
         _grabCrate(crateHit);
         return;
@@ -188,14 +260,17 @@ class CharacterInteractions {
     if (!grounded && _catchCooldown <= 0 && !downHeld) {
       final rope = _ropeInReach(facing);
       if (rope != null) {
-        _grabRope(rope, facing);
+        _grabRope(rope.$1, rope.$2, rope.$3, facing);
         return;
       }
       if (axis * facing >= 0 && _grabLedge(facing)) return;
     }
 
     if (grounded && axis != 0) {
-      final crateHit = _crateInReach(axis.sign, width / 2 + 0.025);
+      final crateHit = _crateInReach(
+        axis.sign,
+        width / 2 + braceLength + 0.025,
+      );
       if (crateHit != null) {
         mode = InteractionMode.pushing;
         pushResistanceBody = crateHit.shape.body;
@@ -277,47 +352,61 @@ class CharacterInteractions {
     mode = InteractionMode.pulling;
   }
 
-  /// A rope end anywhere from overhead down to the shoulders, within the
-  /// arms' reach and not behind a wall.
-  SwingRope? _ropeInReach(double facing) {
+  /// The nearest point of any rope, anywhere along it, from overhead down
+  /// to the shoulders, within the arms' reach and not behind a wall.
+  (SwingRope, Vector2, double)? _ropeInReach(double facing) {
     final shoulder = _shoulder(facing, front: true);
     // Reaching up for a rope the shoulders shrug, which buys a little reach.
     final double reach =
         height * (CharacterRig.armReach + CharacterRig.hangShrug * 0.7);
-    SwingRope? nearest;
+    (SwingRope, Vector2, double)? nearest;
     var distance = reach;
+    final seen = <SwingRope>{};
+    // A rope's bodies are its anchor and its bob; anywhere between them is
+    // rope, so look for either within a rope's length.
     for (final shape in world.overlapAabb(
-      Aabb(shoulder - Vector2.all(reach), shoulder + Vector2.all(reach)),
+      Aabb(
+        shoulder - Vector2(reach + 0.5, 8),
+        shoulder + Vector2(reach + 0.5, reach),
+      ),
     )) {
       final data = shape.body.userData;
-      if (data is! SwingRope || !data.isReady) continue;
-      final localGrip = playerBody.localPoint(data.grip);
+      if (data is! SwingRope || !data.isReady || !seen.add(data)) continue;
+      final (point, arc) = data.nearestOnRope(
+        shoulder,
+        from: SwingRope.minimumHold,
+      );
+      final localGrip = playerBody.localPoint(point);
       if (localGrip.y < -height * 0.45 || localGrip.y > -height * 0.05) {
         continue;
       }
-      final separation = (data.grip - shoulder).length;
+      final separation = (point - shoulder).length;
       if (separation >= distance ||
-          (data.grip - _shoulder(facing, front: false)).length >= reach) {
+          (point - _shoulder(facing, front: false)).length >= reach) {
         continue;
       }
-      final obstruction = _solidRay(shoulder, data.grip - shoulder);
+      final obstruction = _solidRay(shoulder, point - shoulder);
       if (obstruction == null || obstruction.shape.body.userData == data) {
-        nearest = data;
+        nearest = (data, point, arc);
         distance = separation;
       }
     }
     return nearest;
   }
 
-  void _grabRope(SwingRope rope, double facing) {
+  void _grabRope(SwingRope rope, Vector2 point, double arc, double facing) {
     attachedRope = rope;
     _ropeFacing = facing;
+    rope.catchAt(point, arc);
     // Capture the actual grip instead of yanking the body to an imagined
-    // overhead hand: entry keeps its position and velocity. The hold then
-    // climbs to overhead over a moment, which the solver turns into the
-    // body settling below the hands.
+    // hold: entry keeps its position and velocity. The hold then moves to
+    // the front of the head over a moment, which the solver turns into the
+    // body settling below and behind the rope, hugging it.
     _ropeHold = playerBody.localPoint(rope.grip);
-    _ropeHoldTarget = Vector2(facing * height * 0.02, -height * 0.38);
+    _ropeHoldTarget = Vector2(facing * height * 0.14, -height * 0.30);
+    ropeGrips.reset(rope.holdLength);
+    ropeClimb = 0;
+    _ropeLetGo = 0;
     _attachRopeHand();
     mode = InteractionMode.swinging;
   }
@@ -449,6 +538,9 @@ class CharacterInteractions {
 
   /// Destroying constraints preserves the body's physical release velocity.
   void release() {
+    attachedRope?.letGo();
+    ropeClimb = 0;
+    _ropeLetGo = 0;
     if (_motor?.isValid ?? false) _motor!.destroy();
     if (_ropeHand?.isValid ?? false) _ropeHand!.destroy();
     _motor = null;

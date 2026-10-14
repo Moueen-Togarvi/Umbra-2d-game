@@ -2,6 +2,7 @@ import 'package:flame/game.dart';
 import 'package:flame/input.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:umbra/entities/physics_props.dart';
 import 'package:umbra/config/game_config.dart';
 import 'package:umbra/entities/player.dart';
 import 'package:umbra/game/umbra_game.dart';
@@ -62,23 +63,58 @@ void main() {
     return (game, player, buttons);
   }
 
-  /// LIMBO's four controls, in this order; development buttons follow.
+  /// LIMBO's four controls, in this order, then the rope's climb buttons;
+  /// development buttons follow.
   const int walkLeft = 0;
   const int walkRight = 1;
   const int jump = 2;
   const int action = 3;
-  const int debugToggle = 4;
-  const int reset = 5;
-  const int knockdown = 6;
+  const int climbUp = 4;
+  const int climbDown = 5;
+  const int debugToggle = 6;
+  const int reset = 7;
+  const int knockdown = 8;
 
   testWidgets('mobile actions mount into the camera viewport', (tester) async {
     final (_, _, buttons) = await boot(tester);
-    expect(buttons, hasLength(4), reason: 'left, right, jump and action only');
+    expect(
+      buttons,
+      hasLength(6),
+      reason: 'left, right, jump and action, and climbing for ropes',
+    );
+  });
+
+  testWidgets('climb buttons only appear while holding a rope', (tester) async {
+    final (game, player, buttons) = await boot(tester);
+    for (final climb in [climbUp, climbDown]) {
+      expect(
+        buttons[climb].containsLocalPoint(buttons[climb].size / 2),
+        isFalse,
+      );
+    }
+    final rope = game.world.descendants().whereType<SwingRope>().single;
+    player.teleportTo(rope.grip + Vector2(0, GameConfig.playerHeight * 0.40));
+    await advance(tester, 4);
+    expect(player.isOnRope, isTrue);
+    for (final climb in [climbUp, climbDown]) {
+      expect(
+        buttons[climb].containsLocalPoint(buttons[climb].size / 2),
+        isTrue,
+      );
+    }
+    // Holding ˄ climbs.
+    final before = rope.holdLength;
+    final up = await tester.startGesture(
+      buttons[climbUp].absoluteCenter.toOffset(),
+    );
+    await advance(tester, 30);
+    await up.up();
+    expect(rope.holdLength, lessThan(before - 0.2));
   });
 
   testWidgets('development builds add the debug buttons', (tester) async {
     final (_, _, buttons) = await boot(tester, debugTools: true);
-    expect(buttons, hasLength(8));
+    expect(buttons, hasLength(10));
   });
 
   testWidgets('controls sit on screen, along the bottom, thumbs apart', (

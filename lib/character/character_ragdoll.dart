@@ -242,7 +242,7 @@ class CharacterRagdoll {
       bind(heel, foot);
       bind(toe, foot);
       hinge(torso, upperArm, pose[shoulder], -2.9, 2.9, relativeToPose: true);
-      final right = pose.facing > 0;
+      final right = pose.side > 0;
       hinge(
         upperArm,
         forearm,
@@ -284,7 +284,7 @@ class CharacterRagdoll {
         entry.key: entry.value.$1.worldPoint(entry.value.$2),
     },
     height: initialPose.height,
-    facing: initialPose.facing,
+    facing: initialPose.side,
     blink: true,
     headAngle: bodies[RagdollPart.head]!.angle,
     ragdoll: true,
