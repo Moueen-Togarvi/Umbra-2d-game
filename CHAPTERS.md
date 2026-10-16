@@ -1,8 +1,8 @@
 # Umbra chapters
 
-The story: a boy runs from home after an argument, vampires take him in the night forest, and he has to escape their land. It is told in 15 wordless chapters. **Part 1** (chapters 1–3) is built.
+The story: a boy runs from home after an argument, vampires take him in the night forest, and he has to escape their land. It is told in 15 wordless chapters. **Part 1** (chapters 1–3) and **Part 2** (chapters 4–6, the water under the castle) are built.
 
-Run the story with `flutter run`. Pass `--dart-define=UMBRA_PROVING_GROUND=true` to open the 96 m test level instead, which is the one all the physics and character tests use.
+Run the story with `flutter run`. Pass `--dart-define=UMBRA_PROVING_GROUND=true` to open the 96 m test level instead, which is the one all the physics and character tests use. Pass `--dart-define=UMBRA_UNLOCK_ALL=true` to open every chapter in the title's chapter list, for checking a later chapter on a device (it saves that progress).
 
 ## How a chapter is made
 
@@ -23,6 +23,14 @@ Run the story with `flutter run`. Pass `--dart-define=UMBRA_PROVING_GROUND=true`
   It is a queue of steps played in game time, so it behaves the same at any frame rate and in tests. Progress (the furthest chapter reached) is saved with `shared_preferences`.
 - **`Cutscene`** (`lib/story/cutscene.dart`) is a list of beats: `Run`, `Wait`, `Do`, `Look` (camera), `Fade`, `WaitUntil`, `Together` and `Sequence`. While one runs it holds the controls, so the touch buttons hide and keys do nothing.
 - **Moods** (`lib/render/mood.dart`) set the fog: dusk, night or cave. `MoodTrack` blends from one to another across x. A cave mood stands rock in the fog instead of trees.
+- **Water** (`WaterBody`, `lib/physics/water.dart`) floats everything by Archimedes. Each step:
+  - the part of every shape under the surface is found exactly: polygons are clipped against the surface, and circles are cut into segments
+  - the water pushes up on that part's centroid with the weight it displaces
+  - it drags towards its current
+  - it resists turning, in proportion to the wet part's second moment of area
+  - it resists bobbing (added mass)
+
+  So a crate floats as deep as its density says, settles under the boy's weight and tips when he stands near an end. His feet press on whatever he stands on, so the water carries his real weight. He can't swim: he wades slowly where he can stand, and drowns if his head stays under for 0.7 s. The level can be raised or lowered (`floodTo`), the surface ripples where things break it, and what is under it fades into the dark. `Chapter.waterPit` fills a pit with water instead of stakes. The floating things are in `lib/entities/water_props.dart`: `FloatingLog`, `Coffin` (optionally chained to the floor), `Barrel` (a cask lying on its side), and `LogSource` (logs sent down a river to a sinkhole).
 - **Scenery** (`SceneryProp`) is the AI-generated art, baked to silhouettes. Anything further off than depth 0.85 is drawn by the backdrop, between the fog layers nearer and further than it.
 
 ## Chapter 1: Home (dusk into night, 122 m)
@@ -60,7 +68,39 @@ Run the story with `flutter run`. Pass `--dart-define=UMBRA_PROVING_GROUND=true`
 | 36–49.5 | A rock step, then **two hanging cages** whose roofs are the only way over a pit. They swing as he lands on them. |
 | 54.4 | A spring **foot pedal**. Stepping on it lets the winch go, and a cage is lowered into the next pit as a bridge. |
 | 70–100 | **The tunnel:** a vampire paces 77–97 m. Anywhere in front of it within reach is death. The only hiding place is a black niche at 85–86.6 m, where he must keep still while it passes. |
-| 118 | The way out leads to "End of Part One", then the title. |
+| 118 | The way out leads into chapter 4. |
+
+## Chapter 4: The Caves (cave, 200 m)
+
+The water under the vampires' land. He can't swim.
+
+| x (m) | What happens |
+|---|---|
+| 19.6–28.5 | A **pool** too wide to jump. The crate on the bank floats: he pushes it in, climbs on, and the slow draw of the water carries it, and him, across. |
+| 53.3–60.7 | A shallow **ford**: he wades, slowly, up to his waist. |
+| 70–92 | An **underground river** comes out of the rock and runs fast to a sinkhole. Logs come down it one at a time. He rides one and must leap for the high bank before the hole takes it. |
+| 116–126 | A **dry cistern** whose only way out is far above. He goes down a ramp under the rock and steps on a crank in the floor: a gate shuts behind him, the sluice opens, and the crate he stands on rises with the water to the exit. |
+| 196 | Out. |
+
+## Chapter 5: The Crypt (cave, 180 m)
+
+| x (m) | What happens |
+|---|---|
+| 27–41 | A flooded hall crossed on **five coffins chained to the floor**. Each floats only until he stands on it, then sinks under his weight, so he must keep moving from one to the next. |
+| 52.9 | A **drain** pedal. The drowned passage beyond (54–68) empties to wading depth, leaving a coffin aground against the far wall as a step. |
+| 80.3 | **The tomb.** As he passes, the lid shifts and a vampire climbs out after him. |
+| 89.2 | A heavy coffin in the way, to hop. |
+| 97–100.5 | **Running water**, the one thing it won't cross. It stops at the edge and reaches for him over the stream. |
+| 176 | The crypt gate. |
+
+## Chapter 6: The Bone Pit (cave, 150 m)
+
+| x (m) | What happens |
+|---|---|
+| 25–38 | A black pool with **four old casks** floating in it, the only footing. Each dips and tips under him: he stands near the far end and hops to the next. |
+| 52.6 | A **drain**. The flooded chamber (54–88) runs out under the rock, and he walks through the tunnel the water leaves. |
+| 92.4–101 | **The shaft.** At its foot, a figure at the top opens the sluices and the water comes up after him. He climbs from ledge to ledge (7.8, 6.0, 4.2) to the top at 2.4, ahead of the water. |
+| 146 | The way out leads to "End of Part Two", then the title. |
 
 ## Tests
 
@@ -68,6 +108,11 @@ Each chapter is played start to finish by a scripted bot that only uses the cont
 - `test/chapter_home_test.dart`
 - `test/chapter_forest_test.dart`
 - `test/chapter_cage_test.dart`
+- `test/chapter_caves_test.dart`
+- `test/chapter_crypt_test.dart`
+- `test/chapter_bone_pit_test.dart`
+
+`test/support/campaign.dart` boots the story and enters any chapter for them. `test/water_test.dart` checks the water on its own: a light crate floats as deep as its density says, a heavy one sinks, one set on its corner rights itself, a current carries it along, and a load pushes it deeper.
 
 They also check:
 - the title holds the controls
@@ -75,6 +120,11 @@ They also check:
 - the wall can't be climbed without the cart
 - the cage can't open by itself
 - walking into the guard kills him
+- the boy drowns in deep water and wades in the ford
+- the raft carries his real weight (about 40 kg) without tipping
+- a coffin sinks under him and rises again
+- the vampire won't cross the stream
+- a cask dips and tips under him
 
 ## Capturing frames
 
@@ -82,10 +132,11 @@ They also check:
 flutter test tool/capture/capture_chapters_test.dart --plain-name <scene>
 ```
 
-The scenes are: `title`, `opening`, `tour`, `play`, `forest tour`, `taken` and `cage play`. Frames go to `build/chapters-preview/<scene>/`.
+The scenes are: `title`, `opening`, `tour`, `play`, `forest tour`, `taken`, `cage play`, `caves tour`, `crypt tour` and `pit tour`. `python3 tools/montage.py <dir> <out.png> <columns>` puts a scene's frames on one sheet. Frames go to `build/chapters-preview/<scene>/`.
 
 ## Art
 
 - Generate the images: `python3 tools/gen_assets_qwen.py assets/raw/part1 tools/part1_assets.json`. This uses Alibaba Model Studio; the key is read from a local file and never printed.
 - Bake them to silhouettes: `python3 tools/bake_silhouettes.py assets/raw/part1 assets/images/part1 tools/part1_bake.json`.
+- Part 2 uses the same commands with `part2` (`tools/part2_assets.json`, `tools/part2_bake.json`).
 - Brand assets: `python3 tools/make_brand.py`. See `BRANDING.md`.

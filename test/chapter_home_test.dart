@@ -93,6 +93,7 @@ void main() {
     final jumped = <String>{};
     var climbedWall = false, swung = false, rodePlank = false;
     double reached = 0;
+    double releaseCooldown = 0;
 
     void jump(String what) {
       jumped.add(what);
@@ -101,6 +102,7 @@ void main() {
 
     for (var i = 0; i < 60 * 150 && !home.isComplete; i++) {
       intent.setKeyboardState(axis: 1);
+      releaseCooldown -= 1 / 60;
       final double x = player.body.position.x;
       final double feet = player.body.position.y + GameConfig.playerHeight / 2;
       final bool grounded = player.isOnGround;
@@ -150,7 +152,10 @@ void main() {
         if (mode == InteractionMode.swinging) {
           swung = true;
           final double vx = player.velocity.x;
-          if (x > 68.4 && vx > 1.5 && !jumped.contains('release')) {
+          // Let go at the far end of a swing; if it falls short and
+          // the rope is caught again, the next swing.
+          if (x > 68.4 && vx > 1.5 && releaseCooldown <= 0) {
+            releaseCooldown = 2.0;
             jump('release');
           }
         }
@@ -177,7 +182,9 @@ void main() {
       isTrue,
       reason:
           'stopped at x=${player.body.position.x.toStringAsFixed(2)} '
-          '(furthest ${reached.toStringAsFixed(1)}) after $jumped',
+          '(furthest ${reached.toStringAsFixed(1)}) after $jumped; '
+          'y ${player.body.position.y.toStringAsFixed(2)} mode '
+          '${player.interactions.mode.name} state ${player.state.name}',
     );
     expect(climbedWall, isTrue, reason: 'the wall is climbed from the cart');
     expect(rodePlank, isTrue, reason: 'the ditch is crossed on the plank');

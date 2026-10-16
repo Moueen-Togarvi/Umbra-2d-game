@@ -556,7 +556,13 @@ class FootPedal extends BodyComponent with OffScreenCulling {
     required this.onPress,
     this.length = 1.5,
     this.raised = 0.36,
+    this.massKg = 8,
+    this.hertz = 1.6,
   }) : super(renderBody: false);
+
+  /// Its weight and the stiffness of its spring (an iron beam in water
+  /// must be heavy enough to sink, and sprung to match).
+  final double massKg, hertz;
 
   /// The hinge on the floor, at the beam's right end.
   final Vector2 hinge;
@@ -566,6 +572,9 @@ class FootPedal extends BodyComponent with OffScreenCulling {
   final double raised;
   final void Function() onPress;
   bool pressed = false;
+
+  /// Ready to be pressed again.
+  void reset() => pressed = false;
   late Body _base;
   bool _ready = false;
 
@@ -585,7 +594,7 @@ class FootPedal extends BodyComponent with OffScreenCulling {
     beam.createShape(
       Polygon.box(length / 2, 0.06, radius: 0.015),
       ShapeDef(
-        density: 8 / (length * 0.12),
+        density: massKg / (length * 0.12),
         filter: _propFilter(),
         material: SurfaceMaterial(friction: 0.95),
         enableSensorEvents: true,
@@ -602,7 +611,7 @@ class FootPedal extends BodyComponent with OffScreenCulling {
         upperAngle: raised,
         enableSpring: true,
         targetAngle: raised,
-        hertz: 1.6,
+        hertz: hertz,
         dampingRatio: 0.8,
       ),
     );
@@ -665,6 +674,87 @@ class FootPedal extends BodyComponent with OffScreenCulling {
     for (final x in [-hw + 0.12, 0.0, hw - 0.12]) {
       canvas.drawRect(
         Rect.fromLTRB(x - 0.025, -0.075, x + 0.025, 0.075),
+        _paint,
+      );
+    }
+  }
+}
+
+/// An iron gate that drops in its slot to shut a doorway: a kinematic
+/// body, so it stops nothing until it moves and nothing stops it.
+class SlidingGate extends BodyComponent with OffScreenCulling {
+  SlidingGate({
+    required this.x,
+    required this.openTop,
+    required this.shutTop,
+    this.height = 1.75,
+    this.width = 0.26,
+    this.speed = 1.6,
+  }) : super(renderBody: false);
+
+  final double x, openTop, shutTop, height, width, speed;
+  bool shut = false;
+  double _top = 0;
+
+  bool get isShut => _top >= shutTop - 0.002;
+
+  @override
+  Body createBody() {
+    _top = openTop;
+    final b = world.createBody(
+      BodyDef(
+        type: BodyType.kinematic,
+        position: Vector2(x, openTop + height / 2),
+        userData: this,
+      ),
+    );
+    b.createShape(
+      Polygon.box(width / 2, height / 2),
+      ShapeDef(
+        filter: Filter(categoryBits: CollisionLayers.terrain),
+        material: SurfaceMaterial(friction: 0.6),
+      ),
+    );
+    return b;
+  }
+
+  @override
+  void update(double dt) {
+    super.update(dt);
+    if (dt <= 0) return;
+    final double goal = shut ? shutTop : openTop;
+    final double step = (goal - _top).clamp(-speed * dt, speed * dt);
+    _top += step;
+    body.linearVelocity = Vector2(0, step / dt);
+  }
+
+  static final Paint _paint = Paint()..color = _iron;
+  static final Paint _bars = Paint()
+    ..color = _iron
+    ..style = PaintingStyle.stroke
+    ..strokeWidth = 0.04;
+
+  @override
+  void render(Canvas canvas) {
+    final double hw = width / 2, hh = height / 2;
+    if (!isOnScreen(
+      Rect.fromLTRB(x - hw, body.position.y - hh, x + hw, body.position.y + hh),
+    )) {
+      return;
+    }
+    canvas.drawRect(Rect.fromLTRB(-hw, -hh, hw, -hh + 0.08), _paint);
+    canvas.drawRect(Rect.fromLTRB(-hw, hh - 0.1, hw, hh), _paint);
+    for (final dx in [-hw + 0.04, 0.0, hw - 0.04]) {
+      canvas.drawLine(Offset(dx, -hh), Offset(dx, hh), _bars);
+    }
+    // Spikes at its foot.
+    for (final dx in [-hw + 0.04, 0.0, hw - 0.04]) {
+      canvas.drawPath(
+        Path()
+          ..moveTo(dx - 0.03, hh)
+          ..lineTo(dx, hh + 0.08)
+          ..lineTo(dx + 0.03, hh)
+          ..close(),
         _paint,
       );
     }

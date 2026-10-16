@@ -416,4 +416,89 @@ void main() {
       }
     }
   });
+
+  testWidgets('caves tour', (tester) async {
+    final game = await boot(tester);
+    await enterChapter(tester, game, 3);
+    final chapter = game.stage! as Chapter;
+    await shot(tester, game, 'caves', 'start');
+    for (final x in [
+      14.0, 21.0, 30.0, 44.0, 57.0, 66.0, 72.0, 80.0, 88.0, 100.0, //
+      112.0, 119.0, 130.0, 150.0, 175.0, 194.0,
+    ]) {
+      chapter.player.teleportTo(
+        Vector2(x, chapter.groundAt(x) - GameConfig.playerHeight / 2),
+      );
+      step(game, 2.4);
+      await shot(
+        tester,
+        game,
+        'caves',
+        'x_${x.toStringAsFixed(0).padLeft(3, '0')}',
+      );
+    }
+  });
+
+  Future<void> tour(
+    WidgetTester tester,
+    int chapterIndex,
+    String scene,
+    List<double> xs,
+  ) async {
+    final game = await boot(tester);
+    await enterChapter(tester, game, chapterIndex);
+    final chapter = game.stage! as Chapter;
+    for (final x in xs) {
+      chapter.player.teleportTo(
+        Vector2(x, chapter.groundAt(x) - GameConfig.playerHeight / 2),
+      );
+      step(game, 2.4);
+      await shot(
+        tester,
+        game,
+        scene,
+        'x_${x.toStringAsFixed(0).padLeft(3, '0')}',
+      );
+    }
+  }
+
+  testWidgets('crypt tour', (tester) async {
+    await tour(tester, 4, 'crypt', [
+      6,
+      20,
+      30,
+      36,
+      46,
+      52,
+      61,
+      74,
+      82,
+      86,
+      92,
+      99,
+      110,
+      130,
+      160,
+      176,
+    ]);
+  });
+
+  testWidgets('pit tour', (tester) async {
+    await tour(tester, 5, 'pit', [
+      6,
+      18,
+      28,
+      33,
+      44,
+      52,
+      62,
+      76,
+      86,
+      94,
+      97,
+      106,
+      120,
+      140,
+    ]);
+  });
 }

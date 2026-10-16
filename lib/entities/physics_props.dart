@@ -27,6 +27,16 @@ class PhysicsCrate extends BodyComponent {
 
   final Vector2 _initialPosition;
   final Vector2 size;
+
+  /// Puts it back where it started, at rest (after a death undid his work).
+  void resetToStart() {
+    if (!isReady) return;
+    body
+      ..setTransform(_initialPosition.clone(), Rot.fromAngle(0))
+      ..linearVelocity = Vector2.zero()
+      ..angularVelocity = 0;
+  }
+
   final double massKg;
   final double friction;
   bool _created = false;

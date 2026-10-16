@@ -67,7 +67,7 @@ class HomeChapter extends Chapter {
   ];
 
   static const double ditchLeft = 46.6, ditchRight = 51.2;
-  static const double gullyLeft = 66.0, gullyRight = 69.5;
+  static const double gullyLeft = 66.0, gullyRight = 69.2;
 
   @override
   List<double> get checkpointXs => const [16, 37.5, 52.5, 71, 100];
@@ -255,7 +255,7 @@ class HomeChapter extends Chapter {
         diameter: 0.72,
         groundBelow: groundAt,
       ),
-      SwingRope(anchor: Vector2(67.65, 2.5), length: 3.5, tyre: true),
+      SwingRope(anchor: Vector2(67.8, 2.5), length: 3.5, tyre: true),
       Rock(left: 83.2, right: 84.0, height: 0.4, groundBelow: groundAt),
       Ground.restingLog(
         left: 93.0,

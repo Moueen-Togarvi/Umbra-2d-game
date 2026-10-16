@@ -2,6 +2,7 @@ import 'package:flame/game.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 
+import 'chapters/chapters.dart';
 import 'config/palette.dart';
 import 'game/umbra_game.dart';
 import 'story/chapter_director.dart';
@@ -29,6 +30,11 @@ Future<void> main() async {
   await SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
 
   final progress = await ProgressStore.load();
+  // `--dart-define=UMBRA_UNLOCK_ALL=true` opens every chapter in the list,
+  // for checking a later chapter on a device.
+  if (const bool.fromEnvironment('UMBRA_UNLOCK_ALL')) {
+    await progress.reach(Chapters.all.length - 1);
+  }
 
   // `--dart-define=UMBRA_PROVING_GROUND=true` opens the test level instead
   // of the story.

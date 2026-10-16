@@ -41,7 +41,7 @@ class ForestChapter extends Chapter {
   MoodTrack get moods => const MoodTrack(Mood.night);
 
   static const double stakesLeft = 36.5, stakesRight = 39.1;
-  static const double ravineLeft = 66.5, ravineRight = 70.2;
+  static const double ravineLeft = 66.5, ravineRight = 69.9;
 
   @override
   List<List<double>> get profile => const [
@@ -178,11 +178,13 @@ class ForestChapter extends Chapter {
     pieces.addAll([bats, swarm]);
 
     // --- The hunters' ground ---------------------------------------------
+    // A cube: whichever way it tumbles into the pit, it lands on a face
+    // and its top is a flat step.
     crate = PhysicsCrate(
-      position: Vector2(32.6, g(32.6) - 0.38 - 0.03),
-      size: Vector2(1.5, 0.75),
-      massKg: 12,
-      friction: 0.3,
+      position: Vector2(32.4, g(32.4) - 0.7 - 0.03),
+      size: Vector2(1.4, 1.4),
+      massKg: 18,
+      friction: 0.35,
     );
     pieces.addAll([
       SceneryProp(
@@ -210,7 +212,7 @@ class ForestChapter extends Chapter {
         priority: -20,
       ),
       Rock(left: 55.6, right: 56.4, height: 0.4, groundBelow: groundAt),
-      SwingRope(anchor: Vector2(68.15, 2.2), length: 3.6),
+      SwingRope(anchor: Vector2(68.3, 2.2), length: 3.6),
     ]);
 
     // --- The far side: the slide, the glimpse, the fallen giant -----------

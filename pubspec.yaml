@@ -35,6 +35,7 @@ flutter:
   assets:
     - assets/images/grain.png
     - assets/images/part1/
+    - assets/images/part2/
     - assets/brand/
 
   fonts:

@@ -63,10 +63,13 @@ void main() {
     for (var i = 0; i < 60 * 4; i++) {
       game.update(1 / 60);
     }
+    // Getting up shifts his weight and rocks it a little; nothing like
+    // a blow hard enough for the latch.
     expect(cage.cell.isOpen, isFalse);
+    expect(cage.cell.hardestHit, lessThan(cage.cell.breakSpeed!));
     expect(
       (cage.cell.body.position.x - cage.cell.restCentre.x).abs(),
-      lessThan(0.1),
+      lessThan(0.6),
     );
   });
 

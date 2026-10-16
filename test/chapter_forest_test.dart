@@ -82,6 +82,8 @@ void main() {
     final jumped = <String>{};
     var stoodOnCrate = false, climbedTrunk = false, swung = false;
     var glimpsed = false;
+    double onCrateFor = 0;
+    double releaseCooldown = 0;
     double reached = 0;
     void jump(String what) {
       jumped.add(what);
@@ -90,18 +92,43 @@ void main() {
 
     for (var i = 0; i < 60 * 200 && !forest.isComplete; i++) {
       intent.setKeyboardState(axis: 1);
+      releaseCooldown -= 1 / 60;
       final double x = player.body.position.x;
       final double feet = player.body.position.y + GameConfig.playerHeight / 2;
       final bool grounded = player.isOnGround;
       final mode = player.interactions.mode;
       if (!intent.isScripted) {
         // The crate goes into the pit first; then down onto it, and up.
-        if (forest.crate.body.position.y < 7.5 && x > 35.6) {
-          intent.setKeyboardState(axis: 0);
+        final crate = forest.crate.body;
+        final bool fallen =
+            crate.position.y > 7.6 &&
+            crate.linearVelocity.length < 0.05 &&
+            crate.angularVelocity.abs() < 0.05;
+        if (x > 35.6 && x < 36.5 && !jumped.contains('down')) {
+          // Wait at the lip for the crate to go in and settle, then jump
+          // down onto it.
+          intent.setKeyboardState(axis: x < 36.2 ? 0.5 : 0);
+          if (fallen && grounded) {
+            intent.setKeyboardState(axis: 1);
+            jump('down');
+          }
+        }
+        if (jumped.contains('down') && !jumped.contains('out') && !grounded) {
+          intent.setKeyboardState(
+            axis: (crate.position.x - x).clamp(-1.0, 1.0),
+          );
         }
         if (grounded && feet > 7.5 && x > 36 && x < 39.2) {
           stoodOnCrate = true;
-          if (!jumped.contains('out')) jump('out');
+          // Find his feet after the drop, then jump for the far lip.
+          onCrateFor += 1 / 60;
+          // To the near edge of the far side, then jump for the lip.
+          final double edge = forest.crate.body.position.x + 0.45;
+          intent.setKeyboardState(axis: x < edge ? 0.5 : 0);
+          if (onCrateFor > 0.5 && x >= edge - 0.05 && !jumped.contains('out')) {
+            intent.setKeyboardState(axis: 1);
+            jump('out');
+          }
         }
         if (grounded && x > 47.2 && x < 47.9 && !jumped.contains('log')) {
           jump('log');
@@ -114,9 +141,8 @@ void main() {
         }
         if (mode == InteractionMode.swinging) {
           swung = true;
-          if (x > 68.9 &&
-              player.velocity.x > 1.5 &&
-              !jumped.contains('release')) {
+          if (x > 68.9 && player.velocity.x > 1.5 && releaseCooldown <= 0) {
+            releaseCooldown = 2.0;
             jump('release');
           }
         }
@@ -146,7 +172,10 @@ void main() {
       isTrue,
       reason:
           'stopped at x=${player.body.position.x.toStringAsFixed(2)} '
-          '(furthest ${reached.toStringAsFixed(1)}) after $jumped',
+          '(furthest ${reached.toStringAsFixed(1)}) after $jumped; '
+          'y ${player.body.position.y.toStringAsFixed(2)} mode '
+          '${player.interactions.mode.name} state ${player.state.name} '
+          'grounded ${player.isOnGround} scripted ${intent.isScripted}',
     );
     expect(stoodOnCrate, isTrue, reason: 'the crate is the way over stakes');
     expect(swung, isTrue);

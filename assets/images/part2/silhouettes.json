@@ -1,0 +1,92 @@
+{
+ "ch4_river_arch": {
+  "w": 1304,
+  "h": 656,
+  "pad": 4,
+  "cut": {}
+ },
+ "ch4_hanging_roots": {
+  "w": 391,
+  "h": 808,
+  "pad": 4,
+  "cut": {}
+ },
+ "ch4_fungi": {
+  "w": 437,
+  "h": 508,
+  "pad": 4,
+  "cut": {}
+ },
+ "ch4_rock_column": {
+  "w": 346,
+  "h": 908,
+  "pad": 4,
+  "cut": {}
+ },
+ "ch4_sluice": {
+  "w": 471,
+  "h": 528,
+  "pad": 4,
+  "cut": {}
+ },
+ "ch5_crypt_arches": {
+  "w": 1250,
+  "h": 685,
+  "pad": 4,
+  "cut": {}
+ },
+ "ch5_catacomb_shelves": {
+  "w": 1138,
+  "h": 528,
+  "pad": 4,
+  "cut": {}
+ },
+ "ch5_sarcophagus": {
+  "w": 793,
+  "h": 408,
+  "pad": 4,
+  "cut": {}
+ },
+ "ch5_weeping_angel": {
+  "w": 392,
+  "h": 808,
+  "pad": 4,
+  "cut": {}
+ },
+ "ch5_candelabra": {
+  "w": 319,
+  "h": 708,
+  "pad": 4,
+  "cut": {}
+ },
+ "ch5_crypt_gate": {
+  "w": 345,
+  "h": 808,
+  "pad": 4,
+  "cut": {}
+ },
+ "ch6_bone_heap": {
+  "w": 966,
+  "h": 528,
+  "pad": 4,
+  "cut": {}
+ },
+ "ch6_beast_ribs": {
+  "w": 1104,
+  "h": 608,
+  "pad": 4,
+  "cut": {}
+ },
+ "ch6_chained_skeleton": {
+  "w": 392,
+  "h": 808,
+  "pad": 4,
+  "cut": {}
+ },
+ "ch6_cistern_pipes": {
+  "w": 1030,
+  "h": 608,
+  "pad": 4,
+  "cut": {}
+ }
+}

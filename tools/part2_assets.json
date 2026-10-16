@@ -1,0 +1,98 @@
+[
+ {
+  "name": "ch4_river_arch",
+  "size": "1664*928",
+  "prompt": "A low natural rock arch spanning the full width of the image like a bridge, its underside EMPTY pure white, with long dripping stalactites and hanging roots under it. The arch's two feet stand on the bottom edge at the far left and far right. Drawn as a detailed dark fairy-tale storybook illustration, mostly deep black, isolated on a completely plain pure white (#FFFFFF) background with nothing else in the image: no scenery, no sky, no ground plane, no cast shadow, no text, no border.",
+  "negative": "text, letters, words, signature, watermark, frame, border, colour, color, grey, gray, gradient, 3d, photo, ground line, horizon, people, grass, scenery, background, sky, cast shadow, drop shadow, water"
+ },
+ {
+  "name": "ch4_hanging_roots",
+  "size": "928*1664",
+  "prompt": "A tangle of long thin tree roots hanging straight down from the top edge, some knotted, some broken off, ending in fine tendrils, spread across the width. Rendered as one SOLID BLACK SILHOUETTE like a black paper cut-out or a shadow puppet: every part of the shape is filled flat solid pure black (#000000) with NO interior lines, NO outlines, NO hatching and NO white details inside, set on a completely flat pure white (#FFFFFF) background. Exact side view, flat orthographic, isolated, nothing else in the image. Crisp clean edges, detail only in the outline. No ground, no grass, no text, no border.",
+  "negative": "text, letters, words, signature, watermark, frame, border, colour, color, grey, gray, gradient, shading, texture, 3d, photo, ground line, horizon, people, line art, ink drawing, sketch, outline drawing, hatching, engraving, white interior, perspective, scenery, sky"
+ },
+ {
+  "name": "ch4_fungi",
+  "size": "1328*1328",
+  "prompt": "A clump of tall thin-stemmed cave mushrooms of different heights with small drooping caps, growing from a rough lump of rock on the bottom edge, centred. Rendered as one SOLID BLACK SILHOUETTE like a black paper cut-out or a shadow puppet: every part of the shape is filled flat solid pure black (#000000) with NO interior lines, NO outlines, NO hatching and NO white details inside, set on a completely flat pure white (#FFFFFF) background. Exact side view, flat orthographic, isolated, nothing else in the image. Crisp clean edges, detail only in the outline. No ground, no grass, no text, no border.",
+  "negative": "text, letters, words, signature, watermark, frame, border, colour, color, grey, gray, gradient, shading, texture, 3d, photo, ground line, horizon, people, line art, ink drawing, sketch, outline drawing, hatching, engraving, white interior, perspective, scenery, sky"
+ },
+ {
+  "name": "ch4_rock_column",
+  "size": "928*1664",
+  "prompt": "One tall natural cave rock column joining the top edge to the bottom edge, wide at the top and bottom and pinched in the middle, rough, lumpy and dripping. Rendered as one SOLID BLACK SILHOUETTE like a black paper cut-out or a shadow puppet: every part of the shape is filled flat solid pure black (#000000) with NO interior lines, NO outlines, NO hatching and NO white details inside, set on a completely flat pure white (#FFFFFF) background. Exact side view, flat orthographic, isolated, nothing else in the image. Crisp clean edges, detail only in the outline. No ground, no grass, no text, no border.",
+  "negative": "text, letters, words, signature, watermark, frame, border, colour, color, grey, gray, gradient, shading, texture, 3d, photo, ground line, horizon, people, line art, ink drawing, sketch, outline drawing, hatching, engraving, white interior, perspective, scenery, sky, arch, bricks"
+ },
+ {
+  "name": "ch4_sluice",
+  "size": "1328*1328",
+  "prompt": "An old wooden sluice gate in a stone frame: a heavy plank gate between two rough stone posts, with a toothed iron rack and a big crank wheel on top. Standing on the bottom edge, centred. Drawn as a detailed dark fairy-tale storybook illustration, mostly deep black, isolated on a completely plain pure white (#FFFFFF) background with nothing else in the image: no scenery, no sky, no ground plane, no cast shadow, no text, no border.",
+  "negative": "text, letters, words, signature, watermark, frame, border, colour, color, grey, gray, gradient, 3d, photo, ground line, horizon, people, grass, scenery, background, sky, cast shadow, drop shadow, water"
+ },
+ {
+  "name": "ch5_crypt_arches",
+  "size": "1664*928",
+  "prompt": "A long colonnade of three heavy round Romanesque stone arches on thick squat pillars, the openings EMPTY pure white, cracked stones and a few hanging cobwebs, standing on the bottom edge across the full width. Drawn as a detailed dark fairy-tale storybook illustration, mostly deep black, isolated on a completely plain pure white (#FFFFFF) background with nothing else in the image: no scenery, no sky, no ground plane, no cast shadow, no text, no border.",
+  "negative": "text, letters, words, signature, watermark, frame, border, colour, color, grey, gray, gradient, 3d, photo, ground line, horizon, people, grass, scenery, background, sky, cast shadow, drop shadow"
+ },
+ {
+  "name": "ch5_catacomb_shelves",
+  "size": "1664*928",
+  "prompt": "A crumbling catacomb wall with rows of deep arched burial niches holding skulls and bones, stone shelves, cracks, standing on the bottom edge across the full width. Drawn as a detailed dark fairy-tale storybook illustration, mostly deep black, isolated on a completely plain pure white (#FFFFFF) background with nothing else in the image: no scenery, no sky, no ground plane, no cast shadow, no text, no border.",
+  "negative": "text, letters, words, signature, watermark, frame, border, colour, color, grey, gray, gradient, 3d, photo, ground line, horizon, people, grass, scenery, background, sky, cast shadow, drop shadow"
+ },
+ {
+  "name": "ch5_sarcophagus",
+  "size": "1664*928",
+  "prompt": "A heavy carved stone sarcophagus with a lid resting slightly askew, standing on the bottom edge, centred, seen exactly from the side. Rendered as one SOLID BLACK SILHOUETTE like a black paper cut-out or a shadow puppet: every part of the shape is filled flat solid pure black (#000000) with NO interior lines, NO outlines, NO hatching and NO white details inside, set on a completely flat pure white (#FFFFFF) background. Exact side view, flat orthographic, isolated, nothing else in the image. Crisp clean edges, detail only in the outline. No ground, no grass, no text, no border.",
+  "negative": "text, letters, words, signature, watermark, frame, border, colour, color, grey, gray, gradient, shading, texture, 3d, photo, ground line, horizon, people, line art, ink drawing, sketch, outline drawing, hatching, engraving, white interior, perspective, scenery, sky"
+ },
+ {
+  "name": "ch5_coffin",
+  "size": "1664*928",
+  "prompt": "One plain old wooden coffin with six sides lying flat, seen exactly from the side, iron handles, centred. Rendered as one SOLID BLACK SILHOUETTE like a black paper cut-out or a shadow puppet: every part of the shape is filled flat solid pure black (#000000) with NO interior lines, NO outlines, NO hatching and NO white details inside, set on a completely flat pure white (#FFFFFF) background. Exact side view, flat orthographic, isolated, nothing else in the image. Crisp clean edges, detail only in the outline. No ground, no grass, no text, no border.",
+  "negative": "text, letters, words, signature, watermark, frame, border, colour, color, grey, gray, gradient, shading, texture, 3d, photo, ground line, horizon, people, line art, ink drawing, sketch, outline drawing, hatching, engraving, white interior, perspective, scenery, sky"
+ },
+ {
+  "name": "ch5_weeping_angel",
+  "size": "928*1664",
+  "prompt": "A weathered stone angel statue on a square plinth, wings folded, head bowed into its hands, one wing broken. Standing on the bottom edge, centred, side view. Rendered as one SOLID BLACK SILHOUETTE like a black paper cut-out or a shadow puppet: every part of the shape is filled flat solid pure black (#000000) with NO interior lines, NO outlines, NO hatching and NO white details inside, set on a completely flat pure white (#FFFFFF) background. Exact side view, flat orthographic, isolated, nothing else in the image. Crisp clean edges, detail only in the outline. No ground, no grass, no text, no border.",
+  "negative": "text, letters, words, signature, watermark, frame, border, colour, color, grey, gray, gradient, shading, texture, 3d, photo, ground line, horizon, people, line art, ink drawing, sketch, outline drawing, hatching, engraving, white interior, perspective, scenery, sky"
+ },
+ {
+  "name": "ch5_candelabra",
+  "size": "928*1664",
+  "prompt": "A tall iron floor candelabra with five thin unlit candles and dripping wax, standing on the bottom edge, centred. Rendered as one SOLID BLACK SILHOUETTE like a black paper cut-out or a shadow puppet: every part of the shape is filled flat solid pure black (#000000) with NO interior lines, NO outlines, NO hatching and NO white details inside, set on a completely flat pure white (#FFFFFF) background. Exact side view, flat orthographic, isolated, nothing else in the image. Crisp clean edges, detail only in the outline. No ground, no grass, no text, no border.",
+  "negative": "text, letters, words, signature, watermark, frame, border, colour, color, grey, gray, gradient, shading, texture, 3d, photo, ground line, horizon, people, line art, ink drawing, sketch, outline drawing, hatching, engraving, white interior, perspective, scenery, sky, flame, light"
+ },
+ {
+  "name": "ch5_crypt_gate",
+  "size": "928*1664",
+  "prompt": "A tall wrought iron crypt gate with pointed spear bars and a curled top, standing on the bottom edge, centred, seen exactly from the front, lots of white between the bars. Rendered as one SOLID BLACK SILHOUETTE like a black paper cut-out or a shadow puppet: every part of the shape is filled flat solid pure black (#000000) with NO interior lines, NO outlines, NO hatching and NO white details inside, set on a completely flat pure white (#FFFFFF) background. Exact side view, flat orthographic, isolated, nothing else in the image. Crisp clean edges, detail only in the outline. No ground, no grass, no text, no border.",
+  "negative": "text, letters, words, signature, watermark, frame, border, colour, color, grey, gray, gradient, shading, texture, 3d, photo, ground line, horizon, people, line art, ink drawing, sketch, outline drawing, hatching, engraving, white interior, perspective, scenery, sky"
+ },
+ {
+  "name": "ch6_bone_heap",
+  "size": "1664*928",
+  "prompt": "A large heap of tangled old bones, skulls and rib cages piled high in the middle and spreading low to both sides along the bottom edge. Drawn as a detailed dark fairy-tale storybook illustration, mostly deep black, isolated on a completely plain pure white (#FFFFFF) background with nothing else in the image: no scenery, no sky, no ground plane, no cast shadow, no text, no border.",
+  "negative": "text, letters, words, signature, watermark, frame, border, colour, color, grey, gray, gradient, 3d, photo, ground line, horizon, people, grass, scenery, background, sky, cast shadow, drop shadow"
+ },
+ {
+  "name": "ch6_beast_ribs",
+  "size": "1664*928",
+  "prompt": "The giant skeleton of a long-dead beast lying on its side: a huge curved spine and a tall row of great curved ribs rising from the bottom edge across the width, lots of white between the ribs. Rendered as one SOLID BLACK SILHOUETTE like a black paper cut-out or a shadow puppet: every part of the shape is filled flat solid pure black (#000000) with NO interior lines, NO outlines, NO hatching and NO white details inside, set on a completely flat pure white (#FFFFFF) background. Exact side view, flat orthographic, isolated, nothing else in the image. Crisp clean edges, detail only in the outline. No ground, no grass, no text, no border.",
+  "negative": "text, letters, words, signature, watermark, frame, border, colour, color, grey, gray, gradient, shading, texture, 3d, photo, ground line, horizon, people, line art, ink drawing, sketch, outline drawing, hatching, engraving, white interior, perspective, scenery, sky"
+ },
+ {
+  "name": "ch6_chained_skeleton",
+  "size": "928*1664",
+  "prompt": "A human skeleton hanging by its wrists from two chains coming down from the top edge, head slumped, legs dangling. Rendered as one SOLID BLACK SILHOUETTE like a black paper cut-out or a shadow puppet: every part of the shape is filled flat solid pure black (#000000) with NO interior lines, NO outlines, NO hatching and NO white details inside, set on a completely flat pure white (#FFFFFF) background. Exact side view, flat orthographic, isolated, nothing else in the image. Crisp clean edges, detail only in the outline. No ground, no grass, no text, no border.",
+  "negative": "text, letters, words, signature, watermark, frame, border, colour, color, grey, gray, gradient, shading, texture, 3d, photo, ground line, horizon, people, line art, ink drawing, sketch, outline drawing, hatching, engraving, white interior, perspective, scenery, sky"
+ },
+ {
+  "name": "ch6_cistern_pipes",
+  "size": "1664*928",
+  "prompt": "Old broken iron pipes and a big round rusty drain grate set in a crumbling brick wall, a pipe spout sticking out, standing on the bottom edge across the width. Drawn as a detailed dark fairy-tale storybook illustration, mostly deep black, isolated on a completely plain pure white (#FFFFFF) background with nothing else in the image: no scenery, no sky, no ground plane, no cast shadow, no text, no border.",
+  "negative": "text, letters, words, signature, watermark, frame, border, colour, color, grey, gray, gradient, 3d, photo, ground line, horizon, people, grass, scenery, background, sky, cast shadow, drop shadow, water"
+ }
+]

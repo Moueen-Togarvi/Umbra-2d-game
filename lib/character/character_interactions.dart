@@ -519,8 +519,16 @@ class CharacterInteractions {
   bool _clearAt(Vector2 centre) {
     final extent = Vector2(width / 2 - 0.025, height / 2 - 0.025);
     final bounds = Aabb(centre - extent, centre + extent);
+    final Filter mine = playerBody.shapes.first.filter;
     for (final shape in world.overlapAabb(bounds)) {
       if (shape.body == playerBody || shape.isSensor) continue;
+      // Only what he would bump into is in the way: not a rope's end
+      // swinging past, a chain link or a limb of something limp.
+      final Filter theirs = shape.filter;
+      if ((theirs.maskBits & mine.categoryBits) == 0 ||
+          (theirs.categoryBits & mine.maskBits) == 0) {
+        continue;
+      }
       if (shape.aabb.overlaps(bounds)) return false;
     }
     return true;

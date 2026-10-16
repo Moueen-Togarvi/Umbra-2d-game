@@ -68,6 +68,13 @@ class Player extends BodyComponent {
   /// Not drawn: inside a house, before a scene brings him out.
   bool hidden = false;
 
+  /// Whether what he stands on is free to move (a raft, a plank).
+  bool _onLoose = false;
+
+  /// How deep his feet are in water (set by the water he is in): he wades
+  /// slowly through it.
+  double waterDepth = 0;
+
   /// A scene has him look back over his shoulder, or up, and hold it.
   bool forceLookBack = false;
   bool forceLookUp = false;
@@ -366,6 +373,7 @@ class Player extends BodyComponent {
     final wasGrounded = _grounded;
     final support = _supportBelow();
     _grounded = support != null;
+    _onLoose = support != null && support.shape.body.type == BodyType.dynamic;
     if (support != null) {
       _supportSlope = -support.normal.x / support.normal.y;
       _supportY =
@@ -447,7 +455,9 @@ class Player extends BodyComponent {
     final axis = _intent.horizontalAxis;
     // A long drop folds the knees: he stays down for a moment, then runs on.
     final double held = _hardLandingHold > 0 ? 0.15 : 1;
-    var speed = GameConfig.moveSpeedMetersPerSecond * held;
+    // Wading: the deeper the water, the heavier each step.
+    final double wade = 1 - 0.5 * (waterDepth / 0.9).clamp(0.0, 1.0);
+    var speed = GameConfig.moveSpeedMetersPerSecond * held * wade;
     // Moving a crate is a slow, heavy walk, slower the heavier it is.
     final load = interactions.pushResistanceBody;
     if (load != null && load.isValid) {
@@ -523,12 +533,18 @@ class Player extends BodyComponent {
         point: support.point,
       );
     }
-    if (_grounded) {
+    // On the ground he follows it up and down exactly. On something that
+    // moves under his weight (a raft, a plank) he rests on it instead, so
+    // the contact carries his weight into it and it sinks or tips as it
+    // should.
+    final bool loose =
+        support != null && support.shape.body.type == BodyType.dynamic;
+    if (_grounded && !loose) {
       body.linearVelocity = Vector2(
         body.linearVelocity.x,
         _supportVelocity.y + (newX - _supportVelocity.x) * _supportSlope,
       );
-    } else if (measuredVelocity.y > 0) {
+    } else if (!_grounded && measuredVelocity.y > 0) {
       body.applyForce(
         Vector2(
           0,
@@ -580,8 +596,12 @@ class Player extends BodyComponent {
   void _updateSliding(double dt) {
     _slideCarry = math.max(0, _slideCarry - dt);
     final double angle = math.atan(_supportSlope.abs());
+    // A bank slides him down it; something afloat or on a pivot does not:
+    // on that he keeps his feet and balances, and only goes if it turns
+    // right over.
     final bool free =
         _grounded &&
+        !_onLoose &&
         interactions.mode == InteractionMode.none &&
         _anticipationTime <= 0;
     if (!free) {

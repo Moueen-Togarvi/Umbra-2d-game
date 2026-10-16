@@ -26,6 +26,10 @@ enum VampireMode {
 
   /// Rising out of the landing with both arms reaching forward.
   grab,
+
+  /// Sitting up and climbing out of a coffin: rising from below the
+  /// ground line until he stands.
+  rise,
 }
 
 /// One of the vampires: a gaunt figure over two metres tall, hunched, with
@@ -114,6 +118,15 @@ class Vampire extends Component implements BackdropDrawable {
   /// Rises reaching for whatever is in front.
   void seize() => mode = VampireMode.grab;
 
+  /// Climbs up out of a coffin he lies [depth] metres down in.
+  void riseFrom(double depth) {
+    lift = -depth;
+    mode = VampireMode.rise;
+  }
+
+  /// Whether he has finished climbing out.
+  bool get risen => mode != VampireMode.rise;
+
   @override
   Future<void> onLoad() async {
     final game = findGame();
@@ -173,6 +186,10 @@ class Vampire extends Component implements BackdropDrawable {
         }
       case VampireMode.grab:
         sinceLanding += dt;
+      case VampireMode.rise:
+        // Slow at first, then unfolding to his full height.
+        lift = math.min(0, lift + dt * (0.5 + (lift + 2) * 0.35));
+        if (lift >= 0) mode = VampireMode.stand;
     }
     // Speed eases in and out; the gait advances with distance walked.
     _speed += (target - _speed) * math.min(1, dt * 3);

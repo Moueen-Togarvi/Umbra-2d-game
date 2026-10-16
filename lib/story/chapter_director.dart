@@ -124,7 +124,9 @@ class ChapterDirector {
     // The end of what exists so far, then back to the title.
     _then(
       _Call(() {
-        cardSmall = 'END OF PART ONE';
+        // Three chapters to a part.
+        cardSmall =
+            'END OF PART ${Chapters.numberWord((Chapters.all.length + 2) ~/ 3)}';
         cardTitle = 'To be continued';
         cardOnBlack = true;
       }),

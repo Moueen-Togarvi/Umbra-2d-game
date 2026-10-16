@@ -1,0 +1,63 @@
+{
+ "ch4_river_arch": {
+  "max_h": 700,
+  "far": true
+ },
+ "ch4_hanging_roots": {
+  "max_h": 800,
+  "open": true,
+  "dark": 120
+ },
+ "ch4_fungi": {
+  "max_h": 500
+ },
+ "ch4_rock_column": {
+  "max_h": 900,
+  "far": true
+ },
+ "ch4_sluice": {
+  "max_h": 520,
+  "keep_inner_white": 0.01
+ },
+ "ch5_crypt_arches": {
+  "max_h": 700,
+  "far": true,
+  "keep_inner_white": 0.03
+ },
+ "ch5_catacomb_shelves": {
+  "max_h": 520,
+  "keep_inner_white": 0.0008,
+  "far": true
+ },
+ "ch5_sarcophagus": {
+  "max_h": 400
+ },
+ "ch5_weeping_angel": {
+  "max_h": 800,
+  "far": true
+ },
+ "ch5_candelabra": {
+  "max_h": 700
+ },
+ "ch5_crypt_gate": {
+  "max_h": 800,
+  "open": true
+ },
+ "ch6_bone_heap": {
+  "max_h": 520,
+  "far": true
+ },
+ "ch6_beast_ribs": {
+  "max_h": 600,
+  "open": true,
+  "far": true
+ },
+ "ch6_chained_skeleton": {
+  "max_h": 800,
+  "open": true
+ },
+ "ch6_cistern_pipes": {
+  "max_h": 600,
+  "keep_inner_white": 0.02
+ }
+}

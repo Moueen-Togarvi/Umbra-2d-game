@@ -7,6 +7,7 @@ import '../entities/hazard.dart';
 import '../entities/hill_ground.dart';
 import '../entities/player.dart';
 import '../input/player_intent.dart';
+import '../physics/water.dart';
 import '../render/dust.dart';
 import '../render/grass.dart';
 import '../story/cutscene.dart';
@@ -121,6 +122,44 @@ abstract class Chapter extends Stage {
     return terrain.heightAt(x) ?? GameConfig.floorSurfaceY;
   }
 
+  /// What fills the gap after bank [index], from [left] to [right] below
+  /// the lower lip at [lip]: stakes, unless a chapter fills it otherwise
+  /// (with water, say).
+  List<Component> buildPit(int index, double left, double right, double lip) =>
+      [
+        Hazard.zone(
+          left: left,
+          right: right,
+          top: lip + GameConfig.pitDepth,
+          bottom: height,
+        ),
+      ];
+
+  /// A pit full of water: a rock floor at [floor] and the water over it up
+  /// to [surface].
+  List<Component> waterPit(
+    double left,
+    double right, {
+    required double surface,
+    required double floor,
+    double current = 0,
+  }) => [
+    Ground.slab(
+      left: left - 0.1,
+      right: right + 0.1,
+      top: floor,
+      thickness: height + 2 - floor,
+    ),
+    WaterBody(
+      left: left,
+      right: right,
+      surface: surface,
+      bottom: floor,
+      current: current,
+      player: player,
+    ),
+  ];
+
   /// Puts the chapter's set pieces into [pieces]: scenery, things to
   /// push and climb, NPCs, triggers and cutscenes.
   Future<void> furnish(List<Component> pieces);
@@ -146,6 +185,11 @@ abstract class Chapter extends Stage {
       }
     }
     final List<Component> pieces = [];
+    // First, since the water in the pits watches him.
+    player = Player(
+      intent: intent,
+      spawnPosition: checkpoints.activeCheckpoint,
+    );
     banks = [
       for (var i = 0; i < terrain.segments.length; i++)
         HillGround(
@@ -166,14 +210,7 @@ abstract class Chapter extends Stage {
       final double lip = a.surface.last.y > b.surface.first.y
           ? a.surface.last.y
           : b.surface.first.y;
-      pieces.add(
-        Hazard.zone(
-          left: a.right,
-          right: b.left,
-          top: lip + GameConfig.pitDepth,
-          bottom: height,
-        ),
-      );
+      pieces.addAll(buildPit(i, a.right, b.left, lip));
     }
 
     // Walls at both ends; the exit is a little short of the right one.
@@ -192,10 +229,6 @@ abstract class Chapter extends Stage {
       );
     }
 
-    player = Player(
-      intent: intent,
-      spawnPosition: checkpoints.activeCheckpoint,
-    );
     await furnish(pieces);
     pieces
       ..add(player)
