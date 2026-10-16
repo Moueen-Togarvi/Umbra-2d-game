@@ -65,6 +65,32 @@ abstract final class Palette {
   /// Shafts of light through the canopy.
   static const Color lightShaft = Color(0xFFFFFFFF);
 
+  /// The low sun behind the dusk fog: barely warm.
+  static const Color duskLight = Color(0xFFF2E6D2);
+
+  /// The moon behind the night fog: barely cold.
+  static const Color moonLight = Color(0xFFDDE3EA);
+
+  // ---------------------------------------------------------------------------
+  // Brand
+  // ---------------------------------------------------------------------------
+  // The only two colours in the game. Amber is home: the lamp in the
+  // cottage window, the title, the warm end. Red is the vampires' eyes and
+  // nothing else. Both are rare on screen, which is what makes them work.
+
+  /// The lamp in the cottage window, and the brand's warm accent.
+  static const Color lampAmber = Color(0xFFE8A84A);
+
+  /// The vampires' eyes. Used for nothing else.
+  static const Color vampireRed = Color(0xFFC21E1E);
+
+  /// Near-black for the brand's screens (title, cards, splash): a hair
+  /// lighter than the silhouettes so they never vanish into it.
+  static const Color brandBlack = Color(0xFF0B0B0B);
+
+  /// The fog-pale ink of text on the brand's screens.
+  static const Color brandInk = Color(0xFFD8D4CC);
+
   // ---------------------------------------------------------------------------
   // On-screen controls
   // ---------------------------------------------------------------------------

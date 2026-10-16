@@ -20,7 +20,7 @@ class DebugHud extends Component {
   static const bool enabled = bool.fromEnvironment('UMBRA_DEBUG');
 
   final CameraComponent camera;
-  final Player player;
+  final Player? Function() player;
   final bool Function() isVisible;
   final double Function() framesPerSecond, physicsMilliseconds;
   final TextPainter _text = TextPainter(textDirection: TextDirection.ltr);
@@ -31,7 +31,8 @@ class DebugHud extends Component {
 
   @override
   void render(Canvas canvas) {
-    if (!isVisible() || !player.isMounted) return;
+    final Player? player = this.player();
+    if (!isVisible() || player == null || !player.isMounted) return;
     if (_elapsed >= 0.10) {
       _elapsed = 0;
       final v = player.velocity;

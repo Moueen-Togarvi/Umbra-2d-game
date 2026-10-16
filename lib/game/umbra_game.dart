@@ -15,9 +15,13 @@ import '../input/touch_controls.dart';
 import '../render/debug_hud.dart';
 import '../render/fog_backdrop.dart';
 import '../render/foreground_overlay.dart';
+import '../story/chapter_card.dart';
+import '../story/chapter_director.dart';
+import '../story/progress_store.dart';
 import '../world/checkpoint_service.dart';
 import '../world/death_sequence.dart';
 import '../world/level.dart';
+import '../world/stage.dart';
 
 /// The root of the game.
 ///
@@ -32,28 +36,49 @@ import '../world/level.dart';
 /// once per frame before dispatching the contact events that step produced. It
 /// also swaps in a viewfinder that understands the metres-to-pixels conversion,
 /// so the rest of the code can think purely in metres.
+///
+/// ## Two ways to run
+///
+/// By default the game opens the proving ground, the 96 m test level every
+/// physics and character test runs on. With [campaign] it is the real game:
+/// the title over the first scene, then the chapters of the story one after
+/// another, run by a [ChapterDirector].
 class UmbraGame extends Forge2DGame with HasKeyboardHandlerComponents {
   /// [debugTools] adds the on-screen development buttons; it defaults to
   /// on only in `UMBRA_DEBUG` builds.
-  UmbraGame({this.debugTools = DebugHud.enabled})
-    : super(
-        // Gravity is handed to the physics world at construction. Positive y is
-        // downwards in Flame's coordinate system.
-        gravity: GameConfig.gravity,
-        world: _ProfiledWorld(),
+  UmbraGame({
+    this.debugTools = DebugHud.enabled,
+    this.campaign = false,
+    ProgressStore? progress,
+  }) : progress = progress ?? ProgressStore.memory(),
+       super(
+         // Gravity is handed to the physics world at construction. Positive y is
+         // downwards in Flame's coordinate system.
+         gravity: GameConfig.gravity,
+         world: _ProfiledWorld(),
 
-        // How large a metre is on screen. This is a *rendering* setting: change
-        // it and the game looks bigger, but the simulation is bit-for-bit
-        // identical. Older versions of flame_forge2d abused the camera's `zoom`
-        // for this, which conflated "how big is the world" with "how far is the
-        // camera zoomed in". They are separate here.
-        metersToPixels: GameConfig.metersToPixels,
-      );
+         // How large a metre is on screen. This is a *rendering* setting: change
+         // it and the game looks bigger, but the simulation is bit-for-bit
+         // identical. Older versions of flame_forge2d abused the camera's `zoom`
+         // for this, which conflated "how big is the world" with "how far is the
+         // camera zoomed in". They are separate here.
+         metersToPixels: GameConfig.metersToPixels,
+       );
 
   final bool debugTools;
 
+  /// Whether this is the story rather than the proving ground.
+  final bool campaign;
+
+  /// The furthest chapter reached, kept between runs.
+  final ProgressStore progress;
+
+  /// Runs the story when [campaign] is set.
+  ChapterDirector? director;
+
   /// The shared intent object that input writes to and the player reads from.
   final PlayerIntent _intent = PlayerIntent();
+  PlayerIntent get intent => _intent;
   final AmbientAudio _audio = AmbientAudio();
 
   /// Owns the held-state of the on-screen walk buttons. Held as a field because
@@ -62,20 +87,30 @@ class UmbraGame extends Forge2DGame with HasKeyboardHandlerComponents {
     _intent,
     onRope: () => _player?.isOnRope ?? false,
     debugVisible: () => _debugVisible,
+    hidden: () =>
+        _stage == null ||
+        _intent.isScripted ||
+        (_stage?.controlsHidden ?? false) ||
+        (director?.hidesControls ?? false),
     debugTools: debugTools,
   );
 
-  /// Plays out a death: the limp body, the fade to black, the respawn.
-  late DeathSequence deathSequence;
+  /// Respawn state: the current stage's.
+  CheckpointService checkpoints = CheckpointService(
+    initialCheckpoint: GameConfig.playerSpawn,
+  );
 
-  /// Respawn state. Created in [onLoad] so it can be replaced per level later.
-  ///
-  /// Deliberately `late` rather than `late final`: a hot restart re-runs
-  /// [onLoad], and reassigning a `late final` throws.
-  late CheckpointService checkpoints;
+  /// Plays out a death: the limp body, the fade to black, the respawn.
+  late DeathSequence deathSequence = DeathSequence(checkpoints: checkpoints);
 
   /// The player, once the level has built it. The camera follows this.
   Player? _player;
+  Player? get player => _player;
+
+  /// The level or chapter being played.
+  Stage? _stage;
+  Stage? get stage => _stage;
+  FogBackdrop? _backdrop;
 
   /// Where the camera is heading. Kept separate from the camera's actual
   /// position so it can ease towards it.
@@ -132,23 +167,12 @@ class UmbraGame extends Forge2DGame with HasKeyboardHandlerComponents {
       GameConfig.cameraVisibleHeight,
     );
 
-    checkpoints = CheckpointService(initialCheckpoint: GameConfig.playerSpawn);
-    deathSequence = DeathSequence(checkpoints: checkpoints);
-
-    // Start the camera on the spawn point so the first frame is not a pan.
-    _cameraTarget.setFrom(
-      _clampCamera(_idealCameraFor(GameConfig.playerSpawn, 0)),
-    );
-    camera.viewfinder.position = _cameraTarget.clone();
-    _cameraBase.setFrom(_cameraTarget);
-
-    // The fog and forest behind the world; out-of-focus shapes and the lens
-    // in front of it; and the black the picture fades to when he dies.
-    await camera.backdrop.add(FogBackdrop(camera: camera));
+    // Out-of-focus shapes and the lens in front of the world, and the
+    // black the picture fades to when he dies or a scene ends.
     await camera.viewport.addAll([
       ForegroundFog(camera: camera),
       ForegroundOverlay(camera: camera),
-      ScreenFade(camera: camera, blackness: () => deathSequence.blackness),
+      ScreenFade(camera: camera, blackness: () => blackness),
     ]);
 
     // The keyboard listener lives on the game, not in the world: it is not a
@@ -168,22 +192,92 @@ class UmbraGame extends Forge2DGame with HasKeyboardHandlerComponents {
     // against their immediate parent's size.
     await camera.viewport.addAll(_touchControls.buildButtons());
 
-    // Everything physical goes into the physics world.
-    final level = Level(intent: _intent, checkpoints: checkpoints);
-    await world.add(level);
-    _player = level.player;
-
-    _player!.debugEnabled = _debugVisible;
     await world.add(
       PhysicsDebugOverlay(world: world, isVisible: () => _debugVisible),
     );
     await camera.viewport.add(
       DebugHud(
         camera: camera,
-        player: _player!,
+        player: () => _player,
         isVisible: () => _debugVisible,
         framesPerSecond: () => _fps,
         physicsMilliseconds: () => physicsMilliseconds,
+      ),
+    );
+
+    if (campaign) {
+      final director = this.director = ChapterDirector(
+        game: this,
+        progress: progress,
+      );
+      await camera.viewport.add(
+        ChapterCard(camera: camera, director: director),
+      );
+      await director.start();
+    } else {
+      // Everything physical goes into the physics world.
+      await setStage(
+        Level(
+          intent: _intent,
+          checkpoints: CheckpointService(
+            initialCheckpoint: GameConfig.playerSpawn,
+          ),
+        ),
+      );
+    }
+  }
+
+  /// How black the picture is: a death, a stage's own fade or the story's
+  /// fades between chapters, whichever is darkest.
+  double get blackness => math.max(
+    deathSequence.blackness,
+    math.max(_stage?.blackness ?? 0, director?.blackness ?? 0),
+  );
+
+  /// Swaps in [stage]: the old one and every body in it are removed, the
+  /// fog behind is rebuilt for the new mood, and the camera starts on the
+  /// boy.
+  Future<void> setStage(Stage stage) async {
+    final Stage? old = _stage;
+    if (old != null) {
+      world.remove(old);
+      // Removal happens at the end of the tick; wait for it, so the old
+      // bodies are gone before the new ones are made.
+      await old.removed;
+    }
+    _touchControls.clear();
+    // A scene in the old stage may have held the controls.
+    _intent.endScript();
+    _intent.clear();
+    _simulationAccumulator = 0;
+    _stage = stage;
+    checkpoints = stage.checkpoints;
+    deathSequence = DeathSequence(checkpoints: checkpoints);
+    await world.add(stage);
+    final Player player = _player = stage.player;
+    player.debugEnabled = _debugVisible;
+
+    // Start the camera on the boy so the first frame is not a pan.
+    _lookAhead = 0;
+    _cameraVelocityX = 0;
+    _trauma = 0;
+    _seenLandings = 0;
+    _cameraTarget.setFrom(
+      _clampCamera(stage.cameraFocus ?? _idealCameraFor(player.position, 0)),
+    );
+    camera.viewfinder.position = _cameraTarget.clone();
+    _cameraBase.setFrom(_cameraTarget);
+
+    // The fog and forest (or rock) behind the world, for this stage's air.
+    final FogBackdrop? oldBackdrop = _backdrop;
+    if (oldBackdrop != null) camera.backdrop.remove(oldBackdrop);
+    await camera.backdrop.add(
+      _backdrop = FogBackdrop(
+        camera: camera,
+        moods: stage.moods,
+        layerSpecs: stage.backdropSpecs,
+        groundFor: stage.backdropGround,
+        props: () => stage.backdropProps,
       ),
     );
   }
@@ -241,6 +335,7 @@ class UmbraGame extends Forge2DGame with HasKeyboardHandlerComponents {
         _simulationAccumulator - _simulationStep,
       );
     }
+    director?.update(frameDt);
     final Player? player = _player;
     if (player == null || !player.isMounted) {
       return;
@@ -260,10 +355,14 @@ class UmbraGame extends Forge2DGame with HasKeyboardHandlerComponents {
     final double maxLeadChange = 3.0 * frameDt;
     _lookAhead += (lead - _lookAhead).clamp(-maxLeadChange, maxLeadChange);
 
-    final Vector2 ideal = _idealCameraFor(player.cameraPosition, _lookAhead);
+    final Vector2? focus = _stage?.cameraFocus;
+    final Vector2 ideal =
+        focus?.clone() ?? _idealCameraFor(player.cameraPosition, _lookAhead);
     final current = _cameraBase;
     // Ignore small vertical landing corrections and idle motion.
-    if ((ideal.y - current.y).abs() < 0.35) ideal.y = current.y;
+    if (focus == null && (ideal.y - current.y).abs() < 0.35) {
+      ideal.y = current.y;
+    }
     _cameraTarget.setFrom(_clampCamera(ideal));
 
     // Horizontal: a critically damped spring, which starts and stops
@@ -353,16 +452,18 @@ class UmbraGame extends Forge2DGame with HasKeyboardHandlerComponents {
     final Rect visible = camera.visibleWorldRect;
     final double halfW = visible.width / 2;
     final double halfH = visible.height / 2;
+    final double width = _stage?.width ?? GameConfig.levelWidth;
+    final double height = _stage?.height ?? GameConfig.levelHeight;
     final double minX = halfW;
-    final double maxX = GameConfig.levelWidth - halfW;
+    final double maxX = width - halfW;
     final double minY = halfH - 1.0; // a little sky above the level's top
     final double maxY = math.min(
-      GameConfig.cameraMaxY,
-      GameConfig.levelHeight - halfH,
+      _stage?.cameraMaxY ?? GameConfig.cameraMaxY,
+      height - halfH,
     );
     return Vector2(
-      maxX < minX ? GameConfig.levelWidth / 2 : target.x.clamp(minX, maxX),
-      maxY < minY ? GameConfig.levelHeight / 2 : target.y.clamp(minY, maxY),
+      maxX < minX ? width / 2 : target.x.clamp(minX, maxX),
+      maxY < minY ? height / 2 : target.y.clamp(minY, maxY),
     );
   }
 }

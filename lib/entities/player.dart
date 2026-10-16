@@ -64,6 +64,13 @@ class Player extends BodyComponent {
 
   CharacterState state = CharacterState.idle;
   bool debugEnabled = false;
+
+  /// Not drawn: inside a house, before a scene brings him out.
+  bool hidden = false;
+
+  /// A scene has him look back over his shoulder, or up, and hold it.
+  bool forceLookBack = false;
+  bool forceLookUp = false;
   bool _dead = false;
   double _deadSeconds = 0;
   bool _grounded = false;
@@ -504,9 +511,18 @@ class Player extends BodyComponent {
         : _approach(measuredVelocity.x, target, maxAcceleration * dt);
     // Impulse is bounded by mass * acceleration * dt, so physical contacts
     // with a heavy crate or external body still resist the controller.
-    body.applyLinearImpulse(
-      Vector2((newX - measuredVelocity.x) * body.mass, 0),
-    );
+    final double drive = (newX - measuredVelocity.x) * body.mass;
+    body.applyLinearImpulse(Vector2(drive, 0));
+    // His feet push back on what they stand on, as hard as it pushes him:
+    // running on a plank, a crate or the floor of a hanging cage moves it.
+    if (support != null &&
+        support.shape.body.type == BodyType.dynamic &&
+        support.shape.body.isValid) {
+      support.shape.body.applyLinearImpulse(
+        Vector2(-drive, 0),
+        point: support.point,
+      );
+    }
     if (_grounded) {
       body.linearVelocity = Vector2(
         body.linearVelocity.x,
@@ -998,12 +1014,12 @@ class Player extends BodyComponent {
     }
     _lookUp = _approach(
       _lookUp,
-      _idleAction == IdleAction.lookUp ? 1 : 0,
+      _idleAction == IdleAction.lookUp || forceLookUp ? 1 : 0,
       dt * 2.6,
     );
     _headTurn = _approach(
       _headTurn,
-      _idleAction == IdleAction.lookBack ? 0.85 : 0,
+      _idleAction == IdleAction.lookBack || forceLookBack ? 0.85 : 0,
       dt * 3.5,
     );
   }
@@ -1291,6 +1307,7 @@ class Player extends BodyComponent {
 
   @override
   void render(Canvas canvas) {
+    if (hidden) return;
     if (_ragdoll != null) {
       _figure.drawRig(canvas, _ragdoll!.pose.translated(-body.position));
     } else if (_recoveryPose != null) {

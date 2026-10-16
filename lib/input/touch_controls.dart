@@ -36,13 +36,19 @@ class TouchControls {
     this._intent, {
     bool Function()? debugVisible,
     bool Function()? onRope,
+    bool Function()? hidden,
     this.debugTools = false,
   }) : _debugVisible = debugVisible ?? (() => false),
-       _onRope = onRope ?? (() => false);
+       _onRope = onRope ?? (() => false),
+       _hidden = hidden ?? (() => false);
 
   final PlayerIntent _intent;
   final bool Function() _debugVisible;
   final bool Function() _onRope;
+
+  /// While true (a title screen, a cutscene, a chapter card) the play
+  /// buttons neither draw nor take touches.
+  final bool Function() _hidden;
 
   /// Whether the development buttons exist at all.
   final bool debugTools;
@@ -189,8 +195,10 @@ class TouchControls {
     required void Function() onRelease,
   }) {
     final size = Vector2.all(diameter);
+    final bool Function() shown = visible ?? (() => true);
     return _VisibilityButton(
-      visible: visible ?? (() => true),
+      // The development buttons stay usable in a cutscene.
+      visible: label != null ? shown : () => !_hidden() && shown(),
       size: size,
       button: _ControlFace(
         glyph: glyph,

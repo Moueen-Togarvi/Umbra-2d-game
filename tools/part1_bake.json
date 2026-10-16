@@ -1,0 +1,226 @@
+{
+ "ch1_cottage": {
+  "max_h": 900,
+  "crop": [
+   0,
+   0,
+   1,
+   0.97
+  ],
+  "cut": {
+   "door": [
+    [
+     0.401,
+     0.742,
+     0.459,
+     0.953
+    ]
+   ],
+   "window": [
+    [
+     0.322,
+     0.452,
+     0.3455,
+     0.4955
+    ],
+    [
+     0.3545,
+     0.452,
+     0.378,
+     0.4955
+    ],
+    [
+     0.322,
+     0.5045,
+     0.3455,
+     0.548
+    ],
+    [
+     0.3545,
+     0.5045,
+     0.378,
+     0.548
+    ],
+    [
+     0.557,
+     0.752,
+     0.5745,
+     0.788
+    ],
+    [
+     0.5805,
+     0.752,
+     0.598,
+     0.788
+    ],
+    [
+     0.557,
+     0.794,
+     0.5745,
+     0.83
+    ],
+    [
+     0.5805,
+     0.794,
+     0.598,
+     0.83
+    ],
+    [
+     0.667,
+     0.752,
+     0.685,
+     0.788
+    ],
+    [
+     0.691,
+     0.752,
+     0.709,
+     0.788
+    ],
+    [
+     0.667,
+     0.794,
+     0.685,
+     0.83
+    ],
+    [
+     0.691,
+     0.794,
+     0.709,
+     0.83
+    ]
+   ]
+  }
+ },
+ "ch1_far_village": {
+  "max_h": 420,
+  "far": true
+ },
+ "ch1_orchard_tree_a": {
+  "max_h": 900,
+  "far": true
+ },
+ "ch1_orchard_tree_b": {
+  "max_h": 900,
+  "far": true
+ },
+ "ch1_picket_fence": {
+  "max_h": 300,
+  "keep_inner_white": 0.003,
+  "crop": [
+   0,
+   0,
+   1,
+   0.8
+  ],
+  "far": true
+ },
+ "ch1_scarecrow": {
+  "max_h": 700,
+  "crop": [
+   0,
+   0,
+   1,
+   0.94
+  ]
+ },
+ "ch1_well": {
+  "max_h": 600,
+  "crop": [
+   0,
+   0,
+   1,
+   0.88
+  ],
+  "keep_inner_white": 0.01
+ },
+ "ch1_woodpile": {
+  "max_h": 400,
+  "keep_inner_white": 0.01
+ },
+ "ch2_giant_tree_a": {
+  "max_h": 1200,
+  "far": true
+ },
+ "ch2_giant_tree_b": {
+  "max_h": 1200,
+  "far": true
+ },
+ "ch2_giant_tree_c": {
+  "max_h": 1200,
+  "far": true
+ },
+ "ch2_signpost": {
+  "max_h": 600
+ },
+ "ch2_graves": {
+  "max_h": 420,
+  "far": true
+ },
+ "ch2_wooden_cross": {
+  "max_h": 600
+ },
+ "ch2_hunters_shed": {
+  "max_h": 520,
+  "far": true
+ },
+ "ch2_owl": {
+  "max_h": 360
+ },
+ "ch2_bramble": {
+  "max_h": 300
+ },
+ "ch3_cave_wall_far": {
+  "max_h": 700,
+  "open": true,
+  "far": true
+ },
+ "ch3_stalactites": {
+  "max_h": 520,
+  "open": true,
+  "dark": 170,
+  "far": true
+ },
+ "ch3_stalagmites": {
+  "max_h": 520,
+  "far": true
+ },
+ "ch3_cage_child_a": {
+  "max_h": 640,
+  "open": true,
+  "far": true
+ },
+ "ch3_cage_child_b": {
+  "max_h": 640,
+  "open": true,
+  "far": true
+ },
+ "ch3_cage_child_c": {
+  "max_h": 640,
+  "open": true,
+  "far": true
+ },
+ "ch3_cage_empty": {
+  "max_h": 640,
+  "open": true
+ },
+ "ch3_bones": {
+  "max_h": 360
+ },
+ "ch3_winch": {
+  "max_h": 520,
+  "keep_inner_white": 0.012
+ },
+ "ch3_tunnel_mouth": {
+  "max_h": 700,
+  "keep_inner_white": 0.05
+ },
+ "ch3_hanging_chains": {
+  "max_h": 700,
+  "open": true
+ },
+ "brand_keyart": {
+  "max_h": 900,
+  "keep_inner_white": 0.0005
+ }
+}

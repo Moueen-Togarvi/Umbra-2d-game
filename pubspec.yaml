@@ -19,6 +19,7 @@ dependencies:
   # rewrite of the old pure-Dart Box2D 2.x port: FixtureDef and PolygonShape no
   # longer exist. See STEP1_NOTES.md for the API differences that matter.
   flame_forge2d: ^0.20.0
+  shared_preferences: ^2.5.6
 
 dev_dependencies:
   flutter_test:
@@ -33,3 +34,12 @@ flutter:
   # props under assets/images/ stay in the repo but are not bundled.
   assets:
     - assets/images/grain.png
+    - assets/images/part1/
+    - assets/brand/
+
+  fonts:
+    # Cinzel, by Natanael Gama, SIL Open Font License 1.1
+    # (assets/fonts/Cinzel-OFL.txt). The brand's only typeface.
+    - family: Cinzel
+      fonts:
+        - asset: assets/fonts/Cinzel-Variable.ttf

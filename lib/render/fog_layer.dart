@@ -23,6 +23,7 @@ class FogLayerSpec {
     required this.trunkWidth,
     this.vines = false,
     this.foreground = false,
+    this.rock = false,
   });
 
   final double depth;
@@ -46,6 +47,10 @@ class FogLayerSpec {
   /// A layer in front of the world: sparse huge trunks and grass clumps
   /// along the bottom of the screen instead of a forest.
   final bool foreground;
+
+  /// A cave instead of a forest: a roof hung with stalactites, a floor of
+  /// stalagmites and the odd pillar joining them.
+  final bool rock;
 }
 
 class FogLayer {
@@ -129,6 +134,7 @@ class FogLayer {
     double ppm, {
     required double groundY,
     double opacity = 1,
+    Color? tint,
   }) {
     final double k = spec.depth;
     final double scale = k * ppm;
@@ -146,6 +152,11 @@ class FogLayer {
       image.height.toDouble(),
     );
     _paint.color = Color.fromRGBO(0, 0, 0, opacity);
+    // Baked in its spec's tone; another mood recolours it on the way out.
+    final bool recolour = tint != null && tint != spec.tone;
+    _paint.colorFilter = recolour
+        ? ColorFilter.mode(tint, BlendMode.srcIn)
+        : null;
     for (var i = first; i <= last; i++) {
       final double left = screen.width / 2 + (i * tileWidth - cameraX) * scale;
       // A hair of overlap hides the seam between neighbouring tiles.
@@ -157,7 +168,7 @@ class FogLayer {
       );
     }
     if (bottom < screen.height && !spec.foreground) {
-      _fill.color = spec.tone.withValues(alpha: opacity);
+      _fill.color = (tint ?? spec.tone).withValues(alpha: opacity);
       canvas.drawRect(
         Rect.fromLTRB(0, bottom - 1, screen.width, screen.height),
         _fill,
@@ -190,6 +201,10 @@ class FogLayer {
 
     if (spec.foreground) {
       _paintForeground(canvas, spec, random, paint, vTop);
+      return;
+    }
+    if (spec.rock) {
+      _paintRock(canvas, spec, random, paint, vTop);
       return;
     }
 
@@ -349,6 +364,138 @@ class FogLayer {
         ..lineTo(b.dx + n.dx * rb, b.dy + n.dy * rb)
         ..lineTo(b.dx - n.dx * rb, b.dy - n.dy * rb)
         ..lineTo(a.dx - n.dx * ra, a.dy - n.dy * ra)
+        ..close(),
+      paint,
+    );
+  }
+
+  /// A cave at this depth: a roof hanging down from above the frame with
+  /// stalactites dripping from it, a lumpy floor with stalagmites, and now
+  /// and then a pillar where the two have grown together. Everything is
+  /// periodic over the tile so it wraps.
+  static void _paintRock(
+    Canvas canvas,
+    FogLayerSpec spec,
+    math.Random random,
+    Paint paint,
+    double vTop,
+  ) {
+    final double tile = spec.tileWidth;
+    double wave(double u, int cycles, double phase) =>
+        math.sin(2 * math.pi * cycles * u / tile + phase);
+    // The top of the frame with the camera at a middling height, and the
+    // roof's lower edge a good way below it.
+    final double frameTop = vTop + 3;
+    final double roof = frameTop * 0.58;
+
+    double roofAt(double u) =>
+        roof +
+        (-frameTop) *
+            (0.07 * wave(u, 2, spec.seed * 0.9) +
+                0.05 * wave(u, 5, spec.seed * 1.7) +
+                0.015 * wave(u, 17, spec.seed * 2.3));
+    double floorAt(double u) =>
+        0.35 * wave(u, 3, spec.seed * 0.7) +
+        0.2 * wave(u, 9, spec.seed * 1.3) +
+        0.07 * wave(u, 26, spec.seed * 2.1) -
+        0.15;
+
+    final ceiling = Path()..moveTo(-1, vTop - 1);
+    for (double u = -1; u <= tile + 1; u += 0.25) {
+      ceiling.lineTo(u, roofAt(u));
+    }
+    ceiling
+      ..lineTo(tile + 1, vTop - 1)
+      ..close();
+    canvas.drawPath(ceiling, paint);
+
+    final floor = Path()..moveTo(-1, 3);
+    for (double u = -1; u <= tile + 1; u += 0.2) {
+      floor.lineTo(u, floorAt(u));
+    }
+    floor
+      ..lineTo(tile + 1, 3)
+      ..close();
+    canvas.drawPath(floor, paint);
+
+    // Stalactites: narrow, slightly crooked cones, in clusters.
+    final double span = -roof;
+    double u = random.nextDouble() * 2;
+    while (u < tile) {
+      final int cluster = 1 + random.nextInt(4);
+      for (var i = 0; i < cluster; i++) {
+        final double x = u + i * (0.3 + random.nextDouble() * 0.6);
+        final double length =
+            span * (0.05 + math.pow(random.nextDouble(), 2.2) * 0.32);
+        final double width = 0.12 + length * (0.12 + random.nextDouble() * 0.1);
+        _cone(canvas, paint, random, x, roofAt(x) - 0.2, width, length, 1);
+      }
+      u += spec.trunkSpacing * (0.3 + random.nextDouble() * 0.9);
+    }
+
+    // Stalagmites, shorter and stubbier.
+    u = random.nextDouble() * 3;
+    while (u < tile) {
+      final double length =
+          0.4 + math.pow(random.nextDouble(), 1.8) * span * 0.18;
+      final double width = 0.3 + length * (0.3 + random.nextDouble() * 0.2);
+      _cone(canvas, paint, random, u, floorAt(u) + 0.2, width, length, -1);
+      u += spec.trunkSpacing * (0.5 + random.nextDouble() * 1.4);
+    }
+
+    // Pillars: a waisted column from floor to roof.
+    u = random.nextDouble() * spec.trunkSpacing * 2;
+    while (u < tile) {
+      final (minW, maxW) = spec.trunkWidth;
+      final double w = minW + (maxW - minW) * random.nextDouble();
+      final double top = roofAt(u) - 0.5;
+      final double bottom = floorAt(u) + 0.5;
+      const int steps = 24;
+      final left = <Offset>[];
+      final right = <Offset>[];
+      for (var i = 0; i <= steps; i++) {
+        final double t = i / steps;
+        final double v = top + (bottom - top) * t;
+        // Wide where it meets roof and floor, narrowest a little below
+        // the middle, where the drips met.
+        final double waist = math.pow((t - 0.58).abs() / 0.58, 1.6).toDouble();
+        final double half = w / 2 * (0.42 + 1.1 * waist);
+        final double lump = w * 0.06 * math.sin(t * 19 + u);
+        left.add(Offset(u - half + lump, v));
+        right.add(Offset(u + half + lump * 0.6, v));
+      }
+      final path = Path()..moveTo(left.first.dx, left.first.dy);
+      for (final p in left.skip(1)) {
+        path.lineTo(p.dx, p.dy);
+      }
+      for (final p in right.reversed) {
+        path.lineTo(p.dx, p.dy);
+      }
+      canvas.drawPath(path..close(), paint);
+      u += spec.trunkSpacing * (1.6 + random.nextDouble() * 2.4);
+    }
+  }
+
+  /// A crooked cone of rock [length] long from a base [width] wide at
+  /// ([x], [base]), pointing down (`direction` 1) or up (-1).
+  static void _cone(
+    Canvas canvas,
+    Paint paint,
+    math.Random random,
+    double x,
+    double base,
+    double width,
+    double length,
+    double direction,
+  ) {
+    final double kink = (random.nextDouble() - 0.5) * width * 0.5;
+    final double tip = base + direction * length;
+    final double mid = base + direction * length * 0.45;
+    canvas.drawPath(
+      Path()
+        ..moveTo(x - width / 2, base)
+        ..quadraticBezierTo(x - width * 0.2 + kink, mid, x + kink * 1.4, tip)
+        ..quadraticBezierTo(x + width * 0.22 + kink, mid, x + width / 2, base)
         ..close(),
       paint,
     );

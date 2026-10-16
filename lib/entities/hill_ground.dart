@@ -25,6 +25,7 @@ class HillGround extends BodyComponent {
     required this.wind,
     this.pitOnLeft = false,
     this.pitOnRight = false,
+    this.bottom = GameConfig.levelHeight + 1,
   }) : super(
          paint: Paint()..color = earthColor,
          renderBody: false,
@@ -46,6 +47,9 @@ class HillGround extends BodyComponent {
 
   /// Whether each end drops into a pit (and so gets a cliff face).
   final bool pitOnLeft, pitOnRight;
+
+  /// How far down the bank's earth and its walls reach.
+  final double bottom;
 
   late final Path _outline = _buildOutline();
   late final List<_Root> _roots = _buildRoots();
@@ -70,7 +74,6 @@ class HillGround extends BodyComponent {
     // collide. So each wall gets one extra point below it, as its ghost,
     // and the walls themselves are solid.
     final List<Vector2> surface = segment.surface;
-    const double bottom = GameConfig.levelHeight + 1;
     final List<Vector2> points = [
       Vector2(surface.first.x, bottom + 1),
       Vector2(surface.first.x, bottom),
@@ -139,7 +142,6 @@ class HillGround extends BodyComponent {
 
   Path _buildOutline() {
     final Path path = Path();
-    final double bottom = GameConfig.levelHeight + 1;
     final double left = segment.left;
     final double right = segment.right;
     final double leftY = segment.heightAt(left);

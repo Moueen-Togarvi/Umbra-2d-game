@@ -1,12 +1,12 @@
 {
-    "name": "umbra",
-    "short_name": "umbra",
+    "name": "Umbra",
+    "short_name": "Umbra",
     "start_url": ".",
-    "display": "standalone",
-    "background_color": "#0175C2",
-    "theme_color": "#0175C2",
-    "description": "A new Flutter project.",
-    "orientation": "portrait-primary",
+    "display": "fullscreen",
+    "background_color": "#0B0B0B",
+    "theme_color": "#0B0B0B",
+    "description": "A boy runs from home into the night. A wordless silhouette platformer.",
+    "orientation": "landscape",
     "prefer_related_applications": false,
     "icons": [
         {

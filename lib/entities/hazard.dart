@@ -18,7 +18,7 @@ import 'player.dart';
 /// floor catches the limp body, so it comes to rest among the stakes rather
 /// than falling out of the world.
 class Hazard extends BodyComponent with ContactCallbacks, OffScreenCulling {
-  Hazard({required Vector2 center, required Vector2 size})
+  Hazard({required Vector2 center, required Vector2 size, this.stakes = true})
     : _size = size.clone(),
       super(
         paint: Paint()..color = Palette.silhouette,
@@ -58,6 +58,10 @@ class Hazard extends BodyComponent with ContactCallbacks, OffScreenCulling {
 
   /// How far the stakes stand above the pit floor.
   static const double stakeHeight = 0.55;
+
+  /// Hunters' stakes in the floor; without, a plain drop onto rock that
+  /// kills by its depth alone.
+  final bool stakes;
 
   final Vector2 _size;
 
@@ -226,7 +230,7 @@ class Hazard extends BodyComponent with ContactCallbacks, OffScreenCulling {
       Rect.fromLTRB(-wide, _lip, wide, _base + 0.05),
       _shadowPaint,
     );
-    canvas.drawPath(_stakes, paint);
+    if (stakes) canvas.drawPath(_stakes, paint);
     canvas.drawPath(_floor, paint);
   }
 
@@ -237,10 +241,12 @@ class Hazard extends BodyComponent with ContactCallbacks, OffScreenCulling {
     required double right,
     required double top,
     required double bottom,
+    bool stakes = true,
   }) {
     return Hazard(
       center: Vector2((left + right) / 2, (top + bottom) / 2),
       size: Vector2(right - left, bottom - top),
+      stakes: stakes,
     );
   }
 

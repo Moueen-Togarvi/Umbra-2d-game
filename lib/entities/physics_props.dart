@@ -207,12 +207,15 @@ class MovingPlatform extends BodyComponent {
 /// the anchor, at the bob and, while the boy's feet clamp it, at his feet.
 /// The rope below his hands keeps hanging and swinging with him.
 class SwingRope extends BodyComponent {
-  SwingRope({required Vector2 anchor, required this.length})
+  SwingRope({required Vector2 anchor, required this.length, this.tyre = false})
     : anchor = anchor.clone(),
       super(renderBody: false);
 
   final Vector2 anchor;
   final double length;
+
+  /// An old tyre tied to the end: a swing in an orchard.
+  final bool tyre;
   late Body bob;
   late DistanceJoint constraint;
   bool _created = false;
@@ -462,6 +465,42 @@ class SwingRope extends BodyComponent {
     ..strokeWidth = 0.012
     ..strokeCap = StrokeCap.round;
   static final Paint _knot = Paint()..color = const Color(0xFF181818);
+  static final Paint _rubber = Paint()..color = const Color(0xFF070707);
+  static final Paint _tread = Paint()
+    ..color = const Color(0x24FFFFFF)
+    ..style = PaintingStyle.stroke
+    ..strokeWidth = 0.012;
+
+  /// A tyre hanging from the rope's end, along the rope's line, seen a
+  /// little from the side so it is an ellipse with its hole showing.
+  void _drawTyre(Canvas canvas, Offset end, Offset down) {
+    final double angle = math.atan2(down.dx, down.dy);
+    canvas.save();
+    canvas.translate(end.dx, end.dy);
+    canvas.rotate(-angle);
+    const double r = 0.3;
+    final Rect outer = Rect.fromCenter(
+      center: const Offset(0, r - 0.02),
+      width: r * 1.25,
+      height: r * 2,
+    );
+    final Rect inner = Rect.fromCenter(
+      center: const Offset(0.02, r - 0.02),
+      width: r * 0.62,
+      height: r * 1.22,
+    );
+    canvas.drawPath(
+      Path()
+        ..fillType = PathFillType.evenOdd
+        ..addOval(outer)
+        ..addOval(inner),
+      _rubber,
+    );
+    // Worn tread, faint.
+    canvas.drawArc(outer.deflate(0.035), 0.4, 2.2, false, _tread);
+    canvas.drawCircle(Offset.zero, 0.035, _knot);
+    canvas.restore();
+  }
 
   @override
   void render(Canvas canvas) {
@@ -498,10 +537,12 @@ class SwingRope extends BodyComponent {
     final end = at(_count);
     rope.lineTo(end.dx, end.dy);
     canvas.drawPath(rope, _cord);
-    // A knot and a frayed end below it, rather than a ball.
+    // A knot and a frayed end below it, rather than a ball; or the tyre.
     final Offset last = end - at(_count - 1);
     final double run = last.distance;
-    if (run > 0) {
+    if (tyre && run > 0) {
+      _drawTyre(canvas, end, last / run);
+    } else if (run > 0) {
       final Offset dir = last / run;
       canvas.drawCircle(end, 0.03, _knot);
       for (final splay in const [-0.25, 0.0, 0.3]) {

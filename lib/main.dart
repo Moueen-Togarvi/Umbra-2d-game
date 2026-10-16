@@ -2,7 +2,11 @@ import 'package:flame/game.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 
+import 'config/palette.dart';
 import 'game/umbra_game.dart';
+import 'story/chapter_director.dart';
+import 'story/progress_store.dart';
+import 'ui/title_screen.dart';
 
 Future<void> main() async {
   // Required before touching SystemChrome: those calls go over a platform
@@ -24,5 +28,21 @@ Future<void> main() async {
   // again, rather than permanently giving up the space.
   await SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
 
-  runApp(GameWidget(game: UmbraGame()));
+  final progress = await ProgressStore.load();
+
+  // `--dart-define=UMBRA_PROVING_GROUND=true` opens the test level instead
+  // of the story.
+  const bool provingGround = bool.fromEnvironment('UMBRA_PROVING_GROUND');
+  final game = UmbraGame(campaign: !provingGround, progress: progress);
+
+  runApp(
+    GameWidget<UmbraGame>(
+      game: game,
+      loadingBuilder: (_) => const ColoredBox(color: Palette.brandBlack),
+      overlayBuilderMap: {
+        ChapterDirector.titleOverlay: (context, game) =>
+            TitleScreen(game: game),
+      },
+    ),
+  );
 }

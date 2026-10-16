@@ -11,7 +11,9 @@ import '../entities/physics_props.dart';
 import '../input/player_intent.dart';
 import '../render/dust.dart';
 import '../render/grass.dart';
+import '../render/mood.dart';
 import 'checkpoint_service.dart';
+import 'stage.dart';
 import 'terrain.dart';
 
 /// Builds the level from the terrain profile in [GameConfig] and owns
@@ -29,7 +31,7 @@ import 'terrain.dart';
 ///   ____/‾‾‾‾‾‾‾‾‾   ‾‾\____/‾‾‾‾   ‾‾‾\___/‾‾‾‾‾‾‾   ‾‾\____/‾‾‾‾‾‾
 ///                 ^pit           ^pit            ^pit
 /// ```
-class Level extends Component {
+class Level extends Stage {
   Level({required this._intent, required this.checkpoints})
     : terrain = Terrain([
         for (final flat in GameConfig.terrainProfile)
@@ -43,7 +45,17 @@ class Level extends Component {
 
   /// Exposed so the game can hand it to anything else that needs to kill or
   /// save the player later.
+  @override
   final CheckpointService checkpoints;
+
+  @override
+  double get width => GameConfig.levelWidth;
+  @override
+  double get height => GameConfig.levelHeight;
+  @override
+  double get cameraMaxY => GameConfig.cameraMaxY;
+  @override
+  MoodTrack get moods => const MoodTrack(Mood.fog);
 
   /// The ground's curve.
   final Terrain terrain;
@@ -52,6 +64,7 @@ class Level extends Component {
   final GrassWind wind = GrassWind();
 
   /// Available as soon as the level loads, before its children mount.
+  @override
   late final Player player;
 
   static const List<double> _checkpointXs = [17, 33, 49, 65, 81];
