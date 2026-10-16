@@ -24,6 +24,7 @@ class FogLayerSpec {
     this.vines = false,
     this.foreground = false,
     this.rock = false,
+    this.hall = false,
   });
 
   final double depth;
@@ -51,6 +52,12 @@ class FogLayerSpec {
   /// A cave instead of a forest: a roof hung with stalactites, a floor of
   /// stalagmites and the odd pillar joining them.
   final bool rock;
+
+  /// The inside of a castle instead of a forest: a colonnade of columns
+  /// and pointed arches, high windows in the wall above them, the odd
+  /// banner hanging in a bay. [trunkSpacing] is the bay, [trunkWidth] the
+  /// columns.
+  final bool hall;
 }
 
 class FogLayer {
@@ -205,6 +212,10 @@ class FogLayer {
     }
     if (spec.rock) {
       _paintRock(canvas, spec, random, paint, vTop);
+      return;
+    }
+    if (spec.hall) {
+      _paintHall(canvas, spec, paint, vTop);
       return;
     }
 
@@ -473,6 +484,94 @@ class FogLayer {
       }
       canvas.drawPath(path..close(), paint);
       u += spec.trunkSpacing * (1.6 + random.nextDouble() * 2.4);
+    }
+  }
+
+  static void _paintHall(
+    Canvas canvas,
+    FogLayerSpec spec,
+    Paint paint,
+    double vTop,
+  ) {
+    final double tile = spec.tileWidth;
+    final int n = math.max(1, (tile / spec.trunkSpacing).round());
+    final double bay = tile / n;
+    final (minW, maxW) = spec.trunkWidth;
+    final double w = (minW + maxW) / 2;
+    final double frameTop = vTop + 3;
+    // Where the arches spring from the columns, and their points.
+    final double spring = frameTop * 0.4;
+    final double apex = frameTop * 0.62;
+
+    // The floor.
+    canvas.drawRect(Rect.fromLTRB(-1, -0.06, tile + 1, 3), paint);
+
+    // The wall above the arcade, with the arches and the windows cut out.
+    final wall = Path()
+      ..fillType = PathFillType.evenOdd
+      ..addRect(Rect.fromLTRB(-1, vTop - 1, tile + 1, spring));
+    for (var i = -1; i <= n; i++) {
+      final double a = i * bay + w / 2, b = (i + 1) * bay - w / 2;
+      final double m = (a + b) / 2;
+      final double rise = (apex - spring) * 0.55;
+      wall
+        ..moveTo(a, spring)
+        ..cubicTo(a, spring + rise, m - (m - a) * 0.4, apex, m, apex)
+        ..cubicTo(m + (b - m) * 0.4, apex, b, spring + rise, b, spring)
+        ..close();
+      // A tall lancet window high above each other bay.
+      final int k = ((i % n) + n) % n;
+      final random = math.Random(spec.seed * 31 + k);
+      if (random.nextDouble() < 0.55) {
+        final double ww = bay * 0.1;
+        final double bottom = apex - (apex - frameTop) * 0.12;
+        final double top = apex - (apex - frameTop) * 0.62;
+        wall
+          ..moveTo(m - ww, bottom)
+          ..lineTo(m - ww, top + ww * 1.6)
+          ..quadraticBezierTo(m - ww, top, m, top - ww * 0.4)
+          ..quadraticBezierTo(m + ww, top, m + ww, top + ww * 1.6)
+          ..lineTo(m + ww, bottom)
+          ..close();
+      }
+    }
+    canvas.drawPath(wall, paint);
+
+    // Columns with a capital and a plinth.
+    for (var i = 0; i <= n; i++) {
+      final double u = i * bay;
+      canvas
+        ..drawRect(Rect.fromLTRB(u - w / 2, spring, u + w / 2, 0), paint)
+        ..drawRect(
+          Rect.fromLTRB(u - w * 0.8, spring - 0.1, u + w * 0.8, spring + 0.35),
+          paint,
+        )
+        ..drawRect(Rect.fromLTRB(u - w * 0.75, -0.55, u + w * 0.75, 0), paint);
+    }
+
+    // A ragged banner hanging in some bays.
+    for (var i = 0; i < n; i++) {
+      final random = math.Random(spec.seed * 57 + i);
+      if (random.nextDouble() > 0.3) continue;
+      final double m = (i + 0.5) * bay;
+      final double bw = bay * 0.16;
+      final double top = apex + 0.4;
+      final double length = (spring - apex) * (0.9 + random.nextDouble());
+      canvas.drawPath(
+        Path()
+          ..moveTo(m - bw / 2, top)
+          ..lineTo(m + bw / 2, top)
+          ..lineTo(m + bw / 2, top + length)
+          ..lineTo(m + bw * 0.15, top + length - bw * 0.5)
+          ..lineTo(m - bw * 0.1, top + length + bw * 0.2)
+          ..lineTo(m - bw / 2, top + length - bw * 0.3)
+          ..close(),
+        paint,
+      );
+      canvas.drawRect(
+        Rect.fromLTRB(m - bw * 0.7, top - 0.08, m + bw * 0.7, top),
+        paint,
+      );
     }
   }
 

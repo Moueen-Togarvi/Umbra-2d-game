@@ -13,8 +13,11 @@ import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:umbra/chapters/cage.dart';
+import 'package:umbra/chapters/chandeliers.dart';
 import 'package:umbra/chapters/chapter.dart';
+import 'package:umbra/chapters/chase.dart';
 import 'package:umbra/chapters/forest.dart';
+import 'package:umbra/chapters/halls.dart';
 import 'package:umbra/chapters/home.dart';
 import 'package:umbra/character/character_interactions.dart';
 import 'package:umbra/config/game_config.dart';
@@ -443,15 +446,15 @@ void main() {
     WidgetTester tester,
     int chapterIndex,
     String scene,
-    List<double> xs,
-  ) async {
+    List<double> xs, {
+    double Function(double x)? ground,
+  }) async {
     final game = await boot(tester);
     await enterChapter(tester, game, chapterIndex);
     final chapter = game.stage! as Chapter;
     for (final x in xs) {
-      chapter.player.teleportTo(
-        Vector2(x, chapter.groundAt(x) - GameConfig.playerHeight / 2),
-      );
+      final double g = ground?.call(x) ?? chapter.groundAt(x);
+      chapter.player.teleportTo(Vector2(x, g - GameConfig.playerHeight / 2));
       step(game, 2.4);
       await shot(
         tester,
@@ -500,5 +503,99 @@ void main() {
       120,
       140,
     ]);
+  });
+
+  testWidgets('chase tour', (tester) async {
+    await tour(
+      tester,
+      6,
+      'chase',
+      [5, 14, 23, 27, 34, 44, 50, 57, 66, 71, 80, 87, 90, 104, 120, 130],
+      ground: (x) => (x >= 63 && x < 70) || (x > 72.4 && x < 78)
+          ? 5.7
+          : x >= 106
+          ? 4.6
+          : x >= 100
+          ? 5.8
+          : 7.0,
+    );
+  });
+
+  testWidgets('halls tour', (tester) async {
+    await tour(
+      tester,
+      7,
+      'halls',
+      [4, 9.5, 16, 26, 38, 46, 51, 57, 60, 63, 66, 70, 74, 80, 90],
+      ground: (x) => x >= 61
+          ? 3.6
+          : x >= 48 && x <= 54
+          ? 4.2
+          : 7.0,
+    );
+  });
+
+  testWidgets('chandeliers tour', (tester) async {
+    await tour(
+      tester,
+      8,
+      'chandeliers',
+      [4, 12, 17, 23, 30, 36, 44, 48, 53, 58, 63, 76, 85, 92, 110, 122],
+      ground: (x) => x >= 41 && x <= 49
+          ? 4.0
+          : x > 32 && x < 41
+          ? 7.0 - (x - 32) / 3
+          : 7.0,
+    );
+  });
+
+  testWidgets('castle moments', (tester) async {
+    // The bookcase going over, and lying across its gap.
+    var game = await boot(tester);
+    await enterChapter(tester, game, 6);
+    final chase = game.stage! as ChaseChapter;
+    chase.player.teleportTo(Vector2(67.5, ChaseChapter.stepTop - 0.65));
+    // (The keeper's scene plays first, far behind him.)
+    step(game, 3);
+    chase.bookcase.body.angularVelocity = 2.2;
+    for (var k = 0; k < 4; k++) {
+      step(game, 0.25);
+      await shot(tester, game, 'moments', 'a_bookcase_$k');
+    }
+    step(game, 2);
+    await shot(tester, game, 'moments', 'a_bookcase_down');
+
+    // One of them burning in the moonlight.
+    game = await boot(tester);
+    await enterChapter(tester, game, 7);
+    final halls = game.stage! as HallsChapter;
+    // The rule is shown first, under the open window.
+    halls.player.teleportTo(Vector2(10, HallsChapter.floor - 0.65));
+    step(game, 9);
+    halls.player.teleportTo(Vector2(64.6, HallsChapter.gallery - 0.65));
+    halls.windows[0].open();
+    halls.keeper
+      ..x = 66.8
+      ..groundY = HallsChapter.gallery;
+    step(game, 1.2);
+    halls.windows[1].open();
+    for (var k = 0; k < 5; k++) {
+      step(game, 0.45);
+      await shot(tester, game, 'moments', 'b_moon_$k');
+    }
+
+    // The great chandelier coming down on the two in the pit.
+    game = await boot(tester);
+    await enterChapter(tester, game, 8);
+    final hall = game.stage! as ChandeliersChapter;
+    hall.player.teleportTo(Vector2(47.6, ChandeliersChapter.gallery - 0.65));
+    step(game, 1);
+    hall.great.release();
+    for (var k = 0; k < 5; k++) {
+      step(game, 0.12);
+      await shot(tester, game, 'moments', 'c_fall_$k');
+    }
+    step(game, 2);
+    await shot(tester, game, 'moments', 'c_bridge');
   });
 }

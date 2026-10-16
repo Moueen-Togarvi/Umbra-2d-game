@@ -26,6 +26,7 @@ class HillGround extends BodyComponent {
     this.pitOnLeft = false,
     this.pitOnRight = false,
     this.bottom = GameConfig.levelHeight + 1,
+    this.bare = false,
   }) : super(
          paint: Paint()..color = earthColor,
          renderBody: false,
@@ -51,13 +52,16 @@ class HillGround extends BodyComponent {
   /// How far down the bank's earth and its walls reach.
   final double bottom;
 
+  /// A floor of stone flags, not earth: no grass, no roots, no clods.
+  final bool bare;
+
   late final Path _outline = _buildOutline();
-  late final List<_Root> _roots = _buildRoots();
-  late final List<_Root> _lipBlades = _buildLipBlades();
+  late final List<_Root> _roots = bare ? const [] : _buildRoots();
+  late final List<_Root> _lipBlades = bare ? const [] : _buildLipBlades();
 
   /// Clods hanging under the pit lips and stones half buried along the
   /// bank, built once.
-  late final Path _details = _buildDetails();
+  late final Path _details = bare ? Path() : _buildDetails();
   CameraComponent? _camera;
 
   @override
@@ -415,6 +419,7 @@ class HillGround extends BodyComponent {
     }
     if (any) canvas.drawPath(hanging, paint);
 
+    if (bare) return;
     final double left = math.max(segment.left, (visible?.left ?? -1e9) - 0.6);
     final double right = math.min(segment.right, (visible?.right ?? 1e9) + 0.6);
     if (left >= right) return;

@@ -173,6 +173,36 @@ class Mood {
     trees: false,
   );
 
+  /// Inside the castle at night: dark stone halls, the moon slanting in
+  /// through high windows, a little dust in its beams.
+  static const castle = Mood(
+    name: 'castle',
+    sky: [
+      Color(0xFF0A0B0D),
+      Color(0xFF25272C),
+      Color(0xFF34373D),
+      Color(0xFF101113),
+    ],
+    layerTones: [
+      Color(0xFF3E4146),
+      Color(0xFF2A2C30),
+      Color(0xFF17181A),
+      Color(0xFF080808),
+    ],
+    light: Palette.moonLight,
+    lightAt: Offset(0.28, -0.06),
+    lightDrift: 0.03,
+    lightSize: 0.42,
+    lightStrength: 0.85,
+    shafts: 1.5,
+    shaftTilt: 0.3,
+    shaftFan: 0.16,
+    mist: 0.25,
+    mistTone: Color(0xFF3C3F44),
+    dust: 1.0,
+    trees: false,
+  );
+
   /// This mood blended towards [other] by [t] (0 is this one). Switches
   /// (the moon, drips, trees) follow whichever is nearer.
   Mood lerp(Mood other, double t) {

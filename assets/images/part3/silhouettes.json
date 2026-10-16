@@ -1,0 +1,92 @@
+{
+ "ch7_castle_corridor": {
+  "w": 1268,
+  "h": 708,
+  "pad": 4,
+  "cut": {}
+ },
+ "ch7_hanging_pots": {
+  "w": 1101,
+  "h": 608,
+  "pad": 4,
+  "cut": {}
+ },
+ "ch7_kitchen_hearth": {
+  "w": 868,
+  "h": 608,
+  "pad": 4,
+  "cut": {}
+ },
+ "ch7_stair_tower": {
+  "w": 352,
+  "h": 808,
+  "pad": 4,
+  "cut": {}
+ },
+ "ch7_wine_cellar": {
+  "w": 898,
+  "h": 528,
+  "pad": 4,
+  "cut": {}
+ },
+ "ch8_gothic_window": {
+  "w": 443,
+  "h": 808,
+  "pad": 4,
+  "cut": {}
+ },
+ "ch8_suit_of_armour": {
+  "w": 258,
+  "h": 708,
+  "pad": 4,
+  "cut": {}
+ },
+ "ch8_banners": {
+  "w": 468,
+  "h": 808,
+  "pad": 4,
+  "cut": {}
+ },
+ "ch8_vaulted_hall": {
+  "w": 1353,
+  "h": 708,
+  "pad": 4,
+  "cut": {}
+ },
+ "ch8_long_table": {
+  "w": 866,
+  "h": 458,
+  "pad": 4,
+  "cut": {}
+ },
+ "ch9_grand_stair": {
+  "w": 1211,
+  "h": 671,
+  "pad": 4,
+  "cut": {}
+ },
+ "ch9_gallery": {
+  "w": 1257,
+  "h": 603,
+  "pad": 4,
+  "cut": {}
+ },
+ "ch9_pipe_organ": {
+  "w": 510,
+  "h": 908,
+  "pad": 4,
+  "cut": {}
+ },
+ "ch9_throne": {
+  "w": 373,
+  "h": 708,
+  "pad": 4,
+  "cut": {}
+ },
+ "ch9_far_chandelier": {
+  "w": 550,
+  "h": 708,
+  "pad": 4,
+  "cut": {}
+ }
+}

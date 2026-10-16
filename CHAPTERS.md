@@ -1,6 +1,6 @@
 # Umbra chapters
 
-The story: a boy runs from home after an argument, vampires take him in the night forest, and he has to escape their land. It is told in 15 wordless chapters. **Part 1** (chapters 1–3) and **Part 2** (chapters 4–6, the water under the castle) are built.
+The story: a boy runs from home after an argument, vampires take him in the night forest, and he has to escape their land. It is told in 15 wordless chapters. **Part 1** (chapters 1–3), **Part 2** (chapters 4–6, the water under the castle) and **Part 3** (chapters 7–9, the castle itself) are built.
 
 Run the story with `flutter run`. Pass `--dart-define=UMBRA_PROVING_GROUND=true` to open the 96 m test level instead, which is the one all the physics and character tests use. Pass `--dart-define=UMBRA_UNLOCK_ALL=true` to open every chapter in the title's chapter list, for checking a later chapter on a device (it saves that progress).
 
@@ -31,6 +31,22 @@ Run the story with `flutter run`. Pass `--dart-define=UMBRA_PROVING_GROUND=true`
   - it resists bobbing (added mass)
 
   So a crate floats as deep as its density says, settles under the boy's weight and tips when he stands near an end. His feet press on whatever he stands on, so the water carries his real weight. He can't swim: he wades slowly where he can stand, and drowns if his head stays under for 0.7 s. The level can be raised or lowered (`floodTo`), the surface ripples where things break it, and what is under it fades into the dark. `Chapter.waterPit` fills a pit with water instead of stakes. The floating things are in `lib/entities/water_props.dart`: `FloatingLog`, `Coffin` (optionally chained to the floor), `Barrel` (a cask lying on its side), and `LogSource` (logs sent down a river to a sinkhole).
+- **Light** (`lib/render/light.dart`): anything that lights the world is a `LightSource` in `Stage.lights`, and `Stage.isLit` asks them all. It is drawn by a `LightLayer` behind the silhouettes. The vampires won't step into light. The light sources are:
+  - `MoonWindow`: a shuttered gothic window. Opened, it throws a slanting shaft of moonlight onto the floor.
+  - `LanternCart`: a cart that carries its lamp's light with it.
+  - Lit chandeliers.
+- **Vampires that hunt** (`lib/story/hunters.dart`) are not physics bodies; they read the world with ray casts.
+  - `Pursuer` runs the boy down a little slower than he runs. It climbs what is in its way (slowly if it is tall), drops down steps, and leaps gaps up to 3.2 m. A shut gate, a wall or a wider gap stops it, and it reaches for him.
+  - `Stalker` keeps to the dark. It wakes when he comes near on its own floor and comes for him, but stops at the edge of any light. Caught in light, it shields its face and runs for the dark, away from him. With no dark to reach, it burns to ash.
+- **Castle machinery** (`lib/entities/castle_props.dart`):
+  - `Hoisted` bodies slide on a vertical prismatic joint: `Portcullis`, `WeighPan`, `LiftPlatform` and `Counterweight`.
+  - `Pulley` joins two of them by a rope over two wheels. Box2D has no pulley, so the rope is an impulse applied after each step, an exact Atwood machine. It only pulls, and it counts whatever rests on each side. A side at the top of its travel holds, and the brake limits the speed.
+  - `PullCord`: a rope that does something when he hangs his weight on it.
+  - `ChandelierRope`: a lit chandelier on a rope to swing on.
+  - `HungChandelier`: drops when its rope is let go, crushes what is under it, then wedges where it lands.
+  - `TallBookcase`: topples when walked into, then wedges.
+  - Also `StoneBlock`, `CastleTable`, `Staircase` and `Balustrade`.
+  - Castle chapters use the `hall` backdrop layers (colonnades and arches) and bare stone floors (`grassy: false`).
 - **Scenery** (`SceneryProp`) is the AI-generated art, baked to silhouettes. Anything further off than depth 0.85 is drawn by the backdrop, between the fog layers nearer and further than it.
 
 ## Chapter 1: Home (dusk into night, 122 m)
@@ -100,7 +116,40 @@ The water under the vampires' land. He can't swim.
 | 25–38 | A black pool with **four old casks** floating in it, the only footing. Each dips and tips under him: he stands near the far end and hops to the next. |
 | 52.6 | A **drain**. The flooded chamber (54–88) runs out under the rock, and he walks through the tunnel the water leaves. |
 | 92.4–101 | **The shaft.** At its foot, a figure at the top opens the sluices and the water comes up after him. He climbs from ledge to ledge (7.8, 6.0, 4.2) to the top at 2.4, ahead of the water. |
-| 146 | The way out leads to "End of Part Two", then the title. |
+| 146 | The way out leads into chapter 7. |
+
+## Chapter 7: The Chase (castle, 140 m)
+
+| x (m) | What happens |
+|---|---|
+| 15.5–26 | The kitchen gate hangs on a rope over two wheels, tied to a **weighing pan** set in the floor. Push the crate into the pan and its 35 kg plus the pan outweigh the 40 kg gate, which rises. Climb down onto the crate and out the far side. |
+| 38 | **The keeper** drops through a hatch behind him and runs him down: a little slower than he runs, but it doesn't stop. |
+| 48, 56–57.8, 63 | A table, a hole in the floor, a step. |
+| 69.3–72.4 | A **tall bookcase** at the edge of a gap too wide to jump. Walked into, it topples over a stone kerb and lies across the gap as his bridge. |
+| 86–91.4 | A **portcullis** held up on a latch. Past it, a deep pit with a cord hanging over it: his weight on the cord slips the latch, the gate crashes down behind him, and he swings across. The keeper is left at the bars. |
+| 132 | Up the steps, into chapter 8. |
+
+## Chapter 8: The Halls (castle, 104 m)
+
+| x (m) | What happens |
+|---|---|
+| 8.4–11 | **The rule.** Under an open moonlit window, one of them comes for him, stops at the edge of the light, shields its face and backs away into the dark. |
+| 15.5–48 | A **lantern cart** pushed down a black corridor drives the next one ahead of it until it has nowhere to go, and it burns. Then he climbs from the cart up the 2.8 m wall. |
+| 58–61 | A **lift** on a 65 kg counterweight, held down by a 50 kg chest. He gets on and shoves the chest off; he and the lift (60 kg) are lighter than the counterweight, and it carries him up. |
+| 61–76.6 | A gallery of **four shuttered windows** with one of them pacing it. The first cord hangs in the dark; each of the others hangs in the light of the window before. Window by window the moon drives it to the end of the gallery, where it burns. |
+| 96 | Out through the doorway. |
+
+## Chapter 9: The Chandeliers (castle, 130 m)
+
+| x (m) | What happens |
+|---|---|
+| 16–31.4 | The ballroom floor has fallen into the dark. He swings across on **three lit chandeliers** hanging from the vault, landing on the islands between. |
+| 32–49 | A stone stair up to the musicians' gallery. |
+| 48 | A cord at the gallery's end lets go of a **great chandelier**. It comes down on the two waiting in the pit below, and its ring, wider than the pit, catches on both edges and makes his bridge. |
+| 65 | The keeper again, dropping from behind. |
+| 72, 80 | A hole and a table. |
+| 88–91.4 | The last gap. Its cord is his only way across, and it drops **the last chandelier** onto the edge behind him: on the keeper if it is close enough, and anyway the gap is wider than it can leap. |
+| 124 | The way out leads to "End of Part Three", then the title. |
 
 ## Tests
 
@@ -111,6 +160,15 @@ Each chapter is played start to finish by a scripted bot that only uses the cont
 - `test/chapter_caves_test.dart`
 - `test/chapter_crypt_test.dart`
 - `test/chapter_bone_pit_test.dart`
+- `test/chapter_chase_test.dart`
+- `test/chapter_halls_test.dart`
+- `test/chapter_chandeliers_test.dart`
+
+`test/castle_physics_test.dart` checks the castle machinery on its own:
+- a pan lifts its gate only when it is heavier, and the rope never stretches
+- the lift rises once the chest is off it
+- a chandelier falls when let go, and its candles go out
+- a bookcase tips over when pushed at a boy's height
 
 `test/support/campaign.dart` boots the story and enters any chapter for them. `test/water_test.dart` checks the water on its own: a light crate floats as deep as its density says, a heavy one sinks, one set on its corner rights itself, a current carries it along, and a load pushes it deeper.
 
@@ -125,6 +183,9 @@ They also check:
 - a coffin sinks under him and rises again
 - the vampire won't cross the stream
 - a cask dips and tips under him
+- stopping in the chase gets him caught, and from the checkpoint the keeper comes again from behind
+- the dark corridor without the lantern is death
+- falling into the pit with the two below the gallery is death
 
 ## Capturing frames
 
@@ -132,11 +193,11 @@ They also check:
 flutter test tool/capture/capture_chapters_test.dart --plain-name <scene>
 ```
 
-The scenes are: `title`, `opening`, `tour`, `play`, `forest tour`, `taken`, `cage play`, `caves tour`, `crypt tour` and `pit tour`. `python3 tools/montage.py <dir> <out.png> <columns>` puts a scene's frames on one sheet. Frames go to `build/chapters-preview/<scene>/`.
+The scenes are: `title`, `opening`, `tour`, `play`, `forest tour`, `taken`, `cage play`, `caves tour`, `crypt tour`, `pit tour`, `chase tour`, `halls tour`, `chandeliers tour` and `castle moments`. `python3 tools/montage.py <dir> <out.png> <columns>` puts a scene's frames on one sheet. Frames go to `build/chapters-preview/<scene>/`.
 
 ## Art
 
 - Generate the images: `python3 tools/gen_assets_qwen.py assets/raw/part1 tools/part1_assets.json`. This uses Alibaba Model Studio; the key is read from a local file and never printed.
 - Bake them to silhouettes: `python3 tools/bake_silhouettes.py assets/raw/part1 assets/images/part1 tools/part1_bake.json`.
-- Part 2 uses the same commands with `part2` (`tools/part2_assets.json`, `tools/part2_bake.json`).
+- Parts 2 and 3 use the same commands with `part2` / `part3` (`tools/part2_assets.json`, `tools/part3_assets.json` and their `_bake.json`).
 - Brand assets: `python3 tools/make_brand.py`. See `BRANDING.md`.

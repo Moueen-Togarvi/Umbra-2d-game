@@ -1,0 +1,17 @@
+{
+ "ch7_castle_corridor": {"max_h": 700, "far": true, "keep_inner_white": 0.03},
+ "ch7_hanging_pots": {"max_h": 600, "open": true},
+ "ch7_kitchen_hearth": {"max_h": 600, "keep_inner_white": 0.02},
+ "ch7_stair_tower": {"max_h": 800, "far": true, "keep_inner_white": 0.01},
+ "ch7_wine_cellar": {"max_h": 520, "far": true},
+ "ch8_gothic_window": {"max_h": 800, "keep_inner_white": 0.004},
+ "ch8_suit_of_armour": {"max_h": 700, "far": true},
+ "ch8_banners": {"max_h": 800, "open": true},
+ "ch8_vaulted_hall": {"max_h": 700, "far": true, "keep_inner_white": 0.02},
+ "ch8_long_table": {"max_h": 450},
+ "ch9_grand_stair": {"max_h": 700, "far": true, "keep_inner_white": 0.02},
+ "ch9_gallery": {"max_h": 700, "far": true, "keep_inner_white": 0.02},
+ "ch9_pipe_organ": {"max_h": 900, "far": true},
+ "ch9_throne": {"max_h": 700},
+ "ch9_far_chandelier": {"max_h": 700, "open": true, "far": true}
+}

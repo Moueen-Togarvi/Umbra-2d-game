@@ -168,6 +168,55 @@ class FogBackdrop extends Component {
     ),
   ];
 
+  /// The same four depths inside the castle: colonnades, one behind
+  /// another, fading into the fog.
+  static const List<FogLayerSpec> hallSpecs = [
+    FogLayerSpec(
+      depth: 0.15,
+      tone: Color(0xFF3E4146),
+      blur: 4.5,
+      density: 6,
+      tileWidth: 180,
+      seed: 13,
+      trunkSpacing: 15,
+      trunkWidth: (2.4, 2.4),
+      hall: true,
+    ),
+    FogLayerSpec(
+      depth: 0.3,
+      tone: Color(0xFF2A2C30),
+      blur: 3.6,
+      density: 11,
+      tileWidth: 112,
+      seed: 29,
+      trunkSpacing: 11,
+      trunkWidth: (1.5, 1.5),
+      hall: true,
+    ),
+    FogLayerSpec(
+      depth: 0.55,
+      tone: Color(0xFF17181A),
+      blur: 2.6,
+      density: 20,
+      tileWidth: 74,
+      seed: 41,
+      trunkSpacing: 9.25,
+      trunkWidth: (1.0, 1.0),
+      hall: true,
+    ),
+    FogLayerSpec(
+      depth: 0.8,
+      tone: Color(0xFF080808),
+      blur: 1.5,
+      density: 32,
+      tileWidth: 52,
+      seed: 53,
+      trunkSpacing: 13,
+      trunkWidth: (0.8, 0.8),
+      hall: true,
+    ),
+  ];
+
   // Light is laid over the fog with ordinary alpha blending. BlendMode.screen
   // looks much the same, but Impeller emulates it on OpenGL ES and drew
   // dashed arcs across the picture on the Android emulator.

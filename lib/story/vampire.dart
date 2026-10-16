@@ -30,6 +30,14 @@ enum VampireMode {
   /// Sitting up and climbing out of a coffin: rising from below the
   /// ground line until he stands.
   rise,
+
+  /// Moved by someone else ([Vampire.drive]): running after the boy,
+  /// leaping, climbing. The gait follows how fast he is moved.
+  driven,
+
+  /// Caught in the light with nowhere dark to go: he folds down and
+  /// crumbles to ash and embers.
+  burn,
 }
 
 /// One of the vampires: a gaunt figure over two metres tall, hunched, with
@@ -88,6 +96,24 @@ class Vampire extends Component implements BackdropDrawable {
   /// Not drawn at all (out of the story for now).
   bool gone = false;
 
+  /// How far the claws reach forward when not seizing (0–1): running at
+  /// the boy, or reaching for him across the edge of the light.
+  double reachGoal = 0;
+
+  /// How far an arm is raised against the light (0–1).
+  double shieldGoal = 0;
+  final Calm _shield = Calm(0, hertz: 2.2);
+
+  double _drivenSpeed = 0;
+  double _burnt = 0;
+
+  /// Whether he has burnt away (an ash heap is left).
+  bool get burnt => _burnt >= burnSeconds;
+  static const double burnSeconds = 2.2;
+  bool _ashes = false;
+  final List<_Mote> _motes = [];
+  final math.Random _random = math.Random(7);
+
   late final _Cape _cape = _Cape();
   Stage? _stage;
   CameraComponent? _camera;
@@ -126,6 +152,62 @@ class Vampire extends Component implements BackdropDrawable {
 
   /// Whether he has finished climbing out.
   bool get risen => mode != VampireMode.rise;
+
+  /// Puts him at [x] with his feet on [groundY], [lift] above it, as
+  /// someone else moves him; [dt] since the last time, for his gait.
+  void drive({
+    required double x,
+    required double groundY,
+    double lift = 0,
+    required double dt,
+  }) {
+    if (mode == VampireMode.burn) return;
+    final double dx = x - this.x;
+    _drivenSpeed = dt > 0 ? dx / dt : 0;
+    if (dx.abs() > 1e-4) facing = dx.sign;
+    this.x = x;
+    this.groundY = groundY;
+    this.lift = lift;
+    mode = VampireMode.driven;
+  }
+
+  /// Caught in the light: he burns away where he stands.
+  void burn() {
+    if (mode == VampireMode.burn || gone) return;
+    mode = VampireMode.burn;
+    _burnt = 0;
+    _drivenSpeed = 0;
+  }
+
+  /// Whole again and standing (a death of the boy's undid what killed him).
+  void revive() {
+    gone = false;
+    _ashes = false;
+    _burnt = 0;
+    _motes.clear();
+    shieldGoal = 0;
+    reachGoal = 0;
+    lift = 0;
+    mode = VampireMode.stand;
+  }
+
+  /// Something heavy came down on him: gone, in a burst of dust.
+  void crush() {
+    if (gone) return;
+    for (var i = 0; i < 26; i++) {
+      final double a = _random.nextDouble() * math.pi;
+      final double v = 0.6 + _random.nextDouble() * 1.6;
+      _motes.add(
+        _Mote(
+          Vector2(x + (_random.nextDouble() - 0.5) * 1.2, groundY - 0.2),
+          Vector2(math.cos(a) * v, -math.sin(a) * v * 0.6),
+          0.8 + _random.nextDouble() * 0.9,
+          ember: false,
+        ),
+      );
+    }
+    gone = true;
+  }
 
   @override
   Future<void> onLoad() async {
@@ -190,15 +272,29 @@ class Vampire extends Component implements BackdropDrawable {
         // Slow at first, then unfolding to his full height.
         lift = math.min(0, lift + dt * (0.5 + (lift + 2) * 0.35));
         if (lift >= 0) mode = VampireMode.stand;
+      case VampireMode.driven:
+        target = _drivenSpeed;
+      case VampireMode.burn:
+        _burnt += dt;
+        _smoulder(dt);
+        if (_burnt >= burnSeconds) {
+          gone = true;
+          _ashes = true;
+        }
     }
     // Speed eases in and out; the gait advances with distance walked.
-    _speed += (target - _speed) * math.min(1, dt * 3);
-    x += _speed * dt;
+    final bool driven = mode == VampireMode.driven;
+    _speed += (target - _speed) * math.min(1, dt * (driven ? 10 : 3));
+    if (!driven && mode != VampireMode.burn) x += _speed * dt;
+    _updateMotes(dt);
     _gait += _speed.abs() * dt / 0.95 * math.pi;
     _turn.step(facing, dt);
-    final bool crouching = mode == VampireMode.drop && landed;
-    _crouch.step(crouching && sinceLanding < 0.7 ? 1 : 0, dt);
-    _reach.step(mode == VampireMode.grab ? 1 : 0, dt);
+    final bool crouching =
+        (mode == VampireMode.drop && landed && sinceLanding < 0.7) ||
+        mode == VampireMode.burn;
+    _crouch.step(crouching ? 1 : 0, dt);
+    _reach.step(mode == VampireMode.grab ? 1 : reachGoal, dt);
+    _shield.step(mode == VampireMode.burn ? 1 : shieldGoal, dt);
     _cape.step(
       dt,
       _shoulder,
@@ -224,13 +320,23 @@ class Vampire extends Component implements BackdropDrawable {
 
   @override
   void paint(Canvas canvas, Vector2 cam, Mood mood) {
-    if (gone) return;
+    if (depth >= 1) _paintMotes(canvas);
+    if (gone) {
+      if (_ashes) _paintAshes(canvas);
+      return;
+    }
     final double k = depth;
     canvas.save();
     // About the camera, like everything at this depth.
     canvas.translate(cam.x + (x - cam.x) * k, cam.y + (groundY - cam.y) * k);
     canvas.scale(k);
-    final Color tone = Color.lerp(const Color(0xFF020202), mood.sky[2], fog)!;
+    // Burning, he greys towards ash.
+    final double ash = (_burnt / burnSeconds).clamp(0.0, 1.0);
+    final Color tone = Color.lerp(
+      Color.lerp(const Color(0xFF020202), mood.sky[2], fog)!,
+      const Color(0xFF3A3632),
+      ash * ash,
+    )!;
     _body.color = tone;
     _limb.color = tone;
     final Rect? view = _camera?.visibleWorldRect;
@@ -244,17 +350,27 @@ class Vampire extends Component implements BackdropDrawable {
       return;
     }
     canvas.translate(0, -lift);
+    if (ash > 0) {
+      // Folding down into a heap as he crumbles.
+      canvas.scale(1 + ash * 0.15, 1 - ash * 0.75);
+    }
     final double f = _turn.value.clamp(-1.0, 1.0);
     final double dir = f.abs() < 0.1 ? facing : f.sign;
     final double crouch = _crouch.value;
     final double reach = _reach.value;
     final double moving = (_speed.abs() / walkSpeed).clamp(0.0, 1.0);
+    final double shield = _shield.value.clamp(0.0, 1.0);
     final double bob = -math.sin(_gait * 2).abs() * 0.03 * moving;
     final double breathe = math.sin(_time * 1.3) * 0.008;
     final double hipY = -1.0 + crouch * 0.42 + bob;
     final Offset hip = Offset(-dir * 0.04, hipY);
     // Hunched: the back bows forward, more in the crouch, less reaching.
-    final double hunch = 0.42 + crouch * 0.45 - reach * 0.25;
+    final double hunch =
+        0.42 +
+        crouch * 0.45 -
+        reach * 0.25 +
+        shield * 0.25 +
+        (mode == VampireMode.driven ? moving * 0.18 : 0);
     final Offset neck =
         hip +
         Offset(dir * math.sin(hunch) * 0.72, -math.cos(hunch) * 0.72 + breathe);
@@ -396,7 +512,11 @@ class Vampire extends Component implements BackdropDrawable {
           shoulder + Offset(dir * (0.12 + swing), 0.78 - crouch * 0.1);
       final Offset out =
           shoulder + Offset(dir * (0.78 - i * 0.08), -0.05 - i * 0.12);
-      final Offset hand = Offset.lerp(hang, out, reach)!;
+      Offset hand = Offset.lerp(hang, out, reach)!;
+      if (i == 0 && shield > 0) {
+        // The near arm up across his face against the light.
+        hand = Offset.lerp(hand, head + Offset(dir * 0.16, 0.02), shield)!;
+      }
       final Offset elbow = solveLimb(shoulder, hand, 0.43, 0.42, dir);
       canvas.drawPath(
         Path()
@@ -429,9 +549,9 @@ class Vampire extends Component implements BackdropDrawable {
     }
 
     // The eyes: red, the only colour on him.
-    if (eyes > 0.01) {
+    if (eyes > 0.01 && ash < 0.8) {
       final Offset eye = head + Offset(dir * 0.06, -0.035);
-      final double a = eyes * (1 - fog * 0.6);
+      final double a = eyes * (1 - fog * 0.6) * (1 - ash / 0.8);
       // Opaque: a shader paints at the paint colour's opacity.
       _glow.color = const Color(0xFFFFFFFF);
       _glow.shader = Gradient.radial(eye, 0.06, [
@@ -452,6 +572,105 @@ class Vampire extends Component implements BackdropDrawable {
       );
     }
     canvas.restore();
+  }
+}
+
+/// A speck of ash, an ember or a puff of dust, in world metres.
+class _Mote {
+  _Mote(this.p, this.v, this.life, {required this.ember});
+  final Vector2 p, v;
+  double life;
+  final bool ember;
+  late final double full = life;
+}
+
+extension on Vampire {
+  /// Embers and ash lifting off him as he burns.
+  void _smoulder(double dt) {
+    final double t = (_burnt / Vampire.burnSeconds).clamp(0.0, 1.0);
+    final int count = (dt * (60 + 140 * (1 - t))).round();
+    final double top = Vampire.height * (1 - t * 0.75);
+    for (var i = 0; i < count; i++) {
+      final bool ember = _random.nextDouble() < 0.35;
+      _motes.add(
+        _Mote(
+          Vector2(
+            x + (_random.nextDouble() - 0.5) * 0.7,
+            groundY - _random.nextDouble() * top,
+          ),
+          Vector2(
+            (_random.nextDouble() - 0.5) * 0.5,
+            -0.4 - _random.nextDouble() * (ember ? 1.4 : 0.7),
+          ),
+          0.6 + _random.nextDouble() * (ember ? 1.0 : 1.8),
+          ember: ember,
+        ),
+      );
+    }
+  }
+
+  void _updateMotes(double dt) {
+    for (var i = _motes.length - 1; i >= 0; i--) {
+      final m = _motes[i];
+      m.life -= dt;
+      if (m.life <= 0) {
+        _motes.removeAt(i);
+        continue;
+      }
+      // Ash drifts and settles; embers rise and fade; dust falls back.
+      if (m.ember) {
+        m.v.y -= 0.3 * dt;
+      } else {
+        m.v.y += 0.35 * dt;
+      }
+      m.v.x += math.sin(m.life * 5 + i) * 0.4 * dt;
+      m.v.scale(math.exp(-1.2 * dt));
+      m.p.addScaled(m.v, dt);
+    }
+  }
+}
+
+final Paint _motePaint = Paint();
+
+extension on Vampire {
+  void _paintMotes(Canvas canvas) {
+    for (final m in _motes) {
+      final double a = (m.life / m.full).clamp(0.0, 1.0);
+      if (m.ember) {
+        _motePaint.color = Color.lerp(
+          Palette.vampireRed,
+          const Color(0xFFFFA060),
+          a,
+        )!.withValues(alpha: a);
+        canvas.drawCircle(m.p.toOffset(), 0.012 + 0.012 * a, _motePaint);
+      } else {
+        _motePaint.color = const Color(0xFF5A5650).withValues(alpha: a * 0.8);
+        canvas.drawCircle(m.p.toOffset(), 0.018 + 0.02 * (1 - a), _motePaint);
+      }
+    }
+  }
+
+  /// What is left: a low heap of ash, the collar's two spikes in it.
+  void _paintAshes(Canvas canvas) {
+    _motePaint.color = const Color(0xFF151413);
+    canvas.drawPath(
+      Path()
+        ..moveTo(x - 0.5, groundY + 0.02)
+        ..quadraticBezierTo(x - 0.3, groundY - 0.16, x, groundY - 0.18)
+        ..quadraticBezierTo(x + 0.35, groundY - 0.14, x + 0.55, groundY + 0.02)
+        ..close(),
+      _motePaint,
+    );
+    canvas.drawPath(
+      Path()
+        ..moveTo(x - 0.1, groundY - 0.12)
+        ..lineTo(x - 0.16, groundY - 0.36)
+        ..lineTo(x, groundY - 0.15)
+        ..lineTo(x + 0.06, groundY - 0.3)
+        ..lineTo(x + 0.1, groundY - 0.12)
+        ..close(),
+      _motePaint,
+    );
   }
 }
 

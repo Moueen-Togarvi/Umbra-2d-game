@@ -216,10 +216,25 @@ class MovingPlatform extends BodyComponent {
 /// What is drawn is a light chain of points along the whole rope, pinned at
 /// the anchor, at the bob and, while the boy's feet clamp it, at his feet.
 /// The rope below his hands keeps hanging and swinging with him.
+/// What a rope hangs from.
+enum RopeSupport {
+  /// A high branch leaving the picture.
+  branch,
+
+  /// An iron ring in a vaulted ceiling.
+  ring,
+}
+
 class SwingRope extends BodyComponent {
-  SwingRope({required Vector2 anchor, required this.length, this.tyre = false})
-    : anchor = anchor.clone(),
-      super(renderBody: false);
+  SwingRope({
+    required Vector2 anchor,
+    required this.length,
+    this.tyre = false,
+    this.support = RopeSupport.branch,
+  }) : anchor = anchor.clone(),
+       super(renderBody: false);
+
+  final RopeSupport support;
 
   final Vector2 anchor;
   final double length;
@@ -512,12 +527,47 @@ class SwingRope extends BodyComponent {
     canvas.restore();
   }
 
+  /// Draws what hangs on the rope's end, at [end] with the rope coming
+  /// down to it along [down] (a unit vector), on a canvas centred on the
+  /// anchor. A knot and frayed end, or the tyre.
+  void drawEnd(Canvas canvas, Offset end, Offset down) {
+    if (tyre) {
+      _drawTyre(canvas, end, down);
+      return;
+    }
+    canvas.drawCircle(end, 0.03, _knot);
+    for (final splay in const [-0.25, 0.0, 0.3]) {
+      final Offset tip =
+          end +
+          Offset(
+                down.dx * math.cos(splay) - down.dy * math.sin(splay),
+                down.dx * math.sin(splay) + down.dy * math.cos(splay),
+              ) *
+              0.09;
+      canvas.drawLine(end, tip, _fray);
+    }
+  }
+
+  static final Paint _ring = Paint()
+    ..color = const Color(0xFF0B0B0B)
+    ..style = PaintingStyle.stroke
+    ..strokeWidth = 0.045;
+
   @override
   void render(Canvas canvas) {
     if (!isReady) return;
+    if (support == RopeSupport.ring) {
+      // A chain up into the dark of the vault, a block and a ring.
+      canvas.drawLine(const Offset(0, -0.3), const Offset(0, -7), _ring);
+      canvas.drawRect(const Rect.fromLTRB(-0.12, -0.36, 0.12, -0.2), _branch);
+      canvas.drawLine(const Offset(0, -0.2), const Offset(0, -0.1), _ring);
+      canvas.drawCircle(const Offset(0, -0.04), 0.07, _ring);
+      _drawRope(canvas);
+      return;
+    }
     // A high branch exits the frame; the small visible fastening marks the
     // actual static anchor. It sits above the reachable character space.
-    final support = Path()
+    final branchPath = Path()
       ..moveTo(-0.07, 0.025)
       ..lineTo(0.035, -0.12)
       ..quadraticBezierTo(0.70, -0.25, 1.28, -1.05)
@@ -526,7 +576,7 @@ class SwingRope extends BodyComponent {
       ..lineTo(1.48, -0.92)
       ..quadraticBezierTo(0.70, -0.04, 0.06, 0.09)
       ..close();
-    canvas.drawPath(support, _branch);
+    canvas.drawPath(branchPath, _branch);
     canvas.drawRRect(
       RRect.fromRectAndRadius(
         const Rect.fromLTWH(-0.085, -0.065, 0.16, 0.11),
@@ -535,6 +585,10 @@ class SwingRope extends BodyComponent {
       _fastening,
     );
     canvas.drawCircle(const Offset(-0.012, -0.025), 0.016, _nail);
+    _drawRope(canvas);
+  }
+
+  void _drawRope(Canvas canvas) {
     // The rope, as a smooth curve through its points (this canvas is
     // centred on the anchor).
     Offset at(int i) =>
@@ -550,22 +604,7 @@ class SwingRope extends BodyComponent {
     // A knot and a frayed end below it, rather than a ball; or the tyre.
     final Offset last = end - at(_count - 1);
     final double run = last.distance;
-    if (tyre && run > 0) {
-      _drawTyre(canvas, end, last / run);
-    } else if (run > 0) {
-      final Offset dir = last / run;
-      canvas.drawCircle(end, 0.03, _knot);
-      for (final splay in const [-0.25, 0.0, 0.3]) {
-        final Offset tip =
-            end +
-            Offset(
-                  dir.dx * math.cos(splay) - dir.dy * math.sin(splay),
-                  dir.dx * math.sin(splay) + dir.dy * math.cos(splay),
-                ) *
-                0.09;
-        canvas.drawLine(end, tip, _fray);
-      }
-    }
+    if (run > 0) drawEnd(canvas, end, last / run);
   }
 
   @override

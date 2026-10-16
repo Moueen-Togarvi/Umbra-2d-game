@@ -2,6 +2,7 @@ import 'package:flame/components.dart';
 
 import '../entities/player.dart';
 import '../render/fog_layer.dart';
+import '../render/light.dart';
 import '../render/mood.dart';
 import '../render/scenery.dart';
 import 'checkpoint_service.dart';
@@ -32,6 +33,17 @@ abstract class Stage extends Component {
   /// front of them; the backdrop draws these, each between the layers
   /// nearer and further than it.
   final List<BackdropDrawable> backdropProps = [];
+
+  /// Everything that lights the world here (see [LightSource]).
+  final List<LightSource> lights = [];
+
+  /// Whether [point] is in any light.
+  bool isLit(Vector2 point) {
+    for (final light in lights) {
+      if (light.lights(point)) return true;
+    }
+    return false;
+  }
 
   /// Available as soon as the stage has loaded.
   Player get player;

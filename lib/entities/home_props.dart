@@ -25,7 +25,7 @@ const Color _crack = Color(0x26C8C8C8);
 /// joint with a little suspension and a little drag in its axle. He grabs
 /// and pushes it like a crate (it is one, to the hands), and it rolls.
 class Cart extends PhysicsCrate {
-  Cart({required double x, required double groundY})
+  Cart({required double x, required double groundY, this.shafts = true})
     : super(
         position: Vector2(x, groundY - wheelRadius - _axleBelow),
         size: Vector2(1.5, 0.4),
@@ -34,6 +34,9 @@ class Cart extends PhysicsCrate {
       );
 
   static const double wheelRadius = 0.3;
+
+  /// The shafts a donkey was once harnessed to, resting on the ground.
+  final bool shafts;
 
   /// How far below the bed's centre the axles sit.
   static const double _axleBelow = 0.17;
@@ -87,6 +90,24 @@ class Cart extends PhysicsCrate {
     return bed;
   }
 
+  /// The cart and its wheels back where they started, at rest.
+  @override
+  void resetToStart() {
+    if (!isReady) return;
+    super.resetToStart();
+    for (var i = 0; i < wheels.length; i++) {
+      final Body wheel = wheels[i];
+      if (!wheel.isValid) continue;
+      wheel
+        ..setTransform(
+          body.position + Vector2((i * 2 - 1) * _axleX, _axleBelow),
+          Rot.fromAngle(0),
+        )
+        ..linearVelocity = Vector2.zero()
+        ..angularVelocity = 0;
+    }
+  }
+
   @override
   void onRemove() {
     for (final wheel in wheels) {
@@ -113,15 +134,17 @@ class Cart extends PhysicsCrate {
     if (!isReady) return;
     final double hw = size.x / 2, hh = size.y / 2;
     // Shafts for a donkey that is long gone, resting on the ground.
-    canvas.drawPath(
-      Path()
-        ..moveTo(-hw + 0.05, hh * 0.2)
-        ..lineTo(-hw - 0.95, hh + 0.42)
-        ..lineTo(-hw - 0.93, hh + 0.47)
-        ..lineTo(-hw + 0.05, hh * 0.55)
-        ..close(),
-      _wood,
-    );
+    if (shafts) {
+      canvas.drawPath(
+        Path()
+          ..moveTo(-hw + 0.05, hh * 0.2)
+          ..lineTo(-hw - 0.95, hh + 0.42)
+          ..lineTo(-hw - 0.93, hh + 0.47)
+          ..lineTo(-hw + 0.05, hh * 0.55)
+          ..close(),
+        _wood,
+      );
+    }
     // The bed and its low side boards.
     canvas.drawRect(Rect.fromLTRB(-hw, -hh, hw, hh), _wood);
     for (final x in [-hw + 0.02, hw - 0.08]) {

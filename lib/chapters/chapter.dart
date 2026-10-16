@@ -49,6 +49,9 @@ abstract class Chapter extends Stage {
   /// Every image the chapter draws, loaded before it builds.
   List<String> get art => const [];
 
+  /// Whether grass grows on its ground (not on a castle's stone floors).
+  bool get grassy => true;
+
   @override
   double get height => GameConfig.levelHeight;
   @override
@@ -199,6 +202,7 @@ abstract class Chapter extends Stage {
           pitOnLeft: i > 0,
           pitOnRight: i < terrain.segments.length - 1,
           bottom: height + 1,
+          bare: !grassy,
         ),
     ];
     pieces.addAll(banks);
@@ -232,8 +236,8 @@ abstract class Chapter extends Stage {
     await furnish(pieces);
     pieces
       ..add(player)
-      ..add(DustField(player: player))
-      ..add(FrontGrass(banks: banks, wind: wind));
+      ..add(DustField(player: player));
+    if (grassy) pieces.add(FrontGrass(banks: banks, wind: wind));
     await addAll(pieces);
   }
 

@@ -2,9 +2,12 @@ import '../input/player_intent.dart';
 import 'bone_pit.dart';
 import 'cage.dart';
 import 'caves.dart';
-import 'crypt.dart';
+import 'chandeliers.dart';
 import 'chapter.dart';
+import 'chase.dart';
+import 'crypt.dart';
 import 'forest.dart';
+import 'halls.dart';
 import 'home.dart';
 
 /// One chapter in the story's running order: its name for the card and
@@ -41,6 +44,18 @@ abstract final class Chapters {
     ChapterEntry(
       'The Bone Pit',
       (intent, atTitle) => BonePitChapter(intent: intent),
+    ),
+    ChapterEntry(
+      'The Chase',
+      (intent, atTitle) => ChaseChapter(intent: intent),
+    ),
+    ChapterEntry(
+      'The Halls',
+      (intent, atTitle) => HallsChapter(intent: intent),
+    ),
+    ChapterEntry(
+      'The Chandeliers',
+      (intent, atTitle) => ChandeliersChapter(intent: intent),
     ),
   ];
 

@@ -1,0 +1,92 @@
+[
+ {
+  "name": "ch7_kitchen_hearth",
+  "size": "1664*928",
+  "prompt": "A huge old castle kitchen fireplace of rough stone blocks with a wide arched opening that is EMPTY pure white, a big iron cauldron hanging on a chain inside it, iron spits and pokers leaning beside it, standing on the bottom edge. Drawn as a detailed dark fairy-tale storybook illustration, mostly deep black, isolated on a completely plain pure white (#FFFFFF) background with nothing else in the image: no scenery, no sky, no ground plane, no cast shadow, no text, no border.",
+  "negative": "text, letters, words, signature, watermark, frame, border, colour, color, grey, gray, gradient, 3d, photo, ground line, horizon, people, grass, scenery, background, sky, cast shadow, drop shadow"
+ },
+ {
+  "name": "ch7_hanging_pots",
+  "size": "1664*928",
+  "prompt": "A long iron rack hanging down from the top edge by chains, with many old pots, pans, ladles, cleavers, dried herbs and a few hanging hooks dangling from it at different heights, spread across the full width. Rendered as one SOLID BLACK SILHOUETTE like a black paper cut-out or a shadow puppet: every part of the shape is filled flat solid pure black (#000000) with NO interior lines, NO outlines, NO hatching and NO white details inside, set on a completely flat pure white (#FFFFFF) background. Exact side view, flat orthographic, isolated, nothing else in the image. Crisp clean edges, detail only in the outline. No ground, no grass, no text, no border.",
+  "negative": "text, letters, words, signature, watermark, frame, border, colour, color, grey, gray, gradient, shading, texture, 3d, photo, ground line, horizon, people, line art, ink drawing, sketch, outline drawing, hatching, engraving, white interior, perspective, scenery, sky"
+ },
+ {
+  "name": "ch7_wine_cellar",
+  "size": "1664*928",
+  "prompt": "An old castle wine cellar wall: big wooden barrels lying on their sides stacked in a heavy timber rack, three rows high, across the full width, with cobwebs, standing on the bottom edge. Drawn as a detailed dark fairy-tale storybook illustration, mostly deep black, isolated on a completely plain pure white (#FFFFFF) background with nothing else in the image: no scenery, no sky, no ground plane, no cast shadow, no text, no border.",
+  "negative": "text, letters, words, signature, watermark, frame, border, colour, color, grey, gray, gradient, 3d, photo, ground line, horizon, people, grass, scenery, background, sky, cast shadow, drop shadow"
+ },
+ {
+  "name": "ch7_castle_corridor",
+  "size": "1664*928",
+  "prompt": "A long castle corridor seen from the side: a row of four tall pointed gothic stone arches on slender pillars, the openings EMPTY pure white, a few broken stones and hanging chains, standing on the bottom edge across the full width. Drawn as a detailed dark fairy-tale storybook illustration, mostly deep black, isolated on a completely plain pure white (#FFFFFF) background with nothing else in the image: no scenery, no sky, no ground plane, no cast shadow, no text, no border.",
+  "negative": "text, letters, words, signature, watermark, frame, border, colour, color, grey, gray, gradient, 3d, photo, ground line, horizon, people, grass, scenery, background, sky, cast shadow, drop shadow"
+ },
+ {
+  "name": "ch7_stair_tower",
+  "size": "928*1664",
+  "prompt": "A tall narrow stone staircase climbing diagonally up a castle wall from the bottom left to the top right, with a crooked wooden handrail on posts and a small arched doorway at the top, standing on the bottom edge. Drawn as a detailed dark fairy-tale storybook illustration, mostly deep black, isolated on a completely plain pure white (#FFFFFF) background with nothing else in the image: no scenery, no sky, no ground plane, no cast shadow, no text, no border.",
+  "negative": "text, letters, words, signature, watermark, frame, border, colour, color, grey, gray, gradient, 3d, photo, ground line, horizon, people, grass, scenery, background, sky, cast shadow, drop shadow"
+ },
+ {
+  "name": "ch8_gothic_window",
+  "size": "928*1664",
+  "prompt": "One very tall pointed gothic castle window in a thick stone wall: stone tracery and mullions dividing it into narrow lancets and a round rose at the top, all the glass panes EMPTY pure white, a deep stone sill at the bottom, the wall around it solid black reaching all four edges of the image. Drawn as a detailed dark fairy-tale storybook illustration, mostly deep black, isolated on a completely plain pure white (#FFFFFF) background with nothing else in the image: no scenery, no sky, no ground plane, no cast shadow, no text, no border.",
+  "negative": "text, letters, words, signature, watermark, frame, border, colour, color, grey, gray, gradient, 3d, photo, ground line, horizon, people, grass, scenery, background, sky, cast shadow, drop shadow"
+ },
+ {
+  "name": "ch8_suit_of_armour",
+  "size": "928*1664",
+  "prompt": "A full suit of medieval knight's armour standing upright on a low plinth, holding a tall halberd beside it, the helmet's visor closed, a tattered cloth at the waist. Rendered as one SOLID BLACK SILHOUETTE like a black paper cut-out or a shadow puppet: every part of the shape is filled flat solid pure black (#000000) with NO interior lines, NO outlines, NO hatching and NO white details inside, set on a completely flat pure white (#FFFFFF) background. Exact side view, flat orthographic, isolated, nothing else in the image. Crisp clean edges, detail only in the outline. No ground, no grass, no text, no border.",
+  "negative": "text, letters, words, signature, watermark, frame, border, colour, color, grey, gray, gradient, shading, texture, 3d, photo, ground line, horizon, people, line art, ink drawing, sketch, outline drawing, hatching, engraving, white interior, perspective, scenery, sky"
+ },
+ {
+  "name": "ch8_banners",
+  "size": "928*1664",
+  "prompt": "Three long tattered heraldic banners hanging down from a horizontal iron pole along the top edge, of different lengths, their bottom ends torn into ragged points and holes. Rendered as one SOLID BLACK SILHOUETTE like a black paper cut-out or a shadow puppet: every part of the shape is filled flat solid pure black (#000000) with NO interior lines, NO outlines, NO hatching and NO white details inside, set on a completely flat pure white (#FFFFFF) background. Exact side view, flat orthographic, isolated, nothing else in the image. Crisp clean edges, detail only in the outline. No ground, no grass, no text, no border.",
+  "negative": "text, letters, words, signature, watermark, frame, border, colour, color, grey, gray, gradient, shading, texture, 3d, photo, ground line, horizon, people, line art, ink drawing, sketch, outline drawing, hatching, engraving, white interior, perspective, scenery, sky"
+ },
+ {
+  "name": "ch8_vaulted_hall",
+  "size": "1664*928",
+  "prompt": "The inside of a vast gothic castle hall seen from the side: tall clustered stone columns holding up ribbed pointed vaults, the spaces between them EMPTY pure white, standing on the bottom edge across the full width. Drawn as a detailed dark fairy-tale storybook illustration, mostly deep black, isolated on a completely plain pure white (#FFFFFF) background with nothing else in the image: no scenery, no sky, no ground plane, no cast shadow, no text, no border.",
+  "negative": "text, letters, words, signature, watermark, frame, border, colour, color, grey, gray, gradient, 3d, photo, ground line, horizon, people, grass, scenery, background, sky, cast shadow, drop shadow"
+ },
+ {
+  "name": "ch8_long_table",
+  "size": "1664*928",
+  "prompt": "A very long heavy wooden banquet table seen from the side with six tall high-backed carved chairs, two tall iron candlesticks and a few goblets on it, standing on the bottom edge. Rendered as one SOLID BLACK SILHOUETTE like a black paper cut-out or a shadow puppet: every part of the shape is filled flat solid pure black (#000000) with NO interior lines, NO outlines, NO hatching and NO white details inside, set on a completely flat pure white (#FFFFFF) background. Exact side view, flat orthographic, isolated, nothing else in the image. Crisp clean edges, detail only in the outline. No ground, no grass, no text, no border.",
+  "negative": "text, letters, words, signature, watermark, frame, border, colour, color, grey, gray, gradient, shading, texture, 3d, photo, ground line, horizon, people, line art, ink drawing, sketch, outline drawing, hatching, engraving, white interior, perspective, scenery, sky"
+ },
+ {
+  "name": "ch9_grand_stair",
+  "size": "1664*928",
+  "prompt": "A grand curving castle staircase with a carved stone balustrade sweeping up from the bottom left to a landing at the top right, with a big round newel post and urns, standing on the bottom edge. Drawn as a detailed dark fairy-tale storybook illustration, mostly deep black, isolated on a completely plain pure white (#FFFFFF) background with nothing else in the image: no scenery, no sky, no ground plane, no cast shadow, no text, no border.",
+  "negative": "text, letters, words, signature, watermark, frame, border, colour, color, grey, gray, gradient, 3d, photo, ground line, horizon, people, grass, scenery, background, sky, cast shadow, drop shadow"
+ },
+ {
+  "name": "ch9_gallery",
+  "size": "1664*928",
+  "prompt": "A long upper gallery balcony in a castle ballroom: a carved stone balustrade with round balusters running across the full width, held up by a row of tall slender columns with arches between them, the spaces under the arches EMPTY pure white, standing on the bottom edge. Drawn as a detailed dark fairy-tale storybook illustration, mostly deep black, isolated on a completely plain pure white (#FFFFFF) background with nothing else in the image: no scenery, no sky, no ground plane, no cast shadow, no text, no border.",
+  "negative": "text, letters, words, signature, watermark, frame, border, colour, color, grey, gray, gradient, 3d, photo, ground line, horizon, people, grass, scenery, background, sky, cast shadow, drop shadow"
+ },
+ {
+  "name": "ch9_pipe_organ",
+  "size": "928*1664",
+  "prompt": "A huge old church pipe organ: rows of tall organ pipes of different heights rising in pointed towers, a carved wooden case and a keyboard console at the bottom, standing on the bottom edge. Drawn as a detailed dark fairy-tale storybook illustration, mostly deep black, isolated on a completely plain pure white (#FFFFFF) background with nothing else in the image: no scenery, no sky, no ground plane, no cast shadow, no text, no border.",
+  "negative": "text, letters, words, signature, watermark, frame, border, colour, color, grey, gray, gradient, 3d, photo, ground line, horizon, people, grass, scenery, background, sky, cast shadow, drop shadow"
+ },
+ {
+  "name": "ch9_throne",
+  "size": "928*1664",
+  "prompt": "A tall gaunt high-backed throne with spiky gothic pinnacles and bat-wing carvings, standing on three wide stone steps on the bottom edge. Rendered as one SOLID BLACK SILHOUETTE like a black paper cut-out or a shadow puppet: every part of the shape is filled flat solid pure black (#000000) with NO interior lines, NO outlines, NO hatching and NO white details inside, set on a completely flat pure white (#FFFFFF) background. Exact side view, flat orthographic, isolated, nothing else in the image. Crisp clean edges, detail only in the outline. No ground, no grass, no text, no border.",
+  "negative": "text, letters, words, signature, watermark, frame, border, colour, color, grey, gray, gradient, shading, texture, 3d, photo, ground line, horizon, people, line art, ink drawing, sketch, outline drawing, hatching, engraving, white interior, perspective, scenery, sky"
+ },
+ {
+  "name": "ch9_far_chandelier",
+  "size": "1328*1328",
+  "prompt": "A huge ornate iron chandelier hanging from a long chain coming down from the top edge: three tiers of curled iron arms with many candles and hanging crystal drops, wide at the middle. Rendered as one SOLID BLACK SILHOUETTE like a black paper cut-out or a shadow puppet: every part of the shape is filled flat solid pure black (#000000) with NO interior lines, NO outlines, NO hatching and NO white details inside, set on a completely flat pure white (#FFFFFF) background. Exact side view, flat orthographic, isolated, nothing else in the image. Crisp clean edges, detail only in the outline. No ground, no grass, no text, no border.",
+  "negative": "text, letters, words, signature, watermark, frame, border, colour, color, grey, gray, gradient, shading, texture, 3d, photo, ground line, horizon, people, line art, ink drawing, sketch, outline drawing, hatching, engraving, white interior, perspective, scenery, sky"
+ }
+]
