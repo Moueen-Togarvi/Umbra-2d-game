@@ -89,6 +89,7 @@ class SceneryProp extends Component implements BackdropDrawable {
     final game = findGame();
     if (game is FlameGame) _camera = game.camera;
     _stage = ancestors().whereType<Stage>().firstOrNull;
+    if (_stage?.backgroundPlan?.replacesProp(image, depth) ?? false) return;
     if (inBackdrop) _stage?.backdropProps.add(this);
     // Blurred art reads better far off, and is cheaper to scale down.
     final String far = image.endsWith('_far.png')
@@ -132,6 +133,7 @@ class SceneryProp extends Component implements BackdropDrawable {
 
   @override
   void render(Canvas canvas) {
+    if (_stage?.backgroundPlan?.replacesProp(image, depth) ?? false) return;
     // Far scenery is drawn by the backdrop, among the fog layers.
     if (inBackdrop && _stage != null) return;
     final Vector2 cam = _camera?.viewfinder.position ?? Vector2(x, baseY);

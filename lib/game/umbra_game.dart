@@ -2,6 +2,7 @@ import 'dart:math' as math;
 import 'dart:ui';
 
 import 'package:flame/flame.dart';
+import 'package:flame/components.dart' show Component;
 import 'package:flame/input.dart' show HasKeyboardHandlerComponents;
 import 'package:flame_forge2d/flame_forge2d.dart';
 
@@ -16,6 +17,7 @@ import '../input/player_intent.dart';
 import '../input/touch_controls.dart';
 import '../render/debug_hud.dart';
 import '../render/fog_backdrop.dart';
+import '../render/chapter_backdrop.dart';
 import '../render/foreground_overlay.dart';
 import '../story/chapter_card.dart';
 import '../story/chapter_director.dart';
@@ -176,7 +178,7 @@ class UmbraGame extends Forge2DGame with HasKeyboardHandlerComponents {
   /// The level or chapter being played.
   Stage? _stage;
   Stage? get stage => _stage;
-  FogBackdrop? _backdrop;
+  Component? _backdrop;
 
   /// Where the camera is heading. Kept separate from the camera's actual
   /// position so it can ease towards it.
@@ -237,7 +239,7 @@ class UmbraGame extends Forge2DGame with HasKeyboardHandlerComponents {
     // Out-of-focus shapes and the lens in front of the world, and the
     // black the picture fades to when he dies or a scene ends.
     await camera.viewport.addAll([
-      ForegroundFog(camera: camera),
+      if (!campaign) ForegroundFog(camera: camera),
       ForegroundOverlay(camera: camera, settings: settings),
       ScreenFade(camera: camera, blackness: () => blackness),
     ]);
@@ -328,6 +330,25 @@ class UmbraGame extends Forge2DGame with HasKeyboardHandlerComponents {
     _stage = stage;
     checkpoints = stage.checkpoints;
     deathSequence = DeathSequence(checkpoints: checkpoints);
+    // Decode before any new bodies start simulating. Asset I/O must not
+    // advance a hanging cage or a cutscene before the chapter is ready.
+    final Component nextBackdrop = stage.backgroundPlan != null
+        ? ChapterBackdrop(
+            camera: camera,
+            plan: stage.backgroundPlan!,
+            stageWidth: stage.width,
+            groundFor: stage.backdropGround,
+          )
+        : FogBackdrop(
+            camera: camera,
+            moods: stage.moods,
+            layerSpecs: stage.backdropSpecs,
+            groundFor: stage.backdropGround,
+            props: () => stage.backdropProps,
+          );
+    final Component? oldBackdrop = _backdrop;
+    if (oldBackdrop != null) camera.backdrop.remove(oldBackdrop);
+    await camera.backdrop.add(_backdrop = nextBackdrop);
     await world.add(stage);
     final Player player = _player = stage.player;
     player.debugEnabled = _debugVisible;
@@ -342,23 +363,9 @@ class UmbraGame extends Forge2DGame with HasKeyboardHandlerComponents {
     );
     camera.viewfinder.position = _cameraTarget.clone();
     _cameraBase.setFrom(_cameraTarget);
-
-    // The fog and forest (or rock) behind the world, for this stage's air.
-    final FogBackdrop? oldBackdrop = _backdrop;
-    if (oldBackdrop != null) camera.backdrop.remove(oldBackdrop);
-    await camera.backdrop.add(
-      _backdrop = FogBackdrop(
-        camera: camera,
-        moods: stage.moods,
-        layerSpecs: stage.backdropSpecs,
-        groundFor: stage.backdropGround,
-        props: () => stage.backdropProps,
-      ),
-    );
   }
 
-  /// The only bitmap the game draws: film grain. Everything else is
-  /// procedural. If it is missing the grain is simply left out.
+  /// Shared film grain. Chapter artwork is owned by its backdrop.
   Future<void> _loadArt() async {
     try {
       await Flame.images.load('grain.png');

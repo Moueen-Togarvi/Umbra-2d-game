@@ -5,6 +5,7 @@
 //
 // Frames go to build/chapters-preview/<scene>/.
 import 'dart:io';
+import 'dart:convert';
 import 'dart:ui' as ui;
 
 import 'package:flame/game.dart';
@@ -27,6 +28,7 @@ import 'package:umbra/story/chapter_director.dart';
 import 'package:umbra/story/figures.dart';
 import 'package:umbra/story/vampire.dart';
 import 'package:umbra/render/mood.dart';
+import 'package:umbra/render/chapter_backdrop.dart';
 import 'package:umbra/ui/title_screen.dart';
 import 'package:umbra/ui/pause_screen.dart';
 
@@ -358,6 +360,89 @@ void main() {
     expect(halls.cart.body.position.x, greaterThan(32));
     await shot(tester, game, 'review', 'corridor_gameplay');
   });
+
+  // Frozen review frames at real terrain locations. Positioning here is
+  // capture tooling only; normal gameplay continues to use Box2D movement.
+  for (var index = 0; index < 15; index++) {
+    testWidgets('background review ${index + 1}', (tester) async {
+      final game = await boot(tester);
+      await enterChapter(tester, game, index);
+      for (var k = 0; k < 900 && game.intent.isScripted; k++) {
+        game.update(1 / 60);
+      }
+      final chapter = game.stage! as Chapter;
+      expect(chapter.number, index + 1);
+      ChapterBackdrop? backdrop;
+      for (var k = 0; k < 100; k++) {
+        await tester.runAsync(
+          () => Future<void>.delayed(const Duration(milliseconds: 10)),
+        );
+        await tester.pump();
+        game.update(0);
+        backdrop = game.camera.backdrop.children
+            .whereType<ChapterBackdrop>()
+            .where((b) => b.plan.number == index + 1)
+            .firstOrNull;
+        if (backdrop?.hasArtwork == true) break;
+      }
+      expect(backdrop?.hasArtwork, isTrue);
+      final metadata = <Map<String, Object>>[];
+      for (var area = 0; area < 4; area++) {
+        final plan = chapter.backgroundPlan;
+        final start = plan.areas[area].start;
+        final end = area < 3 ? plan.areas[area + 1].start : chapter.width;
+        double x = start + (end - start) * .45;
+        // Find a real bank rather than posing the character over a hazard.
+        for (
+          var attempt = 0;
+          attempt < 30 && chapter.terrain.heightAt(x) == null;
+          attempt++
+        ) {
+          x = start + 5 + attempt * .5;
+        }
+        // Query raised slabs/platforms as well as the terrain profile, so
+        // review poses cannot accidentally sit inside a castle's gallery.
+        double ground = chapter.groundAt(x);
+        game.world.physicsWorld.castRay(
+          Vector2(x, ground - 4),
+          Vector2(0, 4.2),
+          (hit) {
+            if (hit.shape.body == chapter.player.body ||
+                hit.shape.isSensor ||
+                hit.normal.y > -.5) {
+              return -1;
+            }
+            if (hit.point.y < ground) ground = hit.point.y;
+            return 1;
+          },
+        );
+        chapter.player.teleportTo(
+          Vector2(x, ground - GameConfig.playerHeight / 2),
+        );
+        chapter.cameraFocus = null;
+        chapter.blackness = 0;
+        game.director!.blackness = 0;
+        game.camera.viewfinder.position = Vector2(x, ground - 2.1);
+        backdrop!.update(10);
+        final scene =
+            'backgrounds/chapter_${(index + 1).toString().padLeft(2, '0')}';
+        await shot(tester, game, scene, 'area_${area + 1}');
+        metadata.add({
+          'chapter': chapter.number,
+          'title': chapter.title,
+          'area': area + 1,
+          'name': plan.areas[area].name,
+          'x': x,
+          'image': 'area_${area + 1}.png',
+        });
+      }
+      final dir = Directory(
+        '${out.path}/backgrounds/chapter_${(index + 1).toString().padLeft(2, '0')}',
+      );
+      File('${dir.path}/manifest.json').writeAsStringSync(jsonEncode(metadata));
+      expect(tester.takeException(), isNull);
+    });
+  }
 
   testWidgets('review figures', (tester) async {
     await tester.runAsync(loadFonts);

@@ -9,6 +9,7 @@ import '../entities/player.dart';
 import '../input/player_intent.dart';
 import '../physics/water.dart';
 import '../render/dust.dart';
+import '../render/chapter_backgrounds.dart';
 import '../render/grass.dart';
 import '../story/cutscene.dart';
 import '../world/checkpoint_service.dart';
@@ -32,6 +33,8 @@ abstract class Chapter extends Stage {
 
   /// Its place in the story, from 1, and its name on the card.
   int get number;
+  @override
+  ChapterBackground get backgroundPlan => ChapterBackgrounds.forChapter(number);
   String get title;
 
   /// Each bank as flat x, y pairs, left to right.

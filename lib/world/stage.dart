@@ -2,6 +2,7 @@ import 'package:flame/components.dart';
 
 import '../entities/player.dart';
 import '../render/fog_layer.dart';
+import '../render/chapter_backgrounds.dart';
 import '../render/light.dart';
 import '../render/mood.dart';
 import '../render/scenery.dart';
@@ -28,6 +29,8 @@ abstract class Stage extends Component {
 
   /// The depth layers to stand in the fog, or null for the usual forest.
   List<FogLayerSpec>? get backdropSpecs => null;
+
+  ChapterBackground? get backgroundPlan => null;
 
   /// Scenery far enough off to stand among the fog layers rather than in
   /// front of them; the backdrop draws these, each between the layers
