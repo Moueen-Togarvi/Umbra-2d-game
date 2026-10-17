@@ -416,6 +416,22 @@ class UmbraGame extends Forge2DGame with HasKeyboardHandlerComponents {
       return;
     }
     deathSequence.update(frameDt, player);
+    // What the stage asked to be heard, and felt.
+    final Stage? stage = _stage;
+    if (stage != null) {
+      for (final (name, weight) in stage.cues) {
+        _audio.effect(name, weight);
+      }
+      stage.cues.clear();
+      if (stage.shake > 0) {
+        _trauma = math.max(_trauma, stage.shake);
+        stage.shake = 0;
+      }
+      if (stage.ambience != _ambience) {
+        _ambience = stage.ambience;
+        _audio.bed(_ambience);
+      }
+    }
     if (player.footfalls != _heardSteps) {
       _heardSteps = player.footfalls;
       _audio.effect(player.waterDepth > 0.05 ? 'water' : 'step', 0.5);
@@ -485,6 +501,13 @@ class UmbraGame extends Forge2DGame with HasKeyboardHandlerComponents {
   }
 
   double _zoom = 1;
+  String? _ambience;
+
+  /// Plays a piece of music once through (null stops it).
+  void music(String? name) => _audio.music(name);
+
+  /// Plays one effect now, from outside a stage (a card, the credits).
+  void sound(String name, [double weight = 1]) => _audio.effect(name, weight);
 
   /// A hard landing jolts the view: mostly up and down, a little sideways,
   /// fading out fast.

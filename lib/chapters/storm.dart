@@ -32,6 +32,8 @@ class StormChapter extends Chapter {
   StormChapter({required super.intent});
 
   @override
+  String? get ambience => 'rain';
+  @override
   int get number => 14;
   @override
   String get title => 'The Storm';

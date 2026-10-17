@@ -144,8 +144,13 @@ class Vampire extends Component implements BackdropDrawable {
     mode = VampireMode.drop;
   }
 
+  Vector2 get _chest => Vector2(x, groundY - lift - 1.4);
+
   /// Rises reaching for whatever is in front.
-  void seize() => mode = VampireMode.grab;
+  void seize() {
+    if (mode != VampireMode.grab) cue('shriek', weight: 0.8, at: _chest);
+    mode = VampireMode.grab;
+  }
 
   /// Climbs up out of a coffin he lies [depth] metres down in.
   void riseFrom(double depth) {
@@ -180,6 +185,8 @@ class Vampire extends Component implements BackdropDrawable {
     mode = VampireMode.sink;
     _drivenSpeed = 0;
     _sunk = 0;
+    cue('splash', weight: 0.8, at: _chest);
+    cue('shriek', weight: 0.5, at: _chest);
   }
 
   double _sunk = 0;
@@ -190,6 +197,8 @@ class Vampire extends Component implements BackdropDrawable {
     mode = VampireMode.burn;
     _burnt = 0;
     _drivenSpeed = 0;
+    cue('shriek', at: _chest, shake: 0.2);
+    cue('burn', weight: 0.9, at: _chest);
   }
 
   /// Whole again and standing (a death of the boy's undid what killed him).
@@ -207,6 +216,7 @@ class Vampire extends Component implements BackdropDrawable {
   /// Something heavy came down on him: gone, in a burst of dust.
   void crush() {
     if (gone) return;
+    cue('shriek', weight: 0.7, at: _chest, shake: 0.5);
     for (var i = 0; i < 26; i++) {
       final double a = _random.nextDouble() * math.pi;
       final double v = 0.6 + _random.nextDouble() * 1.6;
@@ -275,6 +285,7 @@ class Vampire extends Component implements BackdropDrawable {
           if (lift <= 0) {
             lift = 0;
             landed = true;
+            cue('land', at: _chest, shake: 0.35);
           }
         } else {
           sinceLanding += dt;

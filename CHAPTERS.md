@@ -7,7 +7,7 @@ The story: a boy runs from home after an argument, vampires take him in the nigh
 - **Part 4** (chapters 10–12): the tower, the dungeons and the mill
 - **Part 5** (chapters 13–15): the escape and the way home
 
-The last chapter ends on "The End".
+The last chapter ends on "The End", then the credits under the ending music, then a pair of red eyes opening in the dark over "UMBRA · II".
 
 Run the story with `flutter run`. Pass `--dart-define=UMBRA_PROVING_GROUND=true` to open the 96 m test level instead, which is the one all the physics and character tests use. Pass `--dart-define=UMBRA_UNLOCK_ALL=true` to open every chapter in the title's chapter list, for checking a later chapter on a device (it saves that progress).
 
@@ -54,6 +54,7 @@ Run the story with `flutter run`. Pass `--dart-define=UMBRA_PROVING_GROUND=true`
   - `TallBookcase`: topples when walked into, then wedges.
   - Also `StoneBlock`, `CastleTable`, `Staircase` and `Balustrade`.
   - Castle chapters use the `hall` backdrop layers (colonnades and arches) and bare stone floors (`grassy: false`).
+- **Sound** (`lib/audio/ambient_audio.dart`): anything on a stage can call `cue('name', at: position, shake: 0.4)`. The sound is quieter the further it is from the camera, and `shake` shakes the picture. The game plays the cues each frame. A stage's `ambience` names a loop that plays under the wind: `dungeon`, `clockwork`, `river`, `rain` or, once the sun is up, `birds`. `game.music('ending')` plays the music under the credits. Vampires shriek when they seize, burn, drown or are crushed. Gates, chandeliers, bookcases, the drawbridge, the rope bridge, falling rock, gears, the clock's hammer and thunder all have their sounds, and the heavy ones shake the screen.
 - **Scenery** (`SceneryProp`) is the AI-generated art, baked to silhouettes. Anything further off than depth 0.85 is drawn by the backdrop, between the fog layers nearer and further than it.
 
 ## Chapter 1: Home (dusk into night, 122 m)
@@ -207,7 +208,7 @@ Rain, wind gusts that push him back, and **lightning**: every few seconds the wo
 | 14 | The last two come out of the trees behind him. |
 | 40 | **Sunrise**: the light sweeps across the fields from the east, over him and on to them, and they burn. |
 | 50, 58 | A fence and a ditch. |
-| 134 | **Home.** His mother comes to the door and holds him. The camera comes in on his face, his eyes flash red, the picture fades to black, and "The End". |
+| 134 | **Home.** His mother comes to the door and holds him. The camera comes in on his face, his eyes flash red to two heartbeats, the picture fades to black, and "The End". Credits follow, and the red eyes in the dark. |
 
 ## Tests
 
@@ -253,7 +254,7 @@ They also check:
 flutter test tool/capture/capture_chapters_test.dart --plain-name <scene>
 ```
 
-The scenes are: `title`, `opening`, `tour`, `play`, `forest tour`, `taken`, `cage play`, `caves tour`, `crypt tour`, `pit tour`, `chase tour`, `halls tour`, `chandeliers tour`, `castle moments`, `clock tour`, `children tour`, `mill tour`, `gate tour`, `storm tour`, `dawn tour` and `finale`. `python3 tools/montage.py <dir> <out.png> <columns>` puts a scene's frames on one sheet. Frames go to `build/chapters-preview/<scene>/`.
+The scenes are: `title`, `opening`, `tour`, `play`, `forest tour`, `taken`, `cage play`, `caves tour`, `crypt tour`, `pit tour`, `chase tour`, `halls tour`, `chandeliers tour`, `castle moments`, `clock tour`, `children tour`, `mill tour`, `gate tour`, `storm tour`, `dawn tour`, `finale` and `ending` (The End, the credits and the eyes). `python3 tools/montage.py <dir> <out.png> <columns>` puts a scene's frames on one sheet. Frames go to `build/chapters-preview/<scene>/`.
 
 ## Art
 

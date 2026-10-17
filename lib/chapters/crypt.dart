@@ -34,6 +34,8 @@ class CryptChapter extends Chapter {
   CryptChapter({required super.intent});
 
   @override
+  String? get ambience => 'dungeon';
+  @override
   int get number => 5;
   @override
   String get title => 'The Crypt';

@@ -34,6 +34,31 @@ abstract class Stage extends Component {
   /// nearer and further than it.
   final List<BackdropDrawable> backdropProps = [];
 
+  /// Sounds asked for this frame, as (name, loudness 0–1), and how hard
+  /// the picture should shake; the game plays and empties them.
+  final List<(String, double)> cues = [];
+  double shake = 0;
+
+  /// The loop that sets this place's sound, under the wind (rain, the
+  /// works of a clock, running water, birds at dawn), or null.
+  String? get ambience => null;
+
+  /// Asks for the sound [name], as loud as [weight] and quieter the
+  /// further [at] is from the camera; and a shake of [shake] (0–1).
+  void cue(String name, {double weight = 1, Vector2? at, double shake = 0}) {
+    double w = weight;
+    final Vector2? camera =
+        cameraFocus ?? (isMounted ? player.body.position : null);
+    if (at != null && camera != null) {
+      final double d = (at - camera).length;
+      w *= (1 - (d - 6) / 18).clamp(0.0, 1.0);
+    }
+    if (w > 0.02) cues.add((name, w));
+    if (shake > 0 && w > 0.02) {
+      this.shake = (this.shake + shake * w).clamp(0, 1);
+    }
+  }
+
   /// Everything that lights the world here (see [LightSource]).
   final List<LightSource> lights = [];
 
@@ -65,4 +90,14 @@ abstract class Stage extends Component {
 
   /// Set once the boy has reached the stage's end.
   bool get isComplete => false;
+}
+
+/// A sound (and a shake) from anything on a stage.
+extension StageCues on Component {
+  void cue(String name, {double weight = 1, Vector2? at, double shake = 0}) {
+    final Stage? stage = this is Stage
+        ? this as Stage
+        : ancestors().whereType<Stage>().firstOrNull;
+    stage?.cue(name, weight: weight, at: at, shake: shake);
+  }
 }

@@ -83,7 +83,7 @@ class GreatGateChapter extends Chapter {
   late final PullCord bridgeCord;
   late final WaterBody moat;
   final Vampire keeper = Vampire(x: 26, groundY: floor, facing: 1);
-  late final Pursuer pursuer = Pursuer(keeper, stage: this, speed: 3.0);
+  late final Pursuer pursuer = Pursuer(keeper, stage: this, speed: 2.9);
   bool chasing = false;
   double _restart = 0;
 
@@ -162,7 +162,6 @@ class GreatGateChapter extends Chapter {
         priority: -37,
       ),
       Brazier(x: 6, floorY: floor),
-      Brazier(x: 36, floorY: floor),
     ]);
     pieces.addAll([
       SceneryProp(
@@ -243,9 +242,10 @@ class GreatGateChapter extends Chapter {
   /// The bell, and the keeper down off the wall behind him.
   Cutscene _alarm() => Cutscene([
     Do((_) {
+      cue('bell', shake: 0.15);
       keeper
         ..revive()
-        ..x = gateX - 1.0
+        ..x = gateX + 0.2
         ..groundY = floor
         ..facing = 1
         ..eyes = 1

@@ -95,6 +95,7 @@ class Lightning extends Component implements LightSource {
     _flash = 1;
     flashed++;
     _bolt = at;
+    cue('thunder', shake: 0.3);
   }
 
   @override

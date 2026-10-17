@@ -32,6 +32,10 @@ import 'chapter.dart';
 class DawnChapter extends Chapter {
   DawnChapter({required super.intent});
 
+  /// The birds start once the sun is up.
+  @override
+  String? get ambience => isLoaded && sun.rising ? 'birds' : null;
+
   @override
   int get number => 15;
   @override
@@ -179,7 +183,10 @@ class DawnChapter extends Chapter {
       player
         ..eyeColor = Palette.vampireRed
         ..eyeGlow = 3;
+      cue('heartbeat');
     }),
+    Wait(0.7),
+    Do((_) => cue('heartbeat', weight: 0.8)),
     Wait(1.4),
     Fade(1, 1.4),
     Do((_) => complete()),

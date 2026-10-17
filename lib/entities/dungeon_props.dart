@@ -250,6 +250,8 @@ class OilLamp extends Component {
     _y += _v * dt;
     if (lamp.y >= floorY - 0.15) {
       falling = false;
+      cue('wood', weight: 0.6, at: lamp);
+      cue('fire', at: lamp, shake: 0.15);
       final f = fire = Fire(
         x: anchor.x,
         floorY: floorY,

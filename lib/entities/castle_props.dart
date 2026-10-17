@@ -409,10 +409,23 @@ class Portcullis extends Hoisted {
     _stage = ancestors().whereType<Stage>().firstOrNull;
   }
 
+  double _fall = 0;
+
   @override
   void update(double dt) {
     super.update(dt);
     if (!isReady) return;
+    // Slammed home in its slot.
+    final double v = body.linearVelocity.y;
+    if (_fall > 2.0 && v < 0.5) {
+      cue(
+        'gate',
+        weight: (_fall / 7).clamp(0.3, 1),
+        at: body.position,
+        shake: 0.45,
+      );
+    }
+    _fall = v;
     // Coming down fast onto him.
     final Player? boy = _stage?.player;
     if (boy == null || !boy.isMounted || boy.isDead) return;
@@ -663,10 +676,18 @@ class TallBookcase extends PhysicsCrate {
   bool wedged = false;
   double _still = 0;
 
+  double _turning = 0;
+
   @override
   void update(double dt) {
     super.update(dt);
     if (!isReady || wedged) return;
+    // Its fall stopped short: it has hit.
+    final double w = body.angularVelocity.abs();
+    if (_turning > 1.2 && w < 0.5) {
+      cue('wood', at: body.position, shake: 0.4);
+    }
+    _turning = w;
     final bool flat = (body.angle.abs() - math.pi / 2).abs() < 0.2;
     final bool resting =
         body.linearVelocity.length < 0.05 && body.angularVelocity.abs() < 0.05;
@@ -856,34 +877,129 @@ class StoneBlock extends BodyComponent with OffScreenCulling {
 
   static final Paint _stone = Paint()..color = const Color(0xFF070707);
   static final Paint _mortar = Paint()..color = const Color(0x14D8D0C0);
+  static final Paint _worn = Paint()..color = const Color(0x08D8D0C0);
+  static final Paint _crack = Paint()
+    ..color = const Color(0x1AD8D0C0)
+    ..style = PaintingStyle.stroke
+    ..strokeWidth = 0.012;
 
-  late final Path _joints = () {
-    final path = Path();
+  double get _hw => (right - left) / 2;
+  double get _hh => (bottom - top) / 2;
+
+  /// Its outline: straight where the collision is, but its top edge
+  /// chipped, its sides a little uneven, a weed or two on top and, under a
+  /// block that hangs over open air, the odd root or strand of moss.
+  late final Path _outline = () {
+    final random = math.Random(seed * 13 + 1);
+    final double hw = _hw, hh = _hh;
+    final path = Path()..moveTo(-hw, -hh + 0.04);
+    // Along the top: chips taken out of it, weeds growing from it.
+    double x = -hw;
+    while (x < hw) {
+      final double step = math.min(hw - x, 0.25 + random.nextDouble() * 0.6);
+      final double r = random.nextDouble();
+      if (r < 0.18 && step > 0.25) {
+        // A chip out of the edge.
+        final double d = 0.03 + random.nextDouble() * 0.07;
+        path
+          ..lineTo(x + step * 0.3, -hh)
+          ..lineTo(x + step * 0.45, -hh + d)
+          ..lineTo(x + step * 0.7, -hh + d * 0.6)
+          ..lineTo(x + step * 0.85, -hh);
+      } else if (r < 0.26 && hw > 1) {
+        // A tuft of weeds.
+        final double bx = x + step * 0.5;
+        path
+          ..lineTo(bx - 0.05, -hh)
+          ..lineTo(bx - 0.09, -hh - 0.12 - random.nextDouble() * 0.08)
+          ..lineTo(bx - 0.02, -hh - 0.02)
+          ..lineTo(bx + 0.01, -hh - 0.16 - random.nextDouble() * 0.08)
+          ..lineTo(bx + 0.04, -hh - 0.02)
+          ..lineTo(bx + 0.1, -hh - 0.1)
+          ..lineTo(bx + 0.06, -hh);
+      }
+      x += step;
+      path.lineTo(x, -hh + (random.nextDouble() < 0.3 ? 0.012 : 0));
+    }
+    // Down the right side, a little rough.
+    for (double y = -hh + 0.3; y < hh; y += 0.3 + random.nextDouble() * 0.4) {
+      path.lineTo(hw - random.nextDouble() * 0.025, y);
+    }
+    path.lineTo(hw, hh);
+    // Along the bottom, right to left: roots or moss hanging from it.
+    x = hw;
+    while (x > -hw) {
+      final double step = math.min(x + hw, 0.4 + random.nextDouble() * 0.9);
+      if (random.nextDouble() < 0.12 && hw > 1) {
+        final double bx = x - step * 0.5;
+        final double len = 0.15 + random.nextDouble() * 0.35;
+        path
+          ..lineTo(bx + 0.04, hh)
+          ..quadraticBezierTo(bx + 0.02, hh + len * 0.6, bx - 0.01, hh + len)
+          ..quadraticBezierTo(bx - 0.02, hh + len * 0.5, bx - 0.04, hh);
+      }
+      x -= step;
+      path.lineTo(x, hh);
+    }
+    for (double y = hh - 0.3; y > -hh; y -= 0.3 + random.nextDouble() * 0.4) {
+      path.lineTo(-hw + random.nextDouble() * 0.025, y);
+    }
+    return path..close();
+  }();
+
+  /// Courses of different heights, blocks of different lengths; a few
+  /// faces a shade worn, a few cracked.
+  late final (Path, Path, Path) _detail = () {
+    final joints = Path(), worn = Path(), cracks = Path();
     final random = math.Random(seed * 7 + 3);
-    final double hw = (right - left) / 2, hh = (bottom - top) / 2;
-    double y = -hh + 0.42;
-    var row = 0;
+    final double hw = _hw, hh = _hh;
+    double y = -hh;
     while (y < hh - 0.05) {
-      path.addRect(Rect.fromLTRB(-hw, y, hw, y + 0.012));
-      double x = -hw + (row.isEven ? 0.35 : 0.7) * random.nextDouble();
-      while (x < hw - 0.2) {
-        x += 0.6 + random.nextDouble() * 0.6;
-        if (x < hw - 0.1) {
-          path.addRect(Rect.fromLTRB(x, y - 0.42, x + 0.012, y));
+      final double course = 0.32 + random.nextDouble() * 0.24;
+      final double bottomY = math.min(hh, y + course);
+      if (bottomY < hh - 0.02) {
+        joints.addRect(Rect.fromLTRB(-hw, bottomY, hw, bottomY + 0.012));
+      }
+      double x = -hw - random.nextDouble() * 0.6;
+      while (x < hw) {
+        final double len = 0.5 + random.nextDouble() * 0.8;
+        final double l = math.max(-hw, x), r = math.min(hw, x + len);
+        if (r - l > 0.1) {
+          if (random.nextDouble() < 0.18) {
+            worn.addRect(
+              Rect.fromLTRB(l + 0.02, y + 0.02, r - 0.02, bottomY - 0.02),
+            );
+          }
+          if (random.nextDouble() < 0.08) {
+            final double cx = l + (r - l) * random.nextDouble();
+            cracks
+              ..moveTo(cx, y + 0.02)
+              ..lineTo(cx + 0.05, y + (bottomY - y) * 0.4)
+              ..lineTo(cx - 0.02, y + (bottomY - y) * 0.7)
+              ..lineTo(cx + 0.03, bottomY - 0.02);
+          }
+        }
+        x += len;
+        if (x < hw - 0.05) {
+          joints.addRect(Rect.fromLTRB(x, y, x + 0.012, bottomY));
         }
       }
-      y += 0.42;
-      row++;
+      y = bottomY;
     }
-    return path;
+    return (joints, worn, cracks);
   }();
 
   @override
   void render(Canvas canvas) {
-    if (!isOnScreen(Rect.fromLTRB(left, top, right, bottom))) return;
-    final double hw = (right - left) / 2, hh = (bottom - top) / 2;
-    canvas.drawRect(Rect.fromLTRB(-hw, -hh, hw, hh), _stone);
-    canvas.drawPath(_joints, _mortar);
+    if (!isOnScreen(Rect.fromLTRB(left, top - 0.3, right, bottom + 0.6))) {
+      return;
+    }
+    final (joints, worn, cracks) = _detail;
+    canvas
+      ..drawPath(_outline, _stone)
+      ..drawPath(worn, _worn)
+      ..drawPath(joints, _mortar)
+      ..drawPath(cracks, _crack);
   }
 }
 
@@ -1375,6 +1491,8 @@ class HungChandelier extends BodyComponent
           landed = true;
           // The candles go out in the crash.
           lit = false;
+          cue('gate', at: body.position, shake: 0.8);
+          cue('wood', weight: 0.7, at: body.position);
         }
       }
     }
@@ -1630,6 +1748,7 @@ class PullCord extends SwingRope {
       _held += dt;
       if (!pulled && _held > 0.25) {
         pulled = true;
+        cue('chain', weight: 0.8, at: anchor);
         onPulled();
       }
     } else {

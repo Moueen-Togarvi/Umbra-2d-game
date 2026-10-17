@@ -32,6 +32,8 @@ class BonePitChapter extends Chapter {
   BonePitChapter({required super.intent});
 
   @override
+  String? get ambience => 'dungeon';
+  @override
   int get number => 6;
   @override
   String get title => 'The Bone Pit';

@@ -32,6 +32,8 @@ class MillChapter extends Chapter {
   MillChapter({required super.intent});
 
   @override
+  String? get ambience => 'river';
+  @override
   int get number => 12;
   @override
   String get title => 'The Mill';
@@ -151,7 +153,11 @@ class MillChapter extends Chapter {
     sluiceCord = PullCord(
       anchor: Vector2(12.5, floor - 4.5),
       length: 3.6,
-      onPulled: () => _sluice = true,
+      onPulled: () {
+        _sluice = true;
+        cue('creak');
+        cue('splash', weight: 0.6);
+      },
     );
     pieces.addAll([wheel, gate, sluiceCord]);
 
@@ -161,6 +167,8 @@ class MillChapter extends Chapter {
       length: 3.6,
       onPulled: () {
         _flood = true;
+        cue('rumble', shake: 0.4);
+        cue('splash');
         basin.floodTo(ledge + 0.25, speed: 0.3);
       },
     );

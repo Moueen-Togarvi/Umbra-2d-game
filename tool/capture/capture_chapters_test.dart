@@ -839,4 +839,14 @@ void main() {
       await shot(tester, game, 'finale', 'f_${k.toString().padLeft(2, '0')}');
     }
   });
+
+  testWidgets('ending', (tester) async {
+    final game = await boot(tester);
+    await enterChapter(tester, game, 14);
+    (game.stage! as DawnChapter).complete();
+    for (var k = 0; k < 28; k++) {
+      step(game, 1.6);
+      await shot(tester, game, 'ending', 'e_${k.toString().padLeft(2, '0')}');
+    }
+  });
 }

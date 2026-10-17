@@ -33,6 +33,8 @@ class ClockTowerChapter extends Chapter {
   ClockTowerChapter({required super.intent});
 
   @override
+  String? get ambience => 'clockwork';
+  @override
   int get number => 10;
   @override
   String get title => 'The Clock Tower';

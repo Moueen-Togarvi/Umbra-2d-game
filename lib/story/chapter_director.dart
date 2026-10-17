@@ -35,6 +35,20 @@ class ChapterDirector {
   bool _playing = false;
   bool _showingTitle = false;
 
+  /// After the end: two red eyes opening in the dark, how far open
+  /// (0–1), and the small line under them.
+  double eyes = 0, eyesOpen = 1, eyesCaption = 0;
+
+  /// The credits, after "The End": each a small line and a large one.
+  static const List<(String, String)> credits = [
+    ('A GAME BY', 'Moueen Togarvi'),
+    ('MADE WITH', 'Flutter · Flame · Box2D'),
+    ('SILHOUETTES', 'Generated with Wan, baked by hand'),
+    ('SOUND AND MUSIC', 'Synthesized for this game'),
+    ('IN THE SHADOW OF', 'LIMBO'),
+    ('THANK YOU', 'for playing'),
+  ];
+
   /// Whether the title screen is up.
   bool get showingTitle => _showingTitle;
 
@@ -131,6 +145,7 @@ class ChapterDirector {
           // The whole story told.
           cardSmall = 'UMBRA';
           cardTitle = 'The End';
+          game.music('ending');
         } else {
           // Three chapters to a part.
           cardSmall =
@@ -143,7 +158,49 @@ class ChapterDirector {
     _then(_Fade((v) => cardAlpha = v, 0, 1, 1.2));
     _then(_Wait(3.5));
     _then(_Fade((v) => cardAlpha = v, 1, 0, 1.2));
+    if (Chapters.all.length >= Chapters.story) {
+      _creditsAndAfter();
+    }
     _then(_Await(start));
+  }
+
+  /// The credits under the music; then, in the dark, a pair of eyes.
+  void _creditsAndAfter() {
+    for (final (small, title) in credits) {
+      _then(
+        _Call(() {
+          cardSmall = small;
+          cardTitle = title;
+          cardOnBlack = true;
+        }),
+      );
+      _then(_Fade((v) => cardAlpha = v, 0, 1, 1.0));
+      _then(_Wait(2.4));
+      _then(_Fade((v) => cardAlpha = v, 1, 0, 1.0));
+    }
+    _then(_Call(() => game.music(null)));
+    _then(_Wait(1.6));
+    _then(_Call(() => game.sound('heartbeat')));
+    _then(_Fade((v) => eyes = v, 0, 1, 2.2));
+    _then(_Call(() => game.sound('heartbeat', 0.8)));
+    _then(_Wait(1.0));
+    // One slow blink.
+    _then(_Fade((v) => eyesOpen = v, 1, 0, 0.12));
+    _then(_Fade((v) => eyesOpen = v, 0, 1, 0.2));
+    _then(_Fade((v) => eyesCaption = v, 0, 1, 1.4));
+    _then(_Wait(2.6));
+    _then(
+      _Fade(
+        (v) {
+          eyes = v;
+          eyesCaption = v;
+        },
+        1,
+        0,
+        1.6,
+      ),
+    );
+    _then(_Wait(0.8));
   }
 
   void update(double dt) {

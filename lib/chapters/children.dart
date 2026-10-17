@@ -36,6 +36,8 @@ class ChildrenChapter extends Chapter {
   ChildrenChapter({required super.intent});
 
   @override
+  String? get ambience => 'dungeon';
+  @override
   int get number => 11;
   @override
   String get title => 'The Children';

@@ -34,6 +34,8 @@ class CageChapter extends Chapter {
   CageChapter({required super.intent});
 
   @override
+  String? get ambience => 'dungeon';
+  @override
   int get number => 3;
   @override
   String get title => 'The Cage';

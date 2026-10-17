@@ -26,8 +26,79 @@ class ChapterCard extends Component {
   String _laidOut = '';
   double _laidOutHeight = 0;
 
+  final TextPainter _caption = TextPainter(textDirection: TextDirection.ltr);
+  bool _captionLaid = false;
+
+  /// After the credits: black, and two red eyes opening in it.
+  void _renderEyes(Canvas canvas, Vector2 view) {
+    final double a = director.eyes.clamp(0.0, 1.0);
+    final Rect full = Rect.fromLTWH(0, 0, view.x, view.y);
+    _paint
+      ..shader = null
+      ..color = Palette.brandBlack;
+    canvas.drawRect(full, _paint);
+    final double unit = view.y / 100;
+    final double open = director.eyesOpen.clamp(0.0, 1.0);
+    for (final side in [-1.0, 1.0]) {
+      final Offset c = Offset(view.x / 2 + side * unit * 6, view.y * 0.46);
+      _paint
+        ..color = const Color(0xFFFFFFFF)
+        ..shader = Gradient.radial(c, unit * 9, [
+          Palette.vampireRed.withValues(alpha: 0.4 * a),
+          Palette.vampireRed.withValues(alpha: 0),
+        ]);
+      canvas.drawCircle(c, unit * 9, _paint);
+      _paint
+        ..shader = null
+        ..color = Color.lerp(
+          Palette.vampireRed,
+          const Color(0xFFFFB0A0),
+          0.3,
+        )!.withValues(alpha: a);
+      // Narrowed, the inner corners low: not a boy's eyes any more.
+      canvas.save();
+      canvas.translate(c.dx, c.dy);
+      canvas.rotate(-side * 0.2);
+      canvas.drawOval(
+        Rect.fromCenter(
+          center: Offset.zero,
+          width: unit * 5,
+          height: unit * 1.6 * open + 0.5,
+        ),
+        _paint,
+      );
+      canvas.restore();
+    }
+    final double cap = director.eyesCaption.clamp(0.0, 1.0);
+    if (cap <= 0.01) return;
+    if (!_captionLaid) {
+      _captionLaid = true;
+      _caption.text = TextSpan(
+        text: 'UMBRA · II',
+        style: TextStyle(
+          fontFamily: 'Cinzel',
+          fontSize: unit * 2.6,
+          letterSpacing: unit * 1.2,
+          color: Palette.brandInk,
+        ),
+      );
+      _caption.layout();
+    }
+    canvas.saveLayer(full, Paint()..color = Color.fromRGBO(0, 0, 0, cap * 0.8));
+    _caption.paint(
+      canvas,
+      Offset((view.x - _caption.width) / 2, view.y * 0.62),
+    );
+    canvas.restore();
+  }
+
   @override
   void render(Canvas canvas) {
+    if (director.eyes > 0.001) {
+      final Vector2 v = camera.viewport.size;
+      if (v.x > 0) _renderEyes(canvas, v);
+      return;
+    }
     final double alpha = director.cardAlpha.clamp(0.0, 1.0);
     if (alpha <= 0.001) return;
     final Vector2 view = camera.viewport.size;

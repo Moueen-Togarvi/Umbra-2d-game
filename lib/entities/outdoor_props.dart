@@ -47,6 +47,7 @@ class Drawbridge extends BodyComponent with OffScreenCulling {
   bool get isReady => _ready && body.isValid;
   bool wedged = false;
   double _still = 0;
+  double _turning = 0;
 
   bool get lowered => _chain == null;
 
@@ -117,6 +118,8 @@ class Drawbridge extends BodyComponent with OffScreenCulling {
     if (c.isValid) c.destroy();
     _chain = null;
     body.isAwake = true;
+    cue('chain', at: hinge);
+    cue('creak', weight: 0.8, at: hinge);
     // A nudge off the vertical, as the chain gives.
     body.angularVelocity = 0.3;
   }
@@ -151,6 +154,12 @@ class Drawbridge extends BodyComponent with OffScreenCulling {
   void update(double dt) {
     super.update(dt);
     if (!isReady || wedged || !lowered) return;
+    final double w = body.angularVelocity.abs();
+    if (_turning > 1.0 && w < 0.4) {
+      cue('wood', at: body.worldPoint(Vector2(length / 2, 0)), shake: 0.6);
+      cue('gate', weight: 0.5, at: body.worldPoint(Vector2(length, 0)));
+    }
+    _turning = w;
     final bool flat = body.angle.abs() < 0.06;
     _still = flat && body.angularVelocity.abs() < 0.05 ? _still + dt : 0;
     if (_still > 0.25) {
@@ -380,6 +389,8 @@ class RopeBridge extends Component with OffScreenCulling {
   void snap() {
     if (snapped || !_built) return;
     snapped = true;
+    cue('wood', at: to, shake: 0.5);
+    cue('creak', at: (from + to) / 2);
     final Joint? far = _far;
     if (far != null && far.isValid) far.destroy();
     _far = null;
@@ -533,6 +544,7 @@ class RockFall extends Component {
         _clock -= every;
         final r = rocks[_next];
         _next = (_next + 1) % rocks.length;
+        cue('rumble', weight: 0.8, at: from);
         r
           ..isEnabled = true
           ..setTransform(from, Rot.fromAngle(_spin[_next]))

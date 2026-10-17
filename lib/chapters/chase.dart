@@ -34,6 +34,8 @@ class ChaseChapter extends Chapter {
   ChaseChapter({required super.intent});
 
   @override
+  String? get ambience => 'dungeon';
+  @override
   int get number => 7;
   @override
   String get title => 'The Chase';
@@ -274,6 +276,7 @@ class ChaseChapter extends Chapter {
   /// A thud behind him: the keeper, down through a hatch in the vault.
   Cutscene _hatch() => Cutscene([
     Do((_) {
+      cue('wood', weight: 0.7);
       keeper
         ..revive()
         ..x = keeperStart

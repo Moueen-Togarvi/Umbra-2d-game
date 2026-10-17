@@ -166,6 +166,7 @@ class Pendulum extends BodyComponent with OffScreenCulling {
       if (speed > 1e-3) {
         final double change = (want - speed).clamp(-0.5, 0.5);
         body.linearVelocity = v * ((speed + change) / speed);
+        cue('tick', weight: 0.45, at: pivot);
       }
     }
     _lastAngle = a;
@@ -326,6 +327,17 @@ class Gear extends BodyComponent with OffScreenCulling {
     body.isAwake = true;
   }
 
+  bool _wasJammed = false;
+
+  @override
+  void update(double dt) {
+    super.update(dt);
+    if (!isReady) return;
+    final bool j = jammed;
+    if (j && !_wasJammed) cue('gear', at: centre, shake: 0.25);
+    _wasJammed = j;
+  }
+
   @override
   void onRemove() {
     if (_ready && _axle.isValid) world.destroyBody(_axle);
@@ -417,7 +429,13 @@ class StrikingHammer extends Component with OffScreenCulling {
   void update(double dt) {
     if (dt <= 0) return;
     final double w = gear.turning * ratio;
+    final double before = angle;
     angle = (angle + w * dt) % (2 * math.pi);
+    // A head swinging through the bottom of its circle.
+    final double step = 2 * math.pi / arms;
+    if (w.abs() > 0.3 && (before % step) > (angle % step) && w > 0) {
+      cue('hammer', weight: 0.7, at: headAt(0));
+    }
     final Player? boy = _stage?.player;
     if (boy == null || !boy.isMounted || boy.isDead || w.abs() < 0.3) return;
     final Vector2 p = boy.body.position;
@@ -531,6 +549,8 @@ class ClockHand extends BodyComponent with OffScreenCulling {
     if (_clock >= interval) {
       _clock -= interval;
       _goal += step;
+      cue('tick', at: hub);
+      cue('gear', weight: 0.25, at: hub);
     }
     // (Box2D reports the angle within a half turn either way.)
     double left = (_goal - body.angle) % (2 * math.pi);
@@ -555,6 +575,13 @@ class ClockHand extends BodyComponent with OffScreenCulling {
   }
 
   static final Paint _metal = Paint()..color = _iron;
+  // Worn brass along its edges, catching what light comes through the
+  // glass, so it shows against the clock's own black.
+  static final Paint _brass = Paint()
+    ..color = const Color(0x70C8B48C)
+    ..style = PaintingStyle.stroke
+    ..strokeWidth = 0.045
+    ..strokeJoin = StrokeJoin.round;
 
   @override
   void render(Canvas canvas) {
@@ -565,19 +592,20 @@ class ClockHand extends BodyComponent with OffScreenCulling {
     }
     // A long tapering bar with a pierced spade near its tip, and its
     // short counterweighted tail.
-    canvas.drawPath(
-      Path()
-        ..moveTo(-0.9, -0.1)
-        ..lineTo(length - 1.0, -0.11)
-        ..lineTo(length - 0.75, -0.3)
-        ..lineTo(length - 0.3, 0)
-        ..lineTo(length - 0.75, 0.3)
-        ..lineTo(length - 1.0, 0.11)
-        ..lineTo(-0.9, 0.11)
-        ..close(),
-      _metal,
-    );
+    final hand = Path()
+      ..moveTo(-0.9, -0.1)
+      ..lineTo(length - 1.0, -0.11)
+      ..lineTo(length - 0.75, -0.3)
+      ..lineTo(length - 0.3, 0)
+      ..lineTo(length - 0.75, 0.3)
+      ..lineTo(length - 1.0, 0.11)
+      ..lineTo(-0.9, 0.11)
+      ..close();
+    canvas.drawPath(hand, _metal);
+    canvas.drawPath(hand, _brass);
     canvas.drawCircle(const Offset(-0.9, 0), 0.26, _metal);
     canvas.drawCircle(Offset.zero, 0.34, _metal);
+    canvas.drawCircle(Offset.zero, 0.34, _brass);
+    canvas.drawCircle(Offset.zero, 0.1, _brass);
   }
 }
