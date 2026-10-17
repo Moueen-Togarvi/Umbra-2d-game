@@ -1,0 +1,17 @@
+{
+ "ch10_clock_face": {"max_h": 800, "keep_inner_white": 0.002, "far": true},
+ "ch10_gear_cluster": {"max_h": 520, "open": true, "far": true},
+ "ch10_tower_beams": {"max_h": 800, "far": true, "keep_inner_white": 0.01},
+ "ch10_tower_bell": {"max_h": 600},
+ "ch11_hanging_cages": {"max_h": 700, "open": true, "far": true},
+ "ch11_prison_cells": {"max_h": 520, "far": true, "keep_inner_white": 0.01},
+ "ch12_aqueduct": {"max_h": 600, "far": true, "keep_inner_white": 0.02},
+ "ch12_dam_wall": {"max_h": 520, "far": true},
+ "ch12_waterwheel": {"max_h": 800, "open": true, "far": true},
+ "ch13_great_gate": {"max_h": 700, "far": true, "keep_inner_white": 0.01},
+ "ch14_cliff_rocks": {"max_h": 520, "far": true},
+ "ch14_dead_tree_wind": {"max_h": 800, "far": true},
+ "ch14_ruined_tower": {"max_h": 800, "far": true, "keep_inner_white": 0.01},
+ "ch15_village_far": {"max_h": 400, "far": true},
+ "ch15_windmill": {"max_h": 700, "far": true}
+}

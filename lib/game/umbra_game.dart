@@ -315,6 +315,12 @@ class UmbraGame extends Forge2DGame with HasKeyboardHandlerComponents {
       await old.removed;
     }
     _touchControls.clear();
+    // Out of any close-up the old stage ended on.
+    _zoom = 1;
+    camera.viewfinder.visibleGameSize = Vector2(
+      GameConfig.cameraVisibleWidth,
+      GameConfig.cameraVisibleHeight,
+    );
     // A scene in the old stage may have held the controls.
     _intent.endScript();
     _intent.clear();
@@ -466,7 +472,19 @@ class UmbraGame extends Forge2DGame with HasKeyboardHandlerComponents {
     final double t = 1 - math.exp(-GameConfig.cameraFollowSpeed * frameDt);
     _cameraBase.setValues(nextX, current.y + (_cameraTarget.y - current.y) * t);
     camera.viewfinder.position = _cameraBase + _shake(player, frameDt);
+    // Coming in close (or back out) slowly, for a scene's close-up.
+    final double want = _stage?.cameraZoom ?? 1;
+    if ((want - _zoom).abs() > 1e-4) {
+      _zoom += (want - _zoom) * (1 - math.exp(-1.6 * frameDt));
+      if ((want - _zoom).abs() < 1e-3) _zoom = want;
+      camera.viewfinder.visibleGameSize = Vector2(
+        GameConfig.cameraVisibleWidth / _zoom,
+        GameConfig.cameraVisibleHeight / _zoom,
+      );
+    }
   }
+
+  double _zoom = 1;
 
   /// A hard landing jolts the view: mostly up and down, a little sideways,
   /// fading out fast.

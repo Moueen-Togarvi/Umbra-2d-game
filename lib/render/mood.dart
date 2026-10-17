@@ -232,6 +232,61 @@ class Mood {
     trees: false,
   );
 
+  /// A storm over the cliffs: black cloud, no moon, rain in the air.
+  static const storm = Mood(
+    name: 'storm',
+    sky: [
+      Color(0xFF0B0C0F),
+      Color(0xFF2A2E35),
+      Color(0xFF424750),
+      Color(0xFF1F2227),
+    ],
+    layerTones: [
+      Color(0xFF4A4E56),
+      Color(0xFF33363C),
+      Color(0xFF1C1E22),
+      Color(0xFF0B0C0D),
+    ],
+    light: Palette.moonLight,
+    lightAt: Offset(0.5, 0.1),
+    lightDrift: 0.02,
+    lightSize: 0.6,
+    lightStrength: 0.35,
+    shafts: 0.1,
+    mist: 0.9,
+    mistTone: Color(0xFF555A62),
+    dust: 0.15,
+  );
+
+  /// First light: the night going grey, then warm low in the east (the
+  /// right), the mist lying pale in the fields.
+  static const dawn = Mood(
+    name: 'dawn',
+    sky: [
+      Color(0xFF3A3C44),
+      Color(0xFFA7A39F),
+      Color(0xFFE2C9A6),
+      Color(0xFF9C8F82),
+    ],
+    layerTones: [
+      Color(0xFFBDB2A4),
+      Color(0xFF8E857B),
+      Color(0xFF524C46),
+      Color(0xFF221F1C),
+    ],
+    light: Color(0xFFFFE2B8),
+    lightAt: Offset(0.85, 0.55),
+    lightDrift: 0.05,
+    lightSize: 0.9,
+    lightStrength: 1.25,
+    shafts: 1.0,
+    shaftTilt: -0.35,
+    shaftFan: 0.3,
+    mist: 1.1,
+    mistTone: Color(0xFFD6C8B4),
+    dust: 0.8,
+  );
+
   /// This mood blended towards [other] by [t] (0 is this one). Switches
   /// (the moon, drips, trees) follow whichever is nearer.
   Mood lerp(Mood other, double t) {

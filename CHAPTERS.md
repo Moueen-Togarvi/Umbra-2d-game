@@ -1,6 +1,13 @@
 # Umbra chapters
 
-The story: a boy runs from home after an argument, vampires take him in the night forest, and he has to escape their land. It is told in 15 wordless chapters. **Part 1** (chapters 1–3), **Part 2** (chapters 4–6, the water under the castle) and **Part 3** (chapters 7–9, the castle itself) are built.
+The story: a boy runs from home after an argument, vampires take him in the night forest, and he has to escape their land. It is told in 15 wordless chapters. All 15 are built, in five parts:
+- **Part 1** (chapters 1–3): home and the forest
+- **Part 2** (chapters 4–6): the water under the castle
+- **Part 3** (chapters 7–9): the castle itself
+- **Part 4** (chapters 10–12): the tower, the dungeons and the mill
+- **Part 5** (chapters 13–15): the escape and the way home
+
+The last chapter ends on "The End".
 
 Run the story with `flutter run`. Pass `--dart-define=UMBRA_PROVING_GROUND=true` to open the 96 m test level instead, which is the one all the physics and character tests use. Pass `--dart-define=UMBRA_UNLOCK_ALL=true` to open every chapter in the title's chapter list, for checking a later chapter on a device (it saves that progress).
 
@@ -149,7 +156,58 @@ The water under the vampires' land. He can't swim.
 | 65 | The keeper again, dropping from behind. |
 | 72, 80 | A hole and a table. |
 | 88–91.4 | The last gap. Its cord is his only way across, and it drops **the last chandelier** onto the edge behind him: on the keeper if it is close enough, and anyway the gap is wider than it can leap. |
-| 124 | The way out leads to "End of Part Three", then the title. |
+| 124 | The way out leads into chapter 10. |
+
+## Chapter 10: The Clock Tower (castle, 100 m)
+
+| x (m) | What happens |
+|---|---|
+| 13.5–21.5 | **The pendulum** swings over a drop into the gears. It is a swing-boat: two equal rods from twin pivots carry a platform, so the parallelogram keeps the platform level. An escapement kick at the bottom of each swing keeps the arc. He rides it across. |
+| 25–35 | A **gear** turned by a motor of limited torque drives a three-armed **hammer** across the walkway. He can run between its blows, or push a crate into the slot over the gear's teeth: the crate jams the gear, and the hammer stops with it. |
+| 46.4–51.6 | The **minute hand**, behind the clock's glass, moves a twelfth of a turn at a time. When it lies level it bridges the shaft. |
+| 64–92 | Steps up past the bell, and out. |
+
+## Chapter 11: The Children (dungeon, 110 m)
+
+| x (m) | What happens |
+|---|---|
+| 13.5, 42, 68 | Three **cells**. A cord by each lifts its bars, and the child inside follows the boy, walking his trail behind him. |
+| 21–39.5 | A watcher paces the corridor under an **oil lamp**. Dropped, the lamp breaks, and its oil burns and runs along the floor. The watcher, driven ahead of the fire to the corridor's end, burns. The fire kills the boy too. |
+| 49–62 | A low passage with a 90 kg **chest**, too heavy for him alone. With two children pushing behind him (280 N each), it moves. |
+| 88 | The **drain**: the children go out through it, one after another, too small for him. |
+
+## Chapter 12: The Mill (castle, 120 m)
+
+| x (m) | What happens |
+|---|---|
+| 12.5–35 | A cord opens the sluice. The race fills and runs, and the water's push on the wet paddles turns the **waterwheel**. Its shaft winds the **gate** open through a ratchet. |
+| 44.5–62 | A dry cistern with two of them below. A cord pulls the dam's pin: the water floods in and **drowns** them, and a floating raft carries him up to the far ledge. |
+
+## Chapter 13: The Great Gate (courtyard, 80 m)
+
+| x (m) | What happens |
+|---|---|
+| 14–28 | The gate's counterweight is a bucket at the end of a gallery. One crate is not heavy enough; he shoves two along together, the bucket sinks and the gate rises. |
+| 32 | The bell tolls and the keeper drops off the wall behind him. |
+| 48.6–56.4 | The **drawbridge** stands up on its chain. A cord lets the chain run, and the bridge falls across the moat on its hinge. |
+
+## Chapter 14: The Storm (cliffs, 92 m)
+
+Rain, wind gusts that push him back, and **lightning**: every few seconds the world is lit white for a moment, and the keeper chasing him has to stop.
+
+| x (m) | What happens |
+|---|---|
+| 20–46 | Stones break loose at the top of the climb and come rolling down it. |
+| 47–59 | A **rope bridge** of 18 jointed planks sags and bucks under him. As he steps off it, lightning takes its far post and it falls, with the keeper if he is on it. |
+
+## Chapter 15: Dawn (open country, 150 m)
+
+| x (m) | What happens |
+|---|---|
+| 14 | The last two come out of the trees behind him. |
+| 40 | **Sunrise**: the light sweeps across the fields from the east, over him and on to them, and they burn. |
+| 50, 58 | A fence and a ditch. |
+| 134 | **Home.** His mother comes to the door and holds him. The camera comes in on his face, his eyes flash red, the picture fades to black, and "The End". |
 
 ## Tests
 
@@ -186,6 +244,8 @@ They also check:
 - stopping in the chase gets him caught, and from the checkpoint the keeper comes again from behind
 - the dark corridor without the lantern is death
 - falling into the pit with the two below the gallery is death
+- `test/clock_physics_test.dart`: the pendulum keeps its arc and stays level, a crate jams the gear and stops the hammer, and the clock hand moves in jumps
+- chapters 10–15 each have a bot route test (`chapter_clock_tower`, `chapter_children`, `chapter_mill`, `chapter_great_gate`, `chapter_storm`, `chapter_dawn`)
 
 ## Capturing frames
 
@@ -193,11 +253,11 @@ They also check:
 flutter test tool/capture/capture_chapters_test.dart --plain-name <scene>
 ```
 
-The scenes are: `title`, `opening`, `tour`, `play`, `forest tour`, `taken`, `cage play`, `caves tour`, `crypt tour`, `pit tour`, `chase tour`, `halls tour`, `chandeliers tour` and `castle moments`. `python3 tools/montage.py <dir> <out.png> <columns>` puts a scene's frames on one sheet. Frames go to `build/chapters-preview/<scene>/`.
+The scenes are: `title`, `opening`, `tour`, `play`, `forest tour`, `taken`, `cage play`, `caves tour`, `crypt tour`, `pit tour`, `chase tour`, `halls tour`, `chandeliers tour`, `castle moments`, `clock tour`, `children tour`, `mill tour`, `gate tour`, `storm tour`, `dawn tour` and `finale`. `python3 tools/montage.py <dir> <out.png> <columns>` puts a scene's frames on one sheet. Frames go to `build/chapters-preview/<scene>/`.
 
 ## Art
 
 - Generate the images: `python3 tools/gen_assets_qwen.py assets/raw/part1 tools/part1_assets.json`. This uses Alibaba Model Studio; the key is read from a local file and never printed.
 - Bake them to silhouettes: `python3 tools/bake_silhouettes.py assets/raw/part1 assets/images/part1 tools/part1_bake.json`.
-- Parts 2 and 3 use the same commands with `part2` / `part3` (`tools/part2_assets.json`, `tools/part3_assets.json` and their `_bake.json`).
+- Parts 2–5 use the same commands with `part2`, `part3` and `part4` (`tools/part2_assets.json`, `tools/part3_assets.json`, `tools/part4_assets.json` and their `_bake.json`). `part4` holds the art for both Part 4 and Part 5.
 - Brand assets: `python3 tools/make_brand.py`. See `BRANDING.md`.

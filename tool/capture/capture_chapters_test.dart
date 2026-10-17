@@ -15,6 +15,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:umbra/chapters/cage.dart';
 import 'package:umbra/chapters/chandeliers.dart';
 import 'package:umbra/chapters/chapter.dart';
+import 'package:umbra/chapters/dawn.dart';
 import 'package:umbra/chapters/chase.dart';
 import 'package:umbra/chapters/forest.dart';
 import 'package:umbra/chapters/halls.dart';
@@ -745,5 +746,97 @@ void main() {
     }
     step(game, 2);
     await shot(tester, game, 'moments', 'c_bridge');
+  });
+
+  testWidgets('clock tour', (tester) async {
+    await tour(tester, 9, 'clock', [
+      4,
+      12,
+      17.5,
+      22,
+      26,
+      30,
+      35,
+      44,
+      49,
+      53,
+      66,
+      80,
+      90,
+    ]);
+  });
+
+  testWidgets('children tour', (tester) async {
+    await tour(tester, 10, 'children', [
+      5,
+      14,
+      21,
+      31,
+      43,
+      52,
+      60,
+      69,
+      80,
+      88,
+      100,
+    ]);
+  });
+
+  testWidgets('mill tour', (tester) async {
+    await tour(tester, 11, 'mill', [
+      5,
+      12,
+      18,
+      23,
+      28,
+      35,
+      44,
+      54,
+      66,
+      90,
+      110,
+    ], ground: (x) => x >= 62 ? 4.0 : 7.0);
+  });
+
+  testWidgets('gate tour', (tester) async {
+    await tour(tester, 12, 'gate', [
+      5,
+      12,
+      18,
+      23,
+      28,
+      36,
+      44,
+      53,
+      60,
+      72,
+    ], ground: (x) => x >= 14 && x < 24 ? 5.6 : 7.0);
+  });
+
+  testWidgets('storm tour', (tester) async {
+    await tour(tester, 13, 'storm', [6, 16, 28, 38, 44, 50, 56, 62, 72, 84]);
+  });
+
+  testWidgets('dawn tour', (tester) async {
+    await tour(tester, 14, 'dawn', [6, 20, 36, 50, 64, 80, 96, 112, 124]);
+  });
+
+  testWidgets('finale', (tester) async {
+    final game = await boot(tester);
+    await enterChapter(tester, game, 14);
+    final dawn = game.stage! as DawnChapter;
+    dawn.player.teleportTo(
+      Vector2(
+        dawn.cottage.door.center.dx - 6.6,
+        dawn.groundAt(dawn.cottage.door.center.dx - 6.6) - 0.65,
+      ),
+    );
+    game.intent.setKeyboardState(axis: 1);
+    step(game, 0.2);
+    game.intent.setKeyboardState(axis: 0);
+    for (var k = 0; k < 18; k++) {
+      step(game, 0.6);
+      await shot(tester, game, 'finale', 'f_${k.toString().padLeft(2, '0')}');
+    }
   });
 }

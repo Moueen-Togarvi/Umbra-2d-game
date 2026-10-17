@@ -1,0 +1,92 @@
+{
+ "ch10_clock_face": {
+  "w": 808,
+  "h": 808,
+  "pad": 4,
+  "cut": {}
+ },
+ "ch10_gear_cluster": {
+  "w": 1007,
+  "h": 528,
+  "pad": 4,
+  "cut": {}
+ },
+ "ch10_tower_beams": {
+  "w": 427,
+  "h": 808,
+  "pad": 4,
+  "cut": {}
+ },
+ "ch10_tower_bell": {
+  "w": 309,
+  "h": 608,
+  "pad": 4,
+  "cut": {}
+ },
+ "ch11_hanging_cages": {
+  "w": 1229,
+  "h": 708,
+  "pad": 4,
+  "cut": {}
+ },
+ "ch11_prison_cells": {
+  "w": 1165,
+  "h": 528,
+  "pad": 4,
+  "cut": {}
+ },
+ "ch12_aqueduct": {
+  "w": 1172,
+  "h": 608,
+  "pad": 4,
+  "cut": {}
+ },
+ "ch12_dam_wall": {
+  "w": 1188,
+  "h": 528,
+  "pad": 4,
+  "cut": {}
+ },
+ "ch12_waterwheel": {
+  "w": 777,
+  "h": 808,
+  "pad": 4,
+  "cut": {}
+ },
+ "ch13_great_gate": {
+  "w": 1035,
+  "h": 664,
+  "pad": 4,
+  "cut": {}
+ },
+ "ch14_cliff_rocks": {
+  "w": 1088,
+  "h": 528,
+  "pad": 4,
+  "cut": {}
+ },
+ "ch14_dead_tree_wind": {
+  "w": 448,
+  "h": 808,
+  "pad": 4,
+  "cut": {}
+ },
+ "ch14_ruined_tower": {
+  "w": 464,
+  "h": 808,
+  "pad": 4,
+  "cut": {}
+ },
+ "ch15_village_far": {
+  "w": 852,
+  "h": 408,
+  "pad": 4,
+  "cut": {}
+ },
+ "ch15_windmill": {
+  "w": 396,
+  "h": 708,
+  "pad": 4,
+  "cut": {}
+ }
+}

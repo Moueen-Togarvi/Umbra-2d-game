@@ -212,6 +212,10 @@ class Player extends BodyComponent {
   /// True from the moment the body goes limp until the checkpoint respawn.
   bool get isDead => _dead;
 
+  /// His eyes' colour and glow (white and 1, as they are, until the end).
+  set eyeColor(Color value) => _figure.eyeColor = value;
+  set eyeGlow(double value) => _figure.eyeGlow = value;
+
   /// How long the body has been lying still, for the death sequence.
   double get deadSeconds => _deadSeconds;
   Vector2 get velocity => _ragdoll?.velocity ?? body.linearVelocity;

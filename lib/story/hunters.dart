@@ -65,7 +65,12 @@ class Pursuer {
     this.speed = 2.8,
     this.leap = 3.2,
     this.catchReach = 0.8,
+    this.burnsInLight = false,
   });
+
+  /// Whether light that falls on him burns him (sunlight); otherwise it
+  /// only stops him while it lasts (a lightning flash), shielding his face.
+  final bool burnsInLight;
 
   final Vampire vampire;
   final Stage stage;
@@ -103,6 +108,18 @@ class Pursuer {
     if (!boy.isMounted) return;
     final footing = _footing ??= _Footing(boy.body.world);
     double x = vampire.x;
+    if (stage.isLit(Vector2(x, _feet - 1.5))) {
+      if (burnsInLight) {
+        vampire.burn();
+        active = false;
+        return;
+      }
+      vampire
+        ..shieldGoal = 1
+        ..drive(x: x, groundY: _feet, dt: dt);
+      return;
+    }
+    vampire.shieldGoal = 0;
     final double dir = boy.isDead
         ? 0
         : (boy.body.position.x - x).abs() < 0.05
@@ -238,7 +255,10 @@ class Stalker {
   bool caught = false;
   double _lit = 0;
 
-  bool get burning => vampire.mode == VampireMode.burn || vampire.gone;
+  bool get burning =>
+      vampire.mode == VampireMode.burn ||
+      vampire.mode == VampireMode.sink ||
+      vampire.gone;
 
   /// Whether the light falls on him (at the chest or the knees).
   bool litAt(double x) {

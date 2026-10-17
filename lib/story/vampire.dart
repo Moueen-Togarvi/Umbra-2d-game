@@ -38,6 +38,9 @@ enum VampireMode {
   /// Caught in the light with nowhere dark to go: he folds down and
   /// crumbles to ash and embers.
   burn,
+
+  /// Caught by deep water: he goes under, clawing at it.
+  sink,
 }
 
 /// One of the vampires: a gaunt figure over two metres tall, hunched, with
@@ -171,6 +174,16 @@ class Vampire extends Component implements BackdropDrawable {
     mode = VampireMode.driven;
   }
 
+  /// The water over his head: he goes under, and does not come up.
+  void drown() {
+    if (mode == VampireMode.sink || mode == VampireMode.burn || gone) return;
+    mode = VampireMode.sink;
+    _drivenSpeed = 0;
+    _sunk = 0;
+  }
+
+  double _sunk = 0;
+
   /// Caught in the light: he burns away where he stands.
   void burn() {
     if (mode == VampireMode.burn || gone) return;
@@ -274,6 +287,10 @@ class Vampire extends Component implements BackdropDrawable {
         if (lift >= 0) mode = VampireMode.stand;
       case VampireMode.driven:
         target = _drivenSpeed;
+      case VampireMode.sink:
+        _sunk += dt;
+        lift -= dt * (0.6 + _sunk * 0.6);
+        if (_sunk > 2.6) gone = true;
       case VampireMode.burn:
         _burnt += dt;
         _smoulder(dt);
@@ -285,7 +302,9 @@ class Vampire extends Component implements BackdropDrawable {
     // Speed eases in and out; the gait advances with distance walked.
     final bool driven = mode == VampireMode.driven;
     _speed += (target - _speed) * math.min(1, dt * (driven ? 10 : 3));
-    if (!driven && mode != VampireMode.burn) x += _speed * dt;
+    if (!driven && mode != VampireMode.burn && mode != VampireMode.sink) {
+      x += _speed * dt;
+    }
     _updateMotes(dt);
     _gait += _speed.abs() * dt / 0.95 * math.pi;
     _turn.step(facing, dt);
@@ -293,7 +312,10 @@ class Vampire extends Component implements BackdropDrawable {
         (mode == VampireMode.drop && landed && sinceLanding < 0.7) ||
         mode == VampireMode.burn;
     _crouch.step(crouching ? 1 : 0, dt);
-    _reach.step(mode == VampireMode.grab ? 1 : reachGoal, dt);
+    _reach.step(
+      mode == VampireMode.grab || mode == VampireMode.sink ? 1 : reachGoal,
+      dt,
+    );
     _shield.step(mode == VampireMode.burn ? 1 : shieldGoal, dt);
     _cape.step(
       dt,

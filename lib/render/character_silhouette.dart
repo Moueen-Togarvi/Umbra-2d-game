@@ -35,6 +35,10 @@ class CharacterSilhouette {
     ..color = bodyColor
     ..isAntiAlias = true;
   final Paint _eye = Paint()..color = const Color(0xFFFFFFFF);
+
+  /// The eyes' colour, and how strongly they glow (1 as they always have).
+  Color eyeColor = const Color(0xFFFFFFFF);
+  double eyeGlow = 1;
   final Paint _glow = Paint();
 
   // Every shape is built in its own Path. The web renderer records a
@@ -243,13 +247,19 @@ class CharacterSilhouette {
       );
       double mix(double a, double b) => a + (b - a) * toCamera;
       final glowCentre = Offset(mix(0.077, 0.0), mix(0.004, 0.004));
+      final double halo = 0.055 * (1 + (eyeGlow - 1) * 0.6);
       _glow.shader = Gradient.radial(
         glowCentre,
-        0.055,
-        const [Color(0x40FFFFFF), Color(0x14FFFFFF), Color(0x00FFFFFF)],
+        halo,
+        [
+          eyeColor.withValues(alpha: (0.25 * eyeGlow).clamp(0.0, 1.0)),
+          eyeColor.withValues(alpha: (0.08 * eyeGlow).clamp(0.0, 1.0)),
+          eyeColor.withValues(alpha: 0),
+        ],
         const [0, 0.45, 1],
       );
-      canvas.drawCircle(glowCentre, 0.055, _glow);
+      canvas.drawCircle(glowCentre, halo, _glow);
+      _eye.color = eyeColor;
       canvas.drawCircle(
         Offset(mix(0.100, 0.035), mix(0.006, 0.004)),
         mix(0.0135, 0.0125),

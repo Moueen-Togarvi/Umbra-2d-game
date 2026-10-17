@@ -4,11 +4,17 @@ import 'cage.dart';
 import 'caves.dart';
 import 'chandeliers.dart';
 import 'chapter.dart';
+import 'children.dart';
 import 'chase.dart';
+import 'clock_tower.dart';
 import 'crypt.dart';
+import 'dawn.dart';
 import 'forest.dart';
+import 'great_gate.dart';
 import 'halls.dart';
 import 'home.dart';
+import 'mill.dart';
+import 'storm.dart';
 
 /// One chapter in the story's running order: its name for the card and
 /// the list, and how to build it.
@@ -57,7 +63,28 @@ abstract final class Chapters {
       'The Chandeliers',
       (intent, atTitle) => ChandeliersChapter(intent: intent),
     ),
+    ChapterEntry(
+      'The Clock Tower',
+      (intent, atTitle) => ClockTowerChapter(intent: intent),
+    ),
+    ChapterEntry(
+      'The Children',
+      (intent, atTitle) => ChildrenChapter(intent: intent),
+    ),
+    ChapterEntry('The Mill', (intent, atTitle) => MillChapter(intent: intent)),
+    ChapterEntry(
+      'The Great Gate',
+      (intent, atTitle) => GreatGateChapter(intent: intent),
+    ),
+    ChapterEntry(
+      'The Storm',
+      (intent, atTitle) => StormChapter(intent: intent),
+    ),
+    ChapterEntry('Dawn', (intent, atTitle) => DawnChapter(intent: intent)),
   ];
+
+  /// How many chapters the whole story has.
+  static const int story = 15;
 
   static const List<String> _words = [
     'ZERO', 'ONE', 'TWO', 'THREE', 'FOUR', 'FIVE', 'SIX', 'SEVEN', 'EIGHT', //

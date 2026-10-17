@@ -1,0 +1,92 @@
+[
+ {
+  "name": "ch10_clock_face",
+  "size": "1328*1328",
+  "prompt": "The back of a giant old tower clock face seen from inside the clock tower: a huge round frame with radial iron spokes and tick marks around its rim, translucent glass sections between the spokes EMPTY pure white, no numbers at all. Drawn as a detailed dark fairy-tale storybook illustration, mostly deep black, isolated on a completely plain pure white (#FFFFFF) background with nothing else in the image: no scenery, no sky, no ground plane, no cast shadow, no text, no border.",
+  "negative": "text, letters, words, signature, watermark, frame, border, colour, color, grey, gray, gradient, 3d, photo, ground line, horizon, people, grass, scenery, background, sky, cast shadow, drop shadow, numbers, numerals, roman numerals, digits"
+ },
+ {
+  "name": "ch10_gear_cluster",
+  "size": "1664*928",
+  "prompt": "A tangled cluster of many large and small interlocking clockwork gears with sharp teeth, axles and iron braces, spread across the full width. Rendered as one SOLID BLACK SILHOUETTE like a black paper cut-out or a shadow puppet: every part of the shape is filled flat solid pure black (#000000) with NO interior lines, NO outlines, NO hatching and NO white details inside, set on a completely flat pure white (#FFFFFF) background. Exact side view, flat orthographic, isolated, nothing else in the image. Crisp clean edges, detail only in the outline. No ground, no grass, no text, no border.",
+  "negative": "text, letters, words, signature, watermark, frame, border, colour, color, grey, gray, gradient, shading, texture, 3d, photo, ground line, horizon, people, line art, ink drawing, sketch, outline drawing, hatching, engraving, white interior, perspective, scenery, sky"
+ },
+ {
+  "name": "ch10_tower_bell",
+  "size": "928*1664",
+  "prompt": "A huge old church bell hanging from a heavy timber yoke with iron straps, a rope hanging down from its wheel. Rendered as one SOLID BLACK SILHOUETTE like a black paper cut-out or a shadow puppet: every part of the shape is filled flat solid pure black (#000000) with NO interior lines, NO outlines, NO hatching and NO white details inside, set on a completely flat pure white (#FFFFFF) background. Exact side view, flat orthographic, isolated, nothing else in the image. Crisp clean edges, detail only in the outline. No ground, no grass, no text, no border.",
+  "negative": "text, letters, words, signature, watermark, frame, border, colour, color, grey, gray, gradient, shading, texture, 3d, photo, ground line, horizon, people, line art, ink drawing, sketch, outline drawing, hatching, engraving, white interior, perspective, scenery, sky"
+ },
+ {
+  "name": "ch10_tower_beams",
+  "size": "928*1664",
+  "prompt": "The inside of a tall wooden clock tower: crossed timber beams, ladders and narrow walkways climbing up between stone walls, small arched windows EMPTY pure white. Drawn as a detailed dark fairy-tale storybook illustration, mostly deep black, isolated on a completely plain pure white (#FFFFFF) background with nothing else in the image: no scenery, no sky, no ground plane, no cast shadow, no text, no border.",
+  "negative": "text, letters, words, signature, watermark, frame, border, colour, color, grey, gray, gradient, 3d, photo, ground line, horizon, people, grass, scenery, background, sky, cast shadow, drop shadow"
+ },
+ {
+  "name": "ch11_prison_cells",
+  "size": "1664*928",
+  "prompt": "A long dungeon wall with a row of four arched prison cells closed by heavy iron bars, chains hanging on the walls, straw on the floor, standing on the bottom edge across the full width. Drawn as a detailed dark fairy-tale storybook illustration, mostly deep black, isolated on a completely plain pure white (#FFFFFF) background with nothing else in the image: no scenery, no sky, no ground plane, no cast shadow, no text, no border.",
+  "negative": "text, letters, words, signature, watermark, frame, border, colour, color, grey, gray, gradient, 3d, photo, ground line, horizon, people, grass, scenery, background, sky, cast shadow, drop shadow"
+ },
+ {
+  "name": "ch11_hanging_cages",
+  "size": "1664*928",
+  "prompt": "Several small round iron birdcage-shaped cages of different sizes hanging from chains from the top edge at different heights, empty, some broken open. Rendered as one SOLID BLACK SILHOUETTE like a black paper cut-out or a shadow puppet: every part of the shape is filled flat solid pure black (#000000) with NO interior lines, NO outlines, NO hatching and NO white details inside, set on a completely flat pure white (#FFFFFF) background. Exact side view, flat orthographic, isolated, nothing else in the image. Crisp clean edges, detail only in the outline. No ground, no grass, no text, no border.",
+  "negative": "text, letters, words, signature, watermark, frame, border, colour, color, grey, gray, gradient, shading, texture, 3d, photo, ground line, horizon, people, line art, ink drawing, sketch, outline drawing, hatching, engraving, white interior, perspective, scenery, sky"
+ },
+ {
+  "name": "ch12_waterwheel",
+  "size": "1328*1328",
+  "prompt": "A giant old wooden mill waterwheel with many paddles on its rim, thick spokes and an iron axle on a stone pier, seen exactly from the side. Rendered as one SOLID BLACK SILHOUETTE like a black paper cut-out or a shadow puppet: every part of the shape is filled flat solid pure black (#000000) with NO interior lines, NO outlines, NO hatching and NO white details inside, set on a completely flat pure white (#FFFFFF) background. Exact side view, flat orthographic, isolated, nothing else in the image. Crisp clean edges, detail only in the outline. No ground, no grass, no text, no border.",
+  "negative": "text, letters, words, signature, watermark, frame, border, colour, color, grey, gray, gradient, shading, texture, 3d, photo, ground line, horizon, people, line art, ink drawing, sketch, outline drawing, hatching, engraving, white interior, perspective, scenery, sky"
+ },
+ {
+  "name": "ch12_aqueduct",
+  "size": "1664*928",
+  "prompt": "A long ruined stone aqueduct on tall arches crossing the full width, a broken section in the middle, water spilling, standing on the bottom edge, the arch openings EMPTY pure white. Drawn as a detailed dark fairy-tale storybook illustration, mostly deep black, isolated on a completely plain pure white (#FFFFFF) background with nothing else in the image: no scenery, no sky, no ground plane, no cast shadow, no text, no border.",
+  "negative": "text, letters, words, signature, watermark, frame, border, colour, color, grey, gray, gradient, 3d, photo, ground line, horizon, people, grass, scenery, background, sky, cast shadow, drop shadow"
+ },
+ {
+  "name": "ch12_dam_wall",
+  "size": "1664*928",
+  "prompt": "A massive stone dam wall with wooden sluice gates and iron wheels to open them, cracks and leaking spouts, standing on the bottom edge across the full width. Drawn as a detailed dark fairy-tale storybook illustration, mostly deep black, isolated on a completely plain pure white (#FFFFFF) background with nothing else in the image: no scenery, no sky, no ground plane, no cast shadow, no text, no border.",
+  "negative": "text, letters, words, signature, watermark, frame, border, colour, color, grey, gray, gradient, 3d, photo, ground line, horizon, people, grass, scenery, background, sky, cast shadow, drop shadow"
+ },
+ {
+  "name": "ch13_great_gate",
+  "size": "1664*928",
+  "prompt": "The enormous main gate of a dark gothic castle seen from the side: two tall round towers with pointed roofs and battlements, a huge arched gateway between them closed by a portcullis, standing on the bottom edge across the full width. Drawn as a detailed dark fairy-tale storybook illustration, mostly deep black, isolated on a completely plain pure white (#FFFFFF) background with nothing else in the image: no scenery, no sky, no ground plane, no cast shadow, no text, no border.",
+  "negative": "text, letters, words, signature, watermark, frame, border, colour, color, grey, gray, gradient, 3d, photo, ground line, horizon, people, grass, scenery, background, sky, cast shadow, drop shadow"
+ },
+ {
+  "name": "ch14_cliff_rocks",
+  "size": "1664*928",
+  "prompt": "Jagged sharp sea-cliff rocks and crags rising from the bottom edge across the full width, with a few broken dead trees bent by the wind growing out of them. Rendered as one SOLID BLACK SILHOUETTE like a black paper cut-out or a shadow puppet: every part of the shape is filled flat solid pure black (#000000) with NO interior lines, NO outlines, NO hatching and NO white details inside, set on a completely flat pure white (#FFFFFF) background. Exact side view, flat orthographic, isolated, nothing else in the image. Crisp clean edges, detail only in the outline. No ground, no grass, no text, no border.",
+  "negative": "text, letters, words, signature, watermark, frame, border, colour, color, grey, gray, gradient, shading, texture, 3d, photo, ground line, horizon, people, line art, ink drawing, sketch, outline drawing, hatching, engraving, white interior, perspective, scenery, sky"
+ },
+ {
+  "name": "ch14_dead_tree_wind",
+  "size": "928*1664",
+  "prompt": "One tall dead twisted tree bent hard to the right by a storm wind, its bare branches streaming sideways, roots gripping a rock. Rendered as one SOLID BLACK SILHOUETTE like a black paper cut-out or a shadow puppet: every part of the shape is filled flat solid pure black (#000000) with NO interior lines, NO outlines, NO hatching and NO white details inside, set on a completely flat pure white (#FFFFFF) background. Exact side view, flat orthographic, isolated, nothing else in the image. Crisp clean edges, detail only in the outline. No ground, no grass, no text, no border.",
+  "negative": "text, letters, words, signature, watermark, frame, border, colour, color, grey, gray, gradient, shading, texture, 3d, photo, ground line, horizon, people, line art, ink drawing, sketch, outline drawing, hatching, engraving, white interior, perspective, scenery, sky"
+ },
+ {
+  "name": "ch14_ruined_tower",
+  "size": "928*1664",
+  "prompt": "A tall ruined stone watchtower on a rock, its top broken and jagged, a few narrow windows EMPTY pure white, standing on the bottom edge. Drawn as a detailed dark fairy-tale storybook illustration, mostly deep black, isolated on a completely plain pure white (#FFFFFF) background with nothing else in the image: no scenery, no sky, no ground plane, no cast shadow, no text, no border.",
+  "negative": "text, letters, words, signature, watermark, frame, border, colour, color, grey, gray, gradient, 3d, photo, ground line, horizon, people, grass, scenery, background, sky, cast shadow, drop shadow"
+ },
+ {
+  "name": "ch15_windmill",
+  "size": "928*1664",
+  "prompt": "An old wooden windmill with four broken sails on a small hill, standing on the bottom edge. Rendered as one SOLID BLACK SILHOUETTE like a black paper cut-out or a shadow puppet: every part of the shape is filled flat solid pure black (#000000) with NO interior lines, NO outlines, NO hatching and NO white details inside, set on a completely flat pure white (#FFFFFF) background. Exact side view, flat orthographic, isolated, nothing else in the image. Crisp clean edges, detail only in the outline. No ground, no grass, no text, no border.",
+  "negative": "text, letters, words, signature, watermark, frame, border, colour, color, grey, gray, gradient, shading, texture, 3d, photo, ground line, horizon, people, line art, ink drawing, sketch, outline drawing, hatching, engraving, white interior, perspective, scenery, sky"
+ },
+ {
+  "name": "ch15_village_far",
+  "size": "1664*928",
+  "prompt": "A small distant village of crooked cottages with chimneys and a little church spire on a gentle hill, across the full width, standing on the bottom edge. Rendered as one SOLID BLACK SILHOUETTE like a black paper cut-out or a shadow puppet: every part of the shape is filled flat solid pure black (#000000) with NO interior lines, NO outlines, NO hatching and NO white details inside, set on a completely flat pure white (#FFFFFF) background. Exact side view, flat orthographic, isolated, nothing else in the image. Crisp clean edges, detail only in the outline. No ground, no grass, no text, no border.",
+  "negative": "text, letters, words, signature, watermark, frame, border, colour, color, grey, gray, gradient, shading, texture, 3d, photo, ground line, horizon, people, line art, ink drawing, sketch, outline drawing, hatching, engraving, white interior, perspective, scenery, sky"
+ }
+]

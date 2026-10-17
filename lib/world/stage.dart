@@ -53,6 +53,9 @@ abstract class Stage extends Component {
   /// Where a cutscene wants the camera, or null to follow the boy.
   Vector2? cameraFocus;
 
+  /// How close the camera comes in, 1 as usual (a scene's close-up).
+  double cameraZoom = 1;
+
   /// Black over the whole picture, 0 to 1, for a stage's own fades
   /// (cutscenes, its last moment).
   double blackness = 0;
