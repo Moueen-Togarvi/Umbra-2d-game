@@ -9,15 +9,6 @@ import '../render/culling.dart';
 import 'physics_props.dart';
 import 'player.dart';
 
-Filter _solidProp() => Filter(
-  categoryBits: CollisionLayers.prop,
-  maskBits:
-      CollisionLayers.terrain |
-      CollisionLayers.prop |
-      CollisionLayers.ragdoll |
-      CollisionLayers.player,
-);
-
 const Color _black = Color(0xFF050505);
 const Color _crack = Color(0x26C8C8C8);
 
@@ -44,9 +35,6 @@ class Cart extends PhysicsCrate {
 
   final List<Body> wheels = [];
 
-  /// The bed's top, above the ground the cart stands on.
-  static double get bedTop => wheelRadius + _axleBelow + 0.2;
-
   @override
   Body createBody() {
     final Body bed = super.createBody();
@@ -64,7 +52,7 @@ class Cart extends PhysicsCrate {
         Circle(radius: wheelRadius),
         ShapeDef(
           density: 30,
-          filter: _solidProp(),
+          filter: CollisionLayers.propFilter(),
           material: SurfaceMaterial(friction: 1.2, rollingResistance: 0.02),
         ),
       );
@@ -402,7 +390,7 @@ class Seesaw extends BodyComponent with OffScreenCulling {
       Polygon.box(length / 2, thickness / 2, radius: 0.015),
       ShapeDef(
         density: 14 / (length * thickness),
-        filter: _solidProp(),
+        filter: CollisionLayers.propFilter(),
         material: SurfaceMaterial(friction: 0.95),
         enableSensorEvents: true,
       ),

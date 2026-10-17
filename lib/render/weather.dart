@@ -5,7 +5,6 @@ import 'package:flame/components.dart';
 import 'package:flame/game.dart' show FlameGame;
 
 import '../world/stage.dart';
-import 'light.dart';
 
 /// Rain driven slantwise across the picture, in front of everything.
 class Rain extends Component {
@@ -50,7 +49,7 @@ class Rain extends Component {
 /// Lightning: every few seconds the whole sky goes white for a moment and
 /// everything stands lit. Long enough to stop a vampire in its tracks,
 /// not to burn it. [flashed] counts the strikes; [strikeAt] calls one now.
-class Lightning extends Component implements LightSource {
+class Lightning extends Component with StageLight {
   Lightning({this.every = 5.5, this.firstAfter = 3, super.priority = 70});
 
   final double every, firstAfter;
@@ -61,11 +60,7 @@ class Lightning extends Component implements LightSource {
   final math.Random _random = math.Random(13);
   double _next = 0;
   Vector2? _bolt;
-  Stage? _stage;
   CameraComponent? _camera;
-
-  /// How white the sky is now, 0–1.
-  double get flash => _flash;
 
   @override
   bool lights(Vector2 point) => _flash > 0.45;
@@ -75,19 +70,6 @@ class Lightning extends Component implements LightSource {
     final game = findGame();
     if (game is FlameGame) _camera = game.camera;
     _next = firstAfter;
-  }
-
-  @override
-  void onMount() {
-    super.onMount();
-    _stage = ancestors().whereType<Stage>().firstOrNull;
-    _stage?.lights.add(this);
-  }
-
-  @override
-  void onRemove() {
-    _stage?.lights.remove(this);
-    super.onRemove();
   }
 
   /// A strike now, its bolt coming down at [at] (world metres) if given.
@@ -154,13 +136,12 @@ class Lightning extends Component implements LightSource {
 /// across the land from the right as it rises: everything to the right of
 /// [edge] stands in sunlight, and the edge moves left at [speed] once
 /// [rising]. A vampire in it burns.
-class Sunrise extends Component implements LightSource {
+class Sunrise extends Component with StageLight {
   Sunrise({required this.edge, this.speed = 2.6, super.priority = -36});
 
   double edge;
   final double speed;
   bool rising = false;
-  Stage? _stage;
   CameraComponent? _camera;
 
   @override
@@ -170,19 +151,6 @@ class Sunrise extends Component implements LightSource {
   Future<void> onLoad() async {
     final game = findGame();
     if (game is FlameGame) _camera = game.camera;
-  }
-
-  @override
-  void onMount() {
-    super.onMount();
-    _stage = ancestors().whereType<Stage>().firstOrNull;
-    _stage?.lights.add(this);
-  }
-
-  @override
-  void onRemove() {
-    _stage?.lights.remove(this);
-    super.onRemove();
   }
 
   @override

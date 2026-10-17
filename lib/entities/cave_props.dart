@@ -12,15 +12,6 @@ import 'player.dart';
 const Color _rock = Color(0xFF050505);
 const Color _iron = Color(0xFF060606);
 
-Filter _propFilter() => Filter(
-  categoryBits: CollisionLayers.prop,
-  maskBits:
-      CollisionLayers.terrain |
-      CollisionLayers.prop |
-      CollisionLayers.ragdoll |
-      CollisionLayers.player,
-);
-
 /// A mass of cave rock: a closed outline that is solid all round (a chain
 /// loop), drawn with a roughened edge and with stalactites hanging from
 /// every face that looks down.
@@ -214,7 +205,7 @@ class HangingCage extends Component with OffScreenCulling {
         ShapeDef(
           density: 40,
           // The chain passes through everything; only its ends matter.
-          filter: Filter(categoryBits: CollisionLayers.prop, maskBits: 0),
+          filter: CollisionLayers.propFilter(collides: false),
         ),
       );
       w.createRevoluteJoint(
@@ -241,7 +232,7 @@ class HangingCage extends Component with OffScreenCulling {
     );
     ShapeDef part(double density) => ShapeDef(
       density: density,
-      filter: _propFilter(),
+      filter: CollisionLayers.propFilter(),
       material: SurfaceMaterial(friction: 0.9),
       enableHitEvents: true,
       enableSensorEvents: true,
@@ -600,7 +591,7 @@ class FootPedal extends BodyComponent with OffScreenCulling {
       Polygon.box(length / 2, 0.06, radius: 0.015),
       ShapeDef(
         density: massKg / (length * 0.12),
-        filter: _propFilter(),
+        filter: CollisionLayers.propFilter(),
         material: SurfaceMaterial(friction: 0.95),
         enableSensorEvents: true,
       ),

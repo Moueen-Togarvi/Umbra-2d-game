@@ -80,7 +80,6 @@ class Player extends BodyComponent {
   bool forceLookBack = false;
   bool forceLookUp = false;
   bool _dead = false;
-  double _deadSeconds = 0;
   bool _grounded = false;
 
   /// Whether the ground is under his centre, not just under one side of
@@ -216,8 +215,6 @@ class Player extends BodyComponent {
   set eyeColor(Color value) => _figure.eyeColor = value;
   set eyeGlow(double value) => _figure.eyeGlow = value;
 
-  /// How long the body has been lying still, for the death sequence.
-  double get deadSeconds => _deadSeconds;
   Vector2 get velocity => _ragdoll?.velocity ?? body.linearVelocity;
   Vector2 get cameraPosition => _ragdoll?.pelvisPosition ?? body.position;
   String get interactionLabel => interactions.mode.name;
@@ -353,7 +350,6 @@ class Player extends BodyComponent {
       knockDown();
     }
     if (_ragdoll != null) {
-      if (_dead) _deadSeconds += dt;
       _updateRagdoll(dt);
       _intent.consumeJumpRequest();
       _intent.consumeInteractRequest();
@@ -1202,7 +1198,6 @@ class Player extends BodyComponent {
   void die() {
     if (_dead) return;
     _dead = true;
-    _deadSeconds = 0;
     if (_recoveryPose != null) {
       _recoveryPose = null;
       body.isEnabled = true;
@@ -1285,7 +1280,6 @@ class Player extends BodyComponent {
     _ragdoll = null;
     _recoveryPose = null;
     _dead = false;
-    _deadSeconds = 0;
     body.isEnabled = true;
     body.setTransform(position, const Rot.identity());
     body.linearVelocity = Vector2.zero();

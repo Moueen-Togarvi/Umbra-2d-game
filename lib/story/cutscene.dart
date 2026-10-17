@@ -23,7 +23,6 @@ class Cutscene {
 
   /// Seconds since the scene started.
   double get time => _time;
-  bool get isDone => _done;
 
   void start(Chapter chapter) {
     _chapter = chapter;

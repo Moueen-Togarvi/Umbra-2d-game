@@ -5,15 +5,6 @@ import 'package:flame_forge2d/flame_forge2d.dart';
 
 import '../physics/collision_layers.dart';
 
-Filter _propFilter({bool collideWithPlayer = true}) => Filter(
-  categoryBits: CollisionLayers.prop,
-  maskBits:
-      CollisionLayers.terrain |
-      CollisionLayers.prop |
-      CollisionLayers.ragdoll |
-      (collideWithPlayer ? CollisionLayers.player : 0),
-);
-
 /// A real dynamic crate; density, mass and floor friction determine resistance.
 class PhysicsCrate extends BodyComponent {
   PhysicsCrate({
@@ -64,7 +55,7 @@ class PhysicsCrate extends BodyComponent {
       Polygon.box(size.x / 2 - corner, size.y / 2 - corner, radius: corner),
       ShapeDef(
         density: massKg / area,
-        filter: _propFilter(),
+        filter: CollisionLayers.propFilter(),
         material: SurfaceMaterial(friction: friction, restitution: 0),
         enableContactEvents: true,
         enableSensorEvents: true,
@@ -149,7 +140,7 @@ class MovingPlatform extends BodyComponent {
     result.createShape(
       Polygon.box(size.x / 2, size.y / 2),
       ShapeDef(
-        filter: _propFilter(),
+        filter: CollisionLayers.propFilter(),
         material: SurfaceMaterial(friction: 0.7),
         enableContactEvents: true,
         enableSensorEvents: true,
@@ -276,7 +267,7 @@ class SwingRope extends BodyComponent {
     );
     fixed.createShape(
       Circle(radius: 0.06),
-      ShapeDef(filter: _propFilter(collideWithPlayer: false)),
+      ShapeDef(filter: CollisionLayers.propFilter(withPlayer: false)),
     );
     bob = world.createBody(
       BodyDef(
@@ -292,7 +283,7 @@ class SwingRope extends BodyComponent {
       Circle(radius: radius),
       ShapeDef(
         density: 3 / (math.pi * radius * radius),
-        filter: _propFilter(collideWithPlayer: false),
+        filter: CollisionLayers.propFilter(withPlayer: false),
         material: SurfaceMaterial(friction: 0.4),
       ),
     );

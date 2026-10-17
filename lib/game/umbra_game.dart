@@ -160,9 +160,6 @@ class UmbraGame extends Forge2DGame with HasKeyboardHandlerComponents {
     }
   }
 
-  bool get soundEnabled => _audio.enabled;
-  void toggleSound() => _audio.toggle();
-
   /// Respawn state: the current stage's.
   CheckpointService checkpoints = CheckpointService(
     initialCheckpoint: GameConfig.playerSpawn,

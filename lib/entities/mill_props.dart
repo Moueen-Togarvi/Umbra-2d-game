@@ -60,10 +60,7 @@ class Waterwheel extends BodyComponent with OffScreenCulling {
     // here, from its paddles.
     b.createShape(
       Circle(radius: radius),
-      ShapeDef(
-        density: 1,
-        filter: Filter(categoryBits: CollisionLayers.prop, maskBits: 0),
-      ),
+      ShapeDef(density: 1, filter: CollisionLayers.propFilter(collides: false)),
     );
     b.massData = MassData(
       mass: massKg,

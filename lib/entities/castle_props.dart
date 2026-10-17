@@ -19,16 +19,6 @@ const Color _iron = Color(0xFF050505);
 const Color _wood = Color(0xFF080706);
 const Color _seam = Color(0x1CD8D0C0);
 
-Filter _propFilter({bool collides = true}) => Filter(
-  categoryBits: CollisionLayers.prop,
-  maskBits: collides
-      ? CollisionLayers.terrain |
-            CollisionLayers.prop |
-            CollisionLayers.ragdoll |
-            CollisionLayers.player
-      : 0,
-);
-
 // ---------------------------------------------------------------------------
 // Things on ropes over pulleys
 // ---------------------------------------------------------------------------
@@ -82,7 +72,7 @@ abstract class Hoisted extends BodyComponent with OffScreenCulling {
   /// run clear of the stone.
   ShapeDef shapeDef({double friction = 0.9, bool collides = true}) => ShapeDef(
     density: 10,
-    filter: _propFilter(collides: collides),
+    filter: CollisionLayers.propFilter(collides: collides),
     material: SurfaceMaterial(friction: friction),
     enableSensorEvents: true,
     enableHitEvents: true,
@@ -1034,31 +1024,13 @@ abstract interface class GlowingLight implements LightSource {
   void paintLight(Canvas canvas);
 }
 
-/// Joins [light] to the stage's lights while [component] is mounted.
-mixin _Registers on Component implements LightSource {
-  Stage? stage;
-
-  @override
-  void onMount() {
-    super.onMount();
-    stage = ancestors().whereType<Stage>().firstOrNull;
-    stage?.lights.add(this);
-  }
-
-  @override
-  void onRemove() {
-    stage?.lights.remove(this);
-    super.onRemove();
-  }
-}
-
 /// A tall window high in the wall, shuttered. Opened, the moon pours a
 /// slanting shaft of light down to the floor, where the vampires will not
 /// go.
 ///
 /// The window's art is drawn by the chapter; this is its panes' rectangle,
 /// the shutters over them, and the light.
-class MoonWindow extends Component with _Registers implements GlowingLight {
+class MoonWindow extends Component with StageLight implements GlowingLight {
   MoonWindow({
     required this.paneLeft,
     required this.paneRight,
@@ -1079,8 +1051,6 @@ class MoonWindow extends Component with _Registers implements GlowingLight {
   double _open, _goal;
   double _time = 0;
 
-  /// How far the shutters are open, 0–1.
-  double get openness => _open;
   bool get isOpen => _open > 0.6;
 
   void open() => _goal = 1;
@@ -1222,7 +1192,7 @@ class MoonWindow extends Component with _Registers implements GlowingLight {
 
 /// A cart with a lantern on a post: pushed or pulled like any cart, it
 /// carries its pool of light with it. The lantern swings as it goes.
-class LanternCart extends Cart with _Registers implements GlowingLight {
+class LanternCart extends Cart with StageLight implements GlowingLight {
   LanternCart({required super.x, required super.groundY})
     : super(shafts: false);
 
@@ -1318,7 +1288,7 @@ class LanternCart extends Cart with _Registers implements GlowingLight {
 /// [release] lets the rope go: it falls with its whole weight, crushes
 /// what is under it, and lies where it lands.
 class HungChandelier extends BodyComponent
-    with OffScreenCulling, _Registers
+    with OffScreenCulling, StageLight
     implements GlowingLight {
   HungChandelier({
     required this.anchor,
@@ -1392,7 +1362,7 @@ class HungChandelier extends BodyComponent
       ]),
       ShapeDef(
         density: 10,
-        filter: _propFilter(),
+        filter: CollisionLayers.propFilter(),
         material: SurfaceMaterial(friction: 0.8),
         enableHitEvents: true,
         enableSensorEvents: true,
@@ -1409,7 +1379,7 @@ class HungChandelier extends BodyComponent
       ]),
       ShapeDef(
         density: 10,
-        filter: _propFilter(),
+        filter: CollisionLayers.propFilter(),
         material: SurfaceMaterial(friction: 0.8),
         enableHitEvents: true,
       ),
@@ -1611,7 +1581,7 @@ class HungChandelier extends BodyComponent
 /// A chandelier hanging on a long rope from the vault, its candles lit: a
 /// rope to catch and swing on like any other, carrying its light as it
 /// swings.
-class ChandelierRope extends SwingRope with _Registers implements GlowingLight {
+class ChandelierRope extends SwingRope with StageLight implements GlowingLight {
   ChandelierRope({
     required super.anchor,
     required super.length,

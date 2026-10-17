@@ -32,7 +32,7 @@ import 'chapter.dart';
 ///  28 the gate  32.2 the keeper  41 cart  48.6 cord  50–56.4 the moat
 ///  74 out
 /// ```
-class GreatGateChapter extends Chapter {
+class GreatGateChapter extends Chapter with KeeperChase {
   GreatGateChapter({required super.intent});
 
   @override
@@ -83,9 +83,8 @@ class GreatGateChapter extends Chapter {
   late final PullCord bridgeCord;
   late final WaterBody moat;
   final Vampire keeper = Vampire(x: 26, groundY: floor, facing: 1);
+  @override
   late final Pursuer pursuer = Pursuer(keeper, stage: this, speed: 2.9);
-  bool chasing = false;
-  double _restart = 0;
 
   @override
   List<Component> buildPit(int index, double left, double right, double lip) {
@@ -256,8 +255,7 @@ class GreatGateChapter extends Chapter {
     Wait(1.2),
     Do((_) {
       player.forceLookBack = false;
-      chasing = true;
-      pursuer.start();
+      startChase();
     }),
     Look(null),
   ]);
@@ -266,14 +264,7 @@ class GreatGateChapter extends Chapter {
   void update(double dt) {
     super.update(dt);
     if (!player.isMounted) return;
-    if (_restart > 0) {
-      _restart -= dt;
-      if (_restart <= 0) {
-        chasing = true;
-        pursuer.start();
-      }
-    }
-    if (chasing) pursuer.update(dt);
+    updateChase(dt);
   }
 
   @override
@@ -291,15 +282,10 @@ class GreatGateChapter extends Chapter {
     }
     if (at >= 31 && at < moatLeft && (chasing || pursuer.caught)) {
       final double from = at - 8;
-      keeper
-        ..revive()
-        ..x = from
-        ..groundY = from > galleryLeft && from < panLeft ? galleryTop : floor
-        ..facing = 1
-        ..eyes = 1;
-      chasing = false;
-      pursuer.stop();
-      _restart = 1.2;
+      keeperBehind(
+        from,
+        from > galleryLeft && from < panLeft ? galleryTop : floor,
+      );
     }
   }
 }

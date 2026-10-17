@@ -16,15 +16,6 @@ import 'player.dart';
 const Color _wood = Color(0xFF070605);
 const Color _iron = Color(0xFF050505);
 
-Filter _solid() => Filter(
-  categoryBits: CollisionLayers.prop,
-  maskBits:
-      CollisionLayers.terrain |
-      CollisionLayers.prop |
-      CollisionLayers.ragdoll |
-      CollisionLayers.player,
-);
-
 /// A drawbridge: a long heavy deck hinged at the near edge of the moat,
 /// standing up and held by its chain. Let the chain go ([lower]) and it
 /// falls across, turning on its hinge, and lands on the far side; there it
@@ -75,7 +66,7 @@ class Drawbridge extends BodyComponent with OffScreenCulling {
       ),
       ShapeDef(
         density: 10,
-        filter: _solid(),
+        filter: CollisionLayers.propFilter(),
         material: SurfaceMaterial(friction: 0.95),
         enableHitEvents: true,
       ),
@@ -217,7 +208,7 @@ class Drawbridge extends BodyComponent with OffScreenCulling {
 }
 
 /// An iron fire basket on a tall stand: a steady pool of firelight.
-class Brazier extends Component with _Lit implements GlowingLight {
+class Brazier extends Component with StageLight implements GlowingLight {
   Brazier({
     required this.x,
     required this.floorY,
@@ -286,23 +277,6 @@ class Brazier extends Component with _Lit implements GlowingLight {
   }
 }
 
-mixin _Lit on Component implements LightSource {
-  Stage? stage;
-
-  @override
-  void onMount() {
-    super.onMount();
-    stage = ancestors().whereType<Stage>().firstOrNull;
-    stage?.lights.add(this);
-  }
-
-  @override
-  void onRemove() {
-    stage?.lights.remove(this);
-    super.onRemove();
-  }
-}
-
 /// A bridge of planks on ropes over a chasm: each plank a body, hinged to
 /// the next, the ends tied to posts; it sags, sways in the wind and bucks
 /// under him. [snap] cuts it loose at the far post: it falls.
@@ -358,7 +332,7 @@ class RopeBridge extends Component with OffScreenCulling {
         Polygon.box(_plank / 2 - 0.01, 0.06),
         ShapeDef(
           density: 30,
-          filter: _solid(),
+          filter: CollisionLayers.propFilter(),
           material: SurfaceMaterial(friction: 0.95),
         ),
       );
@@ -515,7 +489,7 @@ class RockFall extends Component {
         Polygon(pts),
         ShapeDef(
           density: 260,
-          filter: _solid(),
+          filter: CollisionLayers.propFilter(),
           material: SurfaceMaterial(friction: 0.7, restitution: 0.2),
         ),
       );

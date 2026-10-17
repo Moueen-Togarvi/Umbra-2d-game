@@ -28,7 +28,7 @@ import 'chapter.dart';
 ///  0  20–40 the climb, stones from 44  47–59 the rope bridge
 ///  60–80 the ridge  86 out
 /// ```
-class StormChapter extends Chapter {
+class StormChapter extends Chapter with KeeperChase {
   StormChapter({required super.intent});
 
   @override
@@ -77,9 +77,8 @@ class StormChapter extends Chapter {
   late final RockFall stones;
   late final RopeBridge bridge;
   final Vampire keeper = Vampire(x: -2, groundY: 7.0, facing: 1);
+  @override
   late final Pursuer pursuer = Pursuer(keeper, stage: this);
-  bool chasing = false;
-  double _restart = 0;
   double _gust = 0, _gustClock = 0;
   bool _struck = false;
 
@@ -158,8 +157,7 @@ class StormChapter extends Chapter {
         ..groundY = 7.0
         ..facing = 1
         ..eyes = 1;
-      chasing = true;
-      pursuer.start();
+      startChase();
     });
   }
 
@@ -167,14 +165,7 @@ class StormChapter extends Chapter {
   void update(double dt) {
     super.update(dt);
     if (!player.isMounted) return;
-    if (_restart > 0) {
-      _restart -= dt;
-      if (_restart <= 0) {
-        chasing = true;
-        pursuer.start();
-      }
-    }
-    if (chasing) pursuer.update(dt);
+    updateChase(dt);
     // No new stones once he is up at the top where they break loose.
     if (!_struck) stones.active = player.body.position.x < 41;
     // The wind: gusts off the sea every few seconds, pushing him back.
@@ -197,9 +188,7 @@ class StormChapter extends Chapter {
         keeper.x > chasmLeft &&
         keeper.x < chasmRight) {
       // Down with it into the chasm.
-      keeper.gone = true;
-      pursuer.stop();
-      chasing = false;
+      endChase();
     }
   }
 
@@ -208,15 +197,7 @@ class StormChapter extends Chapter {
     final double at = checkpoints.activeCheckpoint.x;
     if (at < chasmRight && (chasing || pursuer.caught)) {
       final double from = at - 8;
-      keeper
-        ..revive()
-        ..x = from
-        ..groundY = groundAt(from)
-        ..facing = 1
-        ..eyes = 1;
-      chasing = false;
-      pursuer.stop();
-      _restart = 1.2;
+      keeperBehind(from, groundAt(from));
     }
   }
 }

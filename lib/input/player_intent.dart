@@ -111,13 +111,6 @@ class PlayerIntent {
     _interactionEdge(wasInteracting);
   }
 
-  /// A jump pressed by the script.
-  void scriptJump() {
-    if (!_scripted) return;
-    _jumpRequested = true;
-    _jumpFromUp = false;
-  }
-
   void _interactionEdge(bool wasHeld) {
     if (!wasHeld && isInteractHeld) requestInteract();
     if (wasHeld && !isInteractHeld) requestInteractRelease();

@@ -83,7 +83,7 @@ class CellFront extends Component {
 /// runs along the oil towards [spreadTo], burns for [seconds] and dies
 /// down. It is light, so the vampires run from it, and anything of theirs
 /// it reaches burns; it kills the boy too.
-class Fire extends Component with _Lit implements GlowingLight {
+class Fire extends Component with StageLight implements GlowingLight {
   Fire({
     required double x,
     required this.floorY,
@@ -182,24 +182,6 @@ class Fire extends Component with _Lit implements GlowingLight {
       );
     canvas.drawPath(path, _flame);
     _flame.shader = null;
-  }
-}
-
-/// Joins the stage's lights while mounted.
-mixin _Lit on Component implements LightSource {
-  Stage? stage;
-
-  @override
-  void onMount() {
-    super.onMount();
-    stage = ancestors().whereType<Stage>().firstOrNull;
-    stage?.lights.add(this);
-  }
-
-  @override
-  void onRemove() {
-    stage?.lights.remove(this);
-    super.onRemove();
   }
 }
 

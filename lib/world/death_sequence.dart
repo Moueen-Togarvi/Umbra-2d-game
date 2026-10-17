@@ -27,9 +27,6 @@ class DeathSequence {
   static const double _black = GameConfig.deathBlackSeconds;
   static const double _fadeIn = GameConfig.deathFadeInSeconds;
 
-  /// Whether a death is being played out.
-  bool get isRunning => _clock >= 0;
-
   void update(double dt, Player player) {
     if (_clock < 0) {
       if (!player.isDead) {

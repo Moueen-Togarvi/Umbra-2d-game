@@ -5,7 +5,6 @@ import 'package:flame/components.dart';
 import 'package:flame_forge2d/flame_forge2d.dart';
 
 import '../physics/collision_layers.dart';
-import '../physics/water.dart';
 import 'physics_props.dart';
 
 const Color _wood = Color(0xFF060504);
@@ -292,44 +291,6 @@ class LogSource extends Component {
   }
 }
 
-/// A sluice between two pools: shut, they keep their levels; open, water
-/// runs from the higher to the lower until they are level, the volume
-/// that leaves one arriving in the other.
-class Sluice extends Component {
-  Sluice({required this.from, required this.into, this.flow = 0.9});
-
-  final WaterBody from, into;
-
-  /// How fast it runs, square metres a second per metre of difference.
-  final double flow;
-  bool open = false;
-
-  @override
-  void update(double dt) {
-    if (!open || dt <= 0) return;
-    // Surfaces in y-down: the higher water has the smaller y.
-    final double head = into.level - from.level;
-    if (head.abs() < 0.002) return;
-    final double widthFrom = from.right - from.left;
-    final double widthInto = into.right - into.left;
-    final double moved = flow * head * dt;
-    from.setLevel(from.level + moved / widthFrom);
-    into.setLevel(into.level - moved / widthInto);
-  }
-}
-
-/// How far a log of [diameter] floating in water of [density] at its own
-/// [massKg] over [length] sits under the surface (for laying levels out).
-double floatDepth(
-  double massKg,
-  double length,
-  double diameter,
-  double density,
-) {
-  final double fraction = (massKg / (length * diameter)) / density;
-  return diameter * math.min(1, fraction);
-}
-
 /// An old barrel lying on its side in the water, seen along its length:
 /// bulging staves between iron hoops. It floats high, dips and tips under
 /// him, and bumps against its neighbours.
@@ -362,14 +323,7 @@ class Barrel extends BodyComponent {
       Polygon.box(length / 2 - round, thickness / 2 - round, radius: round),
       ShapeDef(
         density: massKg / (length * thickness),
-        filter: Filter(
-          categoryBits: CollisionLayers.prop,
-          maskBits:
-              CollisionLayers.terrain |
-              CollisionLayers.prop |
-              CollisionLayers.ragdoll |
-              CollisionLayers.player,
-        ),
+        filter: CollisionLayers.propFilter(),
         material: SurfaceMaterial(friction: 0.9),
         enableSensorEvents: true,
       ),

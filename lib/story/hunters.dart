@@ -1,5 +1,6 @@
 import 'dart:math' as math;
 
+import 'package:flame/components.dart' show Component;
 import 'package:flame_forge2d/flame_forge2d.dart';
 
 import '../config/game_config.dart';
@@ -214,6 +215,80 @@ class Pursuer {
         vampire.seize();
         boy.die();
       }
+    }
+  }
+}
+
+/// A chapter with a keeper on the boy's heels: whether the chase is on,
+/// the keeper coming again from behind after a death, and giving up when
+/// the boy is out of reach.
+mixin KeeperChase on Component {
+  Pursuer get pursuer;
+
+  /// Whether the chase is on.
+  bool chasing = false;
+  double _restart = 0, _shutOut = 0;
+
+  void startChase() {
+    chasing = true;
+    pursuer.start();
+  }
+
+  void stopChase() {
+    chasing = false;
+    _shutOut = 0;
+    pursuer.stop();
+  }
+
+  /// Ends the chase for good: the keeper is gone.
+  void endChase() {
+    stopChase();
+    pursuer.vampire.gone = true;
+  }
+
+  /// Back from a death: the keeper stands at [x] on [groundY], behind
+  /// the boy, and comes on again in a moment.
+  void keeperBehind(double x, double groundY) {
+    pursuer.vampire
+      ..revive()
+      ..x = x
+      ..groundY = groundY
+      ..facing = 1
+      ..eyes = 1;
+    stopChase();
+    _restart = 1.2;
+  }
+
+  /// Runs the chase; call each frame.
+  void updateChase(double dt) {
+    if (_restart > 0) {
+      _restart -= dt;
+      if (_restart <= 0) startChase();
+    }
+    if (chasing) pursuer.update(dt);
+  }
+
+  /// Shut out (behind a gate, across a gap too wide) once the boy is
+  /// [past] it: the keeper reaches after him a while, then walks back to
+  /// [home], and is gone once behind [goneBelow].
+  void giveUpWhenShutOut(
+    double dt, {
+    required bool past,
+    required double home,
+    required double goneBelow,
+  }) {
+    final Vampire keeper = pursuer.vampire;
+    if (chasing && pursuer.blocked && past) {
+      _shutOut += dt;
+      if (_shutOut > 3.5) {
+        stopChase();
+        keeper
+          ..reachGoal = 0
+          ..walkTo(home);
+      }
+    }
+    if (!chasing && keeper.mode == VampireMode.walk && keeper.x < goneBelow) {
+      keeper.gone = true;
     }
   }
 }

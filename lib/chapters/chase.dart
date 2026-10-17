@@ -30,7 +30,7 @@ import 'chapter.dart';
 ///  48 table  56–57.8 hole  63 step  70–72.4 bookcase gap  86 latched gate
 ///  88–91.4 the pit and the cord  100–106 steps  132 out
 /// ```
-class ChaseChapter extends Chapter {
+class ChaseChapter extends Chapter with KeeperChase {
   ChaseChapter({required super.intent});
 
   @override
@@ -93,13 +93,10 @@ class ChaseChapter extends Chapter {
   late final TallBookcase bookcase;
   late final PullCord cord;
   final Vampire keeper = Vampire(x: keeperStart, groundY: floor, facing: 1);
+  @override
   late final Pursuer pursuer = Pursuer(keeper, stage: this);
 
-  /// Whether the chase has begun (the keeper has come down).
-  bool chasing = false;
   bool _gateDown = false;
-  double _atGate = 0;
-  double _restart = 0;
 
   @override
   List<Component> buildPit(int index, double left, double right, double lip) {
@@ -290,24 +287,15 @@ class ChaseChapter extends Chapter {
     Wait(1.3),
     Do((_) {
       player.forceLookBack = false;
-      _startChase();
+      startChase();
     }),
     Look(null),
   ]);
 
-  void _startChase() {
-    chasing = true;
-    pursuer.start();
-  }
-
   @override
   void update(double dt) {
     super.update(dt);
-    if (_restart > 0) {
-      _restart -= dt;
-      if (_restart <= 0) _startChase();
-    }
-    if (chasing) pursuer.update(dt);
+    updateChase(dt);
     if (!latchedGate.isReady) return;
     // The latched gate crashing down on him, if he was under it.
     if (!_gateDown && latchedGate.isShut) {
@@ -320,19 +308,12 @@ class ChaseChapter extends Chapter {
       pursuer.stop();
     }
     // Shut out: he reaches through the bars a while, then goes.
-    if (chasing && pursuer.blocked && player.body.position.x > pitRight) {
-      _atGate += dt;
-      if (_atGate > 3.5) {
-        chasing = false;
-        pursuer.stop();
-        keeper
-          ..reachGoal = 0
-          ..walkTo(keeperStart);
-      }
-    }
-    if (!chasing && keeper.mode == VampireMode.walk && keeper.x < gateX - 9) {
-      keeper.gone = true;
-    }
+    giveUpWhenShutOut(
+      dt,
+      past: player.body.position.x > pitRight,
+      home: keeperStart,
+      goneBelow: gateX - 9,
+    );
   }
 
   /// Back from a death: the room as it was before what killed him, and the
@@ -351,22 +332,11 @@ class ChaseChapter extends Chapter {
       cord.reset();
       _gateDown = false;
     }
-    _atGate = 0;
     if (at >= 36 && at < pitLeft && (chasing || pursuer.caught)) {
       final double from = at - 8;
-      keeper
-        ..revive()
-        ..x = from
-        ..groundY = from > stepLeft && from < 78 ? stepTop : floor
-        ..facing = 1
-        ..eyes = 1;
-      chasing = false;
-      pursuer.stop();
-      _restart = 1.2;
+      keeperBehind(from, from > stepLeft && from < 78 ? stepTop : floor);
     } else if (at >= pitLeft) {
-      chasing = false;
-      pursuer.stop();
-      keeper.gone = true;
+      endChase();
     }
   }
 }

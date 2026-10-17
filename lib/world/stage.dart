@@ -95,6 +95,24 @@ abstract class Stage extends Component {
   bool get isComplete => false;
 }
 
+/// A light that joins its stage's [Stage.lights] while it is mounted.
+mixin StageLight on Component implements LightSource {
+  Stage? stage;
+
+  @override
+  void onMount() {
+    super.onMount();
+    stage = ancestors().whereType<Stage>().firstOrNull;
+    stage?.lights.add(this);
+  }
+
+  @override
+  void onRemove() {
+    stage?.lights.remove(this);
+    super.onRemove();
+  }
+}
+
 /// A sound (and a shake) from anything on a stage.
 extension StageCues on Component {
   void cue(String name, {double weight = 1, Vector2? at, double shake = 0}) {

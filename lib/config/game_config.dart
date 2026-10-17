@@ -49,10 +49,6 @@ abstract final class GameConfig {
   /// so there is never a gap of fog visible *under* the floor.
   static const double levelHeight = 12.0;
 
-  /// Kept for the old name's sake: the width used by the physics tests.
-  static const double roomWidth = levelWidth;
-  static const double roomHeight = levelHeight;
-
   /// How much of the world the camera frames, in metres. Flame fits this box
   /// inside the screen, so a wider phone simply sees more of the level to the
   /// sides. The 9.2 m height keeps the boy readable on a phone.
@@ -118,15 +114,6 @@ abstract final class GameConfig {
 
   /// Player mass in kilograms.
   static const double playerMassKilograms = 40.0;
-
-  /// Box2D derives a body's mass from the *density* of its shapes rather than
-  /// letting you set the mass directly, so we work backwards from the mass we
-  /// actually want. Density is in kilograms per square metre because the
-  /// simulation is two-dimensional.
-  static const double playerDensity =
-      playerMassKilograms /
-      (playerWidth * (playerHeight - playerWidth) +
-          math.pi * playerWidth * playerWidth / 4);
 
   /// Running speed in metres per second. Like LIMBO's boy, Umbra's child has
   /// one gait: a light run. There is no walk button.
@@ -274,23 +261,6 @@ abstract final class GameConfig {
   /// means there is no unexplained "jump force = 600" constant in the codebase.
   static double get jumpTakeoffSpeed =>
       math.sqrt(2 * gravityMetersPerSecondSquared * jumpApexMeters);
-
-  // ---------------------------------------------------------------------------
-  // Ground detection
-  // ---------------------------------------------------------------------------
-
-  /// Half-width of the foot sensor, as a fraction of the player's half-width.
-  ///
-  /// Slightly narrower than the body so that brushing a wall never counts as
-  /// standing on something.
-  static const double footSensorWidthFactor = 0.9;
-
-  /// Half-height of the foot sensor in metres.
-  ///
-  /// It straddles the sole of the feet, so it reaches this far below the
-  /// player. Keep it small: the larger it is, the further off the ground the
-  /// player can still jump.
-  static const double footSensorHalfHeight = 0.06;
 
   // ---------------------------------------------------------------------------
   // Level layout (metres, origin at the level's top-left, y pointing down)

@@ -13,15 +13,6 @@ import 'player.dart';
 const Color _iron = Color(0xFF050505);
 const Color _sheen = Color(0x1CD8D0C0);
 
-Filter _solid() => Filter(
-  categoryBits: CollisionLayers.prop,
-  maskBits:
-      CollisionLayers.terrain |
-      CollisionLayers.prop |
-      CollisionLayers.ragdoll |
-      CollisionLayers.player,
-);
-
 /// The great pendulum of the tower clock, built as a swing-boat: two
 /// equal rods from twin pivots carry a heavy iron platform between their
 /// feet. The four hinges make a parallelogram, so the platform swings
@@ -60,14 +51,6 @@ class Pendulum extends BodyComponent with OffScreenCulling {
   /// The top of the platform, world metres.
   Vector2 get plateTop => body.position - Vector2(0, 0.1);
 
-  /// How high the platform rides at the ends of the swing, for laying the
-  /// ledges level with it.
-  static double plateTopAtEnd({
-    required double pivotY,
-    required double length,
-    required double amplitude,
-  }) => pivotY + length * math.cos(amplitude) - 0.1;
-
   Vector2 _at(double angle) =>
       Vector2(-math.sin(angle), math.cos(angle)) * length;
 
@@ -76,7 +59,7 @@ class Pendulum extends BodyComponent with OffScreenCulling {
     _anchor = world.createBody(BodyDef(position: pivot));
     final def = ShapeDef(
       density: 10,
-      filter: _solid(),
+      filter: CollisionLayers.propFilter(),
       material: SurfaceMaterial(friction: 0.95),
       enableSensorEvents: true,
     );
@@ -95,7 +78,7 @@ class Pendulum extends BodyComponent with OffScreenCulling {
         Polygon.offsetBox(0.05, length / 2, center: Vector2(0, length / 2)),
         ShapeDef(
           density: 4,
-          filter: Filter(categoryBits: CollisionLayers.prop, maskBits: 0),
+          filter: CollisionLayers.propFilter(collides: false),
         ),
       );
       world.physicsWorld.createRevoluteJoint(
@@ -294,7 +277,7 @@ class Gear extends BodyComponent with OffScreenCulling {
     );
     final def = ShapeDef(
       density: 30,
-      filter: _solid(),
+      filter: CollisionLayers.propFilter(),
       material: SurfaceMaterial(friction: 1.0),
     );
     b.createShape(Circle(radius: radius), def);

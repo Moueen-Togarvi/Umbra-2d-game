@@ -32,7 +32,7 @@ import 'chapter.dart';
 ///  72–73.8 hole  80 table  85.5 the last chandelier  88–91.4 the gap
 ///  124 out
 /// ```
-class ChandeliersChapter extends Chapter {
+class ChandeliersChapter extends Chapter with KeeperChase {
   ChandeliersChapter({required super.intent});
 
   @override
@@ -101,10 +101,8 @@ class ChandeliersChapter extends Chapter {
   ];
   final List<Stalker> _guarding = [];
   final Vampire keeper = Vampire(x: 61, groundY: floor, facing: 1);
+  @override
   late final Pursuer pursuer = Pursuer(keeper, stage: this);
-  bool chasing = false;
-  double _restart = 0;
-  double _atGap = 0;
 
   double _ground(double x) =>
       x > danceLeft && x < danceRight ? danceFloor : floor;
@@ -283,15 +281,10 @@ class ChandeliersChapter extends Chapter {
     Wait(1.2),
     Do((_) {
       player.forceLookBack = false;
-      _startChase();
+      startChase();
     }),
     Look(null),
   ]);
-
-  void _startChase() {
-    chasing = true;
-    pursuer.start();
-  }
 
   @override
   void update(double dt) {
@@ -300,11 +293,7 @@ class ChandeliersChapter extends Chapter {
     for (final hunt in _guarding) {
       hunt.update(dt);
     }
-    if (_restart > 0) {
-      _restart -= dt;
-      if (_restart <= 0) _startChase();
-    }
-    if (chasing) pursuer.update(dt);
+    updateChase(dt);
     // What a falling chandelier comes down on.
     for (final chandelier in [great, last]) {
       if (!chandelier.crushing) continue;
@@ -319,19 +308,12 @@ class ChandeliersChapter extends Chapter {
       }
     }
     // Stopped at the last gap: he reaches across a while, then goes.
-    if (chasing && pursuer.blocked && player.body.position.x > gapRight) {
-      _atGap += dt;
-      if (_atGap > 3.5) {
-        chasing = false;
-        pursuer.stop();
-        keeper
-          ..reachGoal = 0
-          ..walkTo(62);
-      }
-    }
-    if (!chasing && keeper.mode == VampireMode.walk && keeper.x < 72) {
-      keeper.gone = true;
-    }
+    giveUpWhenShutOut(
+      dt,
+      past: player.body.position.x > gapRight,
+      home: 62,
+      goneBelow: 72,
+    );
   }
 
   @override
@@ -345,26 +327,15 @@ class ChandeliersChapter extends Chapter {
         guards[i].facing = -1;
       }
     }
-    _atGap = 0;
     if (at < gapLeft) {
       last.rehang();
       lastCord.reset();
     }
     if (at >= 62 && at < gapLeft && (chasing || pursuer.caught)) {
       final double from = at - 8;
-      keeper
-        ..revive()
-        ..x = from
-        ..groundY = _ground(from)
-        ..facing = 1
-        ..eyes = 1;
-      chasing = false;
-      pursuer.stop();
-      _restart = 1.2;
+      keeperBehind(from, _ground(from));
     } else if (at >= gapLeft) {
-      chasing = false;
-      pursuer.stop();
-      keeper.gone = true;
+      endChase();
     }
   }
 }

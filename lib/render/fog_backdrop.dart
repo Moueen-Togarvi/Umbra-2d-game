@@ -371,7 +371,7 @@ class FogBackdrop extends Component {
     // 2. Far layers. Draw each prop before its ground layer so the terrain
     // buries the foot of the asset instead of exposing roots or flat edges.
     final List<BackdropDrawable> props = _props();
-    for (var i = 0; i < 2; i++) {
+    void layer(int i) {
       _scenery(canvas, size, cam, ppm, mood, props, i);
       _layers[i].render(
         canvas,
@@ -383,6 +383,9 @@ class FogBackdrop extends Component {
         tint: mood.layerTones[i],
       );
     }
+
+    layer(0);
+    layer(1);
 
     // 3. The light, drifting very slowly with the camera.
     final Offset light = Offset(
@@ -431,30 +434,12 @@ class FogBackdrop extends Component {
 
     // 4. Mist, the mid layer, then shafts of light through it.
     _mist(canvas, size, _layers[1], cam.y, ppm, 0.55 * mood.mist, mood);
-    _scenery(canvas, size, cam, ppm, mood, props, 2);
-    _layers[2].render(
-      canvas,
-      size,
-      cam.x,
-      cam.y,
-      ppm,
-      groundY: _ground,
-      tint: mood.layerTones[2],
-    );
+    layer(2);
     _mist(canvas, size, _layers[2], cam.y, ppm, 0.45 * mood.mist, mood);
     _shafts(canvas, size, light, mood);
 
     // 5. Near layer.
-    _scenery(canvas, size, cam, ppm, mood, props, 3);
-    _layers[3].render(
-      canvas,
-      size,
-      cam.x,
-      cam.y,
-      ppm,
-      groundY: _ground,
-      tint: mood.layerTones[3],
-    );
+    layer(3);
     _mist(canvas, size, _layers[3], cam.y, ppm, 0.30 * mood.mist, mood);
 
     // 6. Dust, or drips.
