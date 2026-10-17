@@ -22,7 +22,8 @@ abstract interface class BackdropDrawable {
 /// alpha. At [depth] 1 the prop stands on the play plane and scrolls with
 /// the ground; below 1 it is further off, drawn smaller and scrolling
 /// slower about the camera, exactly like the fog layers behind it, so it
-/// sits on their ground. [fog] is how much of the air lies between it and
+/// sits on their ground. From [nearDepth] up it stands on the path, placed
+/// exactly and pure black. [fog] is how much of the air lies between it and
 /// the camera: 0 is pure black, 1 would be the fog itself. It defaults to
 /// what the depth implies.
 ///
@@ -65,7 +66,8 @@ class SceneryProp extends Component implements BackdropDrawable {
 
   /// How much fog a thing at [depth] stands behind.
   static double defaultFog(double depth) {
-    if (depth >= 1) return 0;
+    // Standing on the path, among the things he touches: pure black.
+    if (depth >= nearDepth) return 0;
     final double t = (1 - depth).clamp(0.0, 1.0);
     // Like the fog layers: dark for a while, then quickly paler.
     return (0.18 + 0.68 * t).clamp(0.0, 0.92);
@@ -81,8 +83,11 @@ class SceneryProp extends Component implements BackdropDrawable {
   /// The area the art covers now, world metres; empty until drawn once.
   Rect drawnRect = Rect.zero;
 
+  /// From this depth up, a prop stands on the path with the boy.
+  static const double nearDepth = 0.85;
+
   /// Far enough off to be drawn among the fog layers, by the backdrop.
-  bool get inBackdrop => depth < 0.85;
+  bool get inBackdrop => depth < nearDepth;
 
   @override
   Future<void> onLoad() async {
@@ -113,7 +118,9 @@ class SceneryProp extends Component implements BackdropDrawable {
     final double aspect = art == null
         ? 1
         : art.width / (art.height * sourceBottom);
-    final double k = depth;
+    // Something on the path is placed exactly where it stands: scaling it
+    // about the camera would lift it off the ground it is meant to be on.
+    final double k = inBackdrop ? depth : 1;
     final double cx = camera.x + (x - camera.x) * k;
     final double base = camera.y + (baseY - camera.y) * k;
     final double h = height * k;

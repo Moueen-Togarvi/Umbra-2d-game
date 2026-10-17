@@ -586,12 +586,12 @@ class ClothLine extends Component with OffScreenCulling {
   double _time = 0;
   // A step behind the path, so a breath of fog lies over it and the boy
   // reads in front of the sheets.
-  static final Paint _post = Paint()..color = const Color(0xFF1E1D1B);
+  static final Paint _post = Paint()..color = _black;
   static final Paint _line = Paint()
-    ..color = const Color(0xFF1E1D1B)
+    ..color = _black
     ..style = PaintingStyle.stroke
     ..strokeWidth = 0.022;
-  static final Paint _sheet = Paint()..color = const Color(0xFF2A2825);
+  static final Paint _sheet = Paint()..color = _black;
 
   /// The line's sag at [x].
   double lineAt(double x) {
