@@ -57,6 +57,7 @@ class Player extends BodyComponent {
   final CharacterSilhouette _figure = CharacterSilhouette(
     height: GameConfig.playerHeight,
   );
+  final Paint _contactShadow = Paint();
   CharacterRagdoll? _ragdoll;
   CharacterRigPose? _recoveryPose;
   double _recoveryTime = 0;
@@ -641,12 +642,15 @@ class Player extends BodyComponent {
   /// One step of the visual body's physics: the pelvis spring, then the
   /// limbs: legs that hang from the solved hips and stand on the real
   /// ground, and arms that swing from the shoulders or hold on.
+  int footfalls = 0;
+
   void _simulateLimbs(double dt) {
     // A footstrike while running gives the spring a small kick.
     final planted = _feet.planted;
     for (var i = 0; i < 2; i++) {
       if (_grounded && planted[i] && !_wasPlanted[i]) {
         _pelvisSpeed += 0.28 * _gaitWeight;
+        if (_gaitWeight > 0.2) footfalls++;
       }
     }
     _wasPlanted = planted;
@@ -1328,6 +1332,17 @@ class Player extends BodyComponent {
   @override
   void render(Canvas canvas) {
     if (hidden) return;
+    if (_grounded && _ragdoll == null) {
+      final centre = Offset(0, _supportY - body.position.y + 0.008);
+      _contactShadow.shader = Gradient.radial(centre, 0.30, const [
+        Color(0x88000000),
+        Color(0x00000000),
+      ]);
+      canvas.drawOval(
+        Rect.fromCenter(center: centre, width: 0.6, height: 0.065),
+        _contactShadow,
+      );
+    }
     if (_ragdoll != null) {
       _figure.drawRig(canvas, _ragdoll!.pose.translated(-body.position));
     } else if (_recoveryPose != null) {

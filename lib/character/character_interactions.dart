@@ -4,7 +4,7 @@ import 'package:flame_forge2d/flame_forge2d.dart';
 
 import '../entities/physics_props.dart';
 import '../config/game_config.dart';
-import '../physics/collision_layers.dart';
+import '../physics/shape_clearance.dart';
 import 'character_rig.dart';
 import 'rope_grips.dart';
 
@@ -61,12 +61,9 @@ class CharacterInteractions {
   Vector2? _ledgeLocal;
   double _ledgeFacing = 1;
 
-  /// Climbing up onto a ledge: how far through it (0 to 1), where he
-  /// started, and the collision filters his shapes had before it (the
-  /// climb passes through the corner, so it switches them off).
+  /// Mantle progress (0 to 1) and the physical position where it began.
   double _climbProgress = 0;
   final Vector2 _climbStart = Vector2.zero();
-  final List<(Shape, Filter)> _climbFilters = [];
   bool releasedThisStep = false;
   bool _requireInteractRelease = false;
 
@@ -517,6 +514,15 @@ class CharacterInteractions {
   }
 
   bool _clearAt(Vector2 centre) {
+    // Chain loops report boundary contacts, not their filled interior. A
+    // destination entirely inside cave rock must also be rejected.
+    for (final body in world.bodies) {
+      final region = body.userData;
+      if (region is SolidOutline &&
+          pointInsideOutline(body.localPoint(centre), region.solidOutline)) {
+        return false;
+      }
+    }
     final extent = Vector2(width / 2 - 0.025, height / 2 - 0.025);
     final bounds = Aabb(centre - extent, centre + extent);
     final Filter mine = playerBody.shapes.first.filter;
@@ -529,74 +535,33 @@ class CharacterInteractions {
           (theirs.categoryBits & mine.maskBits) == 0) {
         continue;
       }
-      if (shape.aabb.overlaps(bounds)) return false;
+      if (capsuleOverlapsShape(shape, centre, width, height)) return false;
     }
     return true;
   }
 
-  /// Climbing onto a ledge is a short, scripted mantle — pull up with the
-  /// chest over the edge, a knee onto the top, stand — along a smooth path
-  /// that never rises above standing height. The path passes through the
-  /// corner, so the body's collision with the ground and with props is off
-  /// until he stands, and gravity with it.
+  /// The capsule rises beside the wall before crossing its top. Collisions
+  /// remain enabled throughout; only gravity is suspended during the pull.
   void _beginClimb() {
     if (_motor?.isValid ?? false) _motor!.destroy();
     _motor = null;
     mode = InteractionMode.climbing;
     _climbProgress = 0;
     _climbStart.setFrom(playerBody.position);
-    _climbFilters.clear();
-    for (final shape in playerBody.shapes) {
-      final filter = shape.filter;
-      _climbFilters.add((shape, filter));
-      shape.filter = Filter(
-        categoryBits: filter.categoryBits,
-        maskBits: filter.maskBits & ~CollisionLayers.solid,
-        groupIndex: filter.groupIndex,
-      );
-    }
     playerBody.gravityScale = 0;
   }
 
-  /// Puts the body's collision and gravity back after a climb.
   void _endClimb() {
-    for (final (shape, filter) in _climbFilters) {
-      if (shape.isValid) shape.filter = filter;
-    }
-    _climbFilters.clear();
     if (playerBody.isValid) playerBody.gravityScale = 1;
   }
 
-  /// Where the body's centre is [p] of the way through the climb.
   Vector2 _climbPath(double p, Vector2 corner) {
-    final double f = _ledgeFacing;
-    final points = [
-      _climbStart,
-      // Pulled up: chest over the edge, legs against the wall.
-      Vector2(corner.x - f * (width / 2 + 0.02), corner.y - height * 0.05),
-      // A knee on the top, crouched.
-      Vector2(corner.x + f * 0.12, corner.y - height / 2 + 0.18),
-      // Standing.
-      _standOn(corner),
-    ];
-    const times = [0.0, 0.45, 0.75, 1.0];
-    final double e = _smoothstep(p);
-    var segment = 0;
-    while (segment < 2 && e > times[segment + 1]) {
-      segment++;
+    final stand = _standOn(corner);
+    final beside = Vector2(_climbStart.x, stand.y);
+    if (p < 0.65) {
+      return _climbStart + (beside - _climbStart) * _smoothstep(p / 0.65);
     }
-    final double t =
-        (e - times[segment]) / (times[segment + 1] - times[segment]);
-    // A Catmull-Rom curve through the four points: smooth through each.
-    Vector2 at(int i) => points[i.clamp(0, 3)];
-    final p0 = at(segment - 1), p1 = at(segment);
-    final p2 = at(segment + 1), p3 = at(segment + 2);
-    final double t2 = t * t, t3 = t2 * t;
-    return (p1 * 2 +
-            (p2 - p0) * t +
-            (p0 * 2 - p1 * 5 + p2 * 4 - p3) * t2 +
-            (p1 * 3 - p0 - p2 * 3 + p3) * t3) *
-        0.5;
+    return beside + (stand - beside) * _smoothstep((p - 0.65) / 0.35);
   }
 
   Vector2 _standOn(Vector2 corner) => Vector2(
@@ -606,25 +571,30 @@ class CharacterInteractions {
 
   void _advanceClimb(double dt) {
     final corner = _ledgeBody!.worldPoint(_ledgeLocal!);
-    // Something has moved into where he would stand: while he is still
-    // below the top, he lets go.
-    if (_climbProgress < 0.7 && !_clearAt(_standOn(corner))) {
+    final progress = math.min(
+      1.0,
+      _climbProgress + dt / GameConfig.climbSeconds,
+    );
+    final next = _climbPath(progress, corner);
+    // Check both the destination and this step, even late in the mantle.
+    // A moving prop can invalidate a previously clear landing at any moment.
+    if (!_clearAt(_standOn(corner)) || !_clearAt(next)) {
       release();
+      playerBody.linearVelocity = Vector2.zero();
       releasedThisStep = true;
+      _catchCooldown = 0.35;
       return;
     }
-    _climbProgress = math.min(1, _climbProgress + dt / GameConfig.climbSeconds);
-    if (_climbProgress >= 1) {
+    if (_climbProgress >= 1 && (next - playerBody.position).length < 0.025) {
       release();
-      playerBody.setTransform(_standOn(corner), const Rot.identity());
       playerBody.linearVelocity = Vector2.zero();
       return;
     }
-    final next = _climbPath(
-      math.min(1, _climbProgress + dt / GameConfig.climbSeconds),
-      corner,
-    );
-    playerBody.linearVelocity = (next - playerBody.position) / dt;
+    _climbProgress = progress;
+    final velocity = (next - playerBody.position) / dt;
+    // Solver contacts retain authority if a moving obstacle crosses the path.
+    if (velocity.length > 4) velocity.scale(4 / velocity.length);
+    playerBody.linearVelocity = velocity;
   }
 
   /// Destroying constraints preserves the body's physical release velocity.

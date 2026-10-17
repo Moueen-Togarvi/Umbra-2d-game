@@ -38,12 +38,12 @@ class GrassStyle {
   // Blade counts are budgeted: every blade is rebuilt each frame, and on
   // the web the path work is a large share of the frame time.
   static const back = GrassStyle(
-    spacing: 0.034,
+    spacing: 0.045,
     seed: 3.1,
     minHeight: 0.04,
     maxHeight: 0.18,
-    clumpHeight: 0.42,
-    coverage: 0.74,
+    clumpHeight: 0.30,
+    coverage: 0.62,
     stalkChance: 0.03,
     bladeWidth: 0.013,
   );

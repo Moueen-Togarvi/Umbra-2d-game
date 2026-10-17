@@ -63,6 +63,7 @@ class Mother {
 
   static const double height = 1.48;
   final Paint _paint = Paint()..color = const Color(0xFF030201);
+  final Paint _scarf = Paint()..color = const Color(0xFF202022);
   final Paint _limb = Paint()
     ..color = const Color(0xFF030201)
     ..style = PaintingStyle.stroke
@@ -159,6 +160,17 @@ class Mother {
       ..quadraticBezierTo(-0.1, -h * 0.68, -0.12, -h * 0.8)
       ..close();
     canvas.drawPath(body, _paint);
+    // Her long shawl and bun distinguish her from the other silhouettes.
+    canvas.drawPath(
+      Path()
+        ..moveTo(-0.09, -h * 0.83)
+        ..quadraticBezierTo(-0.19, -h * 0.8, -0.15, -h * 0.73)
+        ..quadraticBezierTo(-0.2, -h * 0.48, -0.24 + hem, -h * 0.34)
+        ..lineTo(-0.13 + hem, -h * 0.38)
+        ..lineTo(-0.055, -h * 0.78)
+        ..close(),
+      _scarf,
+    );
     // The near hand rests on the door frame as she leans out.
     _limb.strokeWidth = 0.048;
     final Offset backShoulder = Offset(-0.1, -h * 0.79);

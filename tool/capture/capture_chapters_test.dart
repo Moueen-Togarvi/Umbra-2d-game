@@ -10,7 +10,7 @@ import 'dart:ui' as ui;
 import 'package:flame/game.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
-import 'package:flutter/widgets.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:umbra/chapters/cage.dart';
 import 'package:umbra/chapters/chandeliers.dart';
@@ -23,7 +23,11 @@ import 'package:umbra/character/character_interactions.dart';
 import 'package:umbra/config/game_config.dart';
 import 'package:umbra/game/umbra_game.dart';
 import 'package:umbra/story/chapter_director.dart';
+import 'package:umbra/story/figures.dart';
+import 'package:umbra/story/vampire.dart';
+import 'package:umbra/render/mood.dart';
 import 'package:umbra/ui/title_screen.dart';
+import 'package:umbra/ui/pause_screen.dart';
 
 const int width = 1600, height = 720;
 final Directory out = Directory('build/chapters-preview');
@@ -32,13 +36,30 @@ Future<void> loadFonts() async {
   final loader = FontLoader('Cinzel')
     ..addFont(rootBundle.load('assets/fonts/Cinzel-Variable.ttf'));
   await loader.load();
+  // Flutter widget tests otherwise replace platform fonts with Ahem squares.
+  final cache = Directory(
+    '${File(Platform.resolvedExecutable).parent.path}/../../..',
+  );
+  final roboto = File(
+    '${cache.path}/dart-sdk/bin/resources/devtools/assets/packages/devtools_app_shared/fonts/Roboto/Roboto-Regular.ttf',
+  );
+  await (FontLoader('Roboto')..addFont(
+        Future.value(ByteData.sublistView(await roboto.readAsBytes())),
+      ))
+      .load();
+  await (FontLoader(
+    'MaterialIcons',
+  )..addFont(rootBundle.load('fonts/MaterialIcons-Regular.otf'))).load();
 }
 
 void main() {
   final GlobalKey frame = GlobalKey();
 
-  Future<UmbraGame> boot(WidgetTester tester) async {
-    tester.view.physicalSize = const Size(1600, 720);
+  Future<UmbraGame> boot(
+    WidgetTester tester, {
+    Size viewport = const Size(1600, 720),
+  }) async {
+    tester.view.physicalSize = viewport;
     tester.view.devicePixelRatio = 1;
     addTearDown(() {
       tester.view.resetPhysicalSize();
@@ -48,17 +69,23 @@ void main() {
     final game = UmbraGame(campaign: true);
     await tester.pumpWidget(
       MediaQuery(
-        data: const MediaQueryData(size: Size(1600, 720)),
+        data: MediaQueryData(size: viewport),
         child: Directionality(
           textDirection: TextDirection.ltr,
           child: RepaintBoundary(
             key: frame,
-            child: GameWidget<UmbraGame>(
-              game: game,
-              overlayBuilderMap: {
-                ChapterDirector.titleOverlay: (context, game) =>
-                    TitleScreen(game: game),
-              },
+            child: MaterialApp(
+              debugShowCheckedModeBanner: false,
+              theme: ThemeData.dark(),
+              home: GameWidget<UmbraGame>(
+                game: game,
+                overlayBuilderMap: {
+                  ChapterDirector.titleOverlay: (context, game) =>
+                      TitleScreen(game: game),
+                  UmbraGame.pauseOverlay: (context, game) =>
+                      PauseScreen(game: game),
+                },
+              ),
             ),
           ),
         ),
@@ -142,6 +169,9 @@ void main() {
     }
     await screen(tester, 'title', 'title');
     await shot(tester, game, 'title', 'game_only');
+    await tester.tap(find.text('Chapters'));
+    await tester.pump(const Duration(milliseconds: 350));
+    await screen(tester, 'title', 'chapters');
     // ignore: avoid_print
     print(
       'blackness ${game.blackness} director ${game.director!.blackness} '
@@ -299,7 +329,11 @@ void main() {
     step(game, 3);
     game.director!.playChapter(i);
     for (var k = 0; k < 900; k++) {
-      if (game.director!.isPlaying && !game.director!.isBusy) break;
+      if (game.director!.isPlaying &&
+          !game.director!.isBusy &&
+          game.stage?.isLoaded == true) {
+        break;
+      }
       game.update(1 / 60);
       if (k % 4 == 0) {
         await tester.runAsync(
@@ -309,6 +343,83 @@ void main() {
       }
     }
   }
+
+  testWidgets('review corridor gameplay', (tester) async {
+    final game = await boot(tester);
+    await enterChapter(tester, game, 7);
+    final halls = game.stage! as HallsChapter;
+    for (var i = 0; i < 60 * 120 && halls.player.body.position.x < 32; i++) {
+      game.intent.setKeyboardState(axis: 1);
+      game.update(1 / 60);
+      expect(halls.player.isDead, isFalse);
+    }
+    expect(halls.player.body.position.x, greaterThanOrEqualTo(32));
+    expect(halls.cart.body.position.x, greaterThan(32));
+    await shot(tester, game, 'review', 'corridor_gameplay');
+  });
+
+  testWidgets('review figures', (tester) async {
+    await tester.runAsync(loadFonts);
+    final mother = Mother()
+      ..presence = 1
+      ..reach = .25;
+    final enemy = Vampire(x: 0, groundY: 0, facing: 1)..reachGoal = .2;
+    await enemy.onLoad();
+    for (var i = 0; i < 360; i++) {
+      mother.update(1 / 120);
+      enemy.update(1 / 120);
+    }
+    final recorder = ui.PictureRecorder();
+    final canvas = ui.Canvas(recorder);
+    canvas.drawRect(
+      const Rect.fromLTWH(0, 0, 1200, 720),
+      Paint()
+        ..shader = ui.Gradient.linear(Offset.zero, const Offset(0, 720), const [
+          Color(0xFF66696B),
+          Color(0xFFA1A3A0),
+        ]),
+    );
+    void label(String text, double x, double y, double size) {
+      final painter = TextPainter(
+        text: TextSpan(
+          text: text,
+          style: TextStyle(
+            fontFamily: 'Cinzel',
+            fontSize: size,
+            letterSpacing: 2,
+            color: const Color(0xFF202224),
+          ),
+        ),
+        textDirection: TextDirection.ltr,
+      )..layout();
+      painter.paint(canvas, Offset(x, y));
+    }
+
+    label('UMBRA / IN-GAME FIGURES', 64, 46, 22);
+    label('Mother', 245, 640, 18);
+    label('Enemy', 795, 640, 18);
+    canvas.save();
+    canvas.translate(310, 600);
+    canvas.scale(210);
+    mother.render(canvas, const Rect.fromLTRB(-.41, -2.4, .41, 0));
+    canvas.restore();
+    canvas.save();
+    canvas.translate(840, 600);
+    canvas.scale(210);
+    enemy.paint(canvas, Vector2.zero(), Mood.night);
+    canvas.restore();
+    final picture = recorder.endRecording();
+    final bytes = await tester.runAsync(() async {
+      final image = await picture.toImage(1200, 720);
+      final bytes = await image.toByteData(format: ui.ImageByteFormat.png);
+      image.dispose();
+      return bytes!.buffer.asUint8List();
+    });
+    picture.dispose();
+    enemy.onRemove();
+    final dir = Directory('${out.path}/review')..createSync(recursive: true);
+    File('${dir.path}/figures.png').writeAsBytesSync(bytes!);
+  });
 
   testWidgets('taken', (tester) async {
     final game = await boot(tester);
@@ -332,6 +443,43 @@ void main() {
       }
     }
   });
+
+  for (final viewport in [const Size(1600, 720), const Size(800, 360)]) {
+    testWidgets('review settings ${viewport.width.toInt()}', (tester) async {
+      final game = await boot(tester, viewport: viewport);
+      await enterChapter(tester, game, 1);
+      step(game, 2);
+      game.pauseGameplay();
+      await tester.pump(const Duration(milliseconds: 100));
+      await screen(tester, 'review', 'pause_${viewport.width.toInt()}');
+      expect(tester.takeException(), isNull);
+      game.settings.set('controlsScale', 1.2);
+      game.settings.set('controlsOpacity', .9);
+      game.settings.set('brightness', 1.15);
+      game.resumeGameplay();
+      await tester.pump(const Duration(milliseconds: 16));
+      game.pauseEngine();
+      step(game, .2);
+      await screen(tester, 'review', 'controls_${viewport.width.toInt()}');
+      game.pauseGameplay();
+      await tester.pump();
+      await tester.tap(find.text('MAIN MENU'));
+      for (var i = 0; i < 160; i++) {
+        await tester.runAsync(
+          () => Future<void>.delayed(const Duration(milliseconds: 5)),
+        );
+        await tester.pump(const Duration(milliseconds: 40));
+      }
+      game.pauseEngine();
+      step(game, 4);
+      await tester.pump(const Duration(seconds: 4));
+      expect(game.overlays.isActive(ChapterDirector.titleOverlay), isTrue);
+      await tester.tap(find.text('Chapters'));
+      await tester.pump(const Duration(milliseconds: 400));
+      await screen(tester, 'review', 'chapters_${viewport.width.toInt()}');
+      expect(tester.takeException(), isNull);
+    });
+  }
 
   testWidgets('cage play', (tester) async {
     final game = await boot(tester);

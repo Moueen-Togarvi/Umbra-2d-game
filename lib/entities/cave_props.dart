@@ -5,6 +5,7 @@ import 'package:flame/components.dart';
 import 'package:flame_forge2d/flame_forge2d.dart';
 
 import '../physics/collision_layers.dart';
+import '../physics/shape_clearance.dart';
 import '../render/culling.dart';
 import 'player.dart';
 
@@ -23,7 +24,9 @@ Filter _propFilter() => Filter(
 /// A mass of cave rock: a closed outline that is solid all round (a chain
 /// loop), drawn with a roughened edge and with stalactites hanging from
 /// every face that looks down.
-class RockMass extends BodyComponent with OffScreenCulling {
+class RockMass extends BodyComponent
+    with OffScreenCulling
+    implements SolidOutline {
   RockMass(List<Vector2> outline, {this.drips = true, this.seed = 0})
     : points = _clockwise(outline),
       super(
@@ -35,6 +38,8 @@ class RockMass extends BodyComponent with OffScreenCulling {
 
   /// The outline, clockwise on screen (y down) so the chain faces out.
   final List<Vector2> points;
+  @override
+  List<Vector2> get solidOutline => points;
   final bool drips;
   final int seed;
 
@@ -640,6 +645,11 @@ class FootPedal extends BodyComponent with OffScreenCulling {
     ..style = PaintingStyle.stroke
     ..strokeWidth = 0.025;
 
+  static final Paint _pedalEdge = Paint()
+    ..color = const Color(0xFF404344)
+    ..style = PaintingStyle.stroke
+    ..strokeWidth = 0.025;
+
   @override
   void renderTree(Canvas canvas) {
     if (!_ready) return;
@@ -669,6 +679,11 @@ class FootPedal extends BodyComponent with OffScreenCulling {
         const Radius.circular(0.02),
       ),
       _paint,
+    );
+    canvas.drawLine(
+      Offset(-hw + 0.07, -0.07),
+      Offset(hw - 0.07, -0.07),
+      _pedalEdge,
     );
     // Iron straps.
     for (final x in [-hw + 0.12, 0.0, hw - 0.12]) {

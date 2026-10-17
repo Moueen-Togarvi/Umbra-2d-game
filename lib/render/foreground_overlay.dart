@@ -3,13 +3,16 @@ import 'dart:ui';
 
 import 'package:flame/components.dart';
 import 'package:flame/flame.dart';
+import '../config/game_settings.dart';
 
 /// The lens: LIMBO's heavy rounded vignette, a darker sky edge, film grain
 /// that changes every frame, and a faint projector flicker.
 class ForegroundOverlay extends Component {
-  ForegroundOverlay({required this.camera}) : super(priority: -10);
+  ForegroundOverlay({required this.camera, required this.settings})
+    : super(priority: -10);
 
   final CameraComponent camera;
+  final GameSettings settings;
   Image? _grain;
   late final Image _vignette;
   final math.Random _random = math.Random(3);
@@ -82,6 +85,12 @@ class ForegroundOverlay extends Component {
     final Vector2 viewport = camera.viewport.size;
     if (viewport.x <= 0 || viewport.y <= 0) return;
     final Rect full = Rect.fromLTWH(0, 0, viewport.x, viewport.y);
+    _vignettePaint.color = Color.fromRGBO(
+      255,
+      255,
+      255,
+      0.65 + settings.atmosphere * 0.25,
+    );
     canvas.drawImageRect(
       _vignette,
       Rect.fromLTWH(
@@ -94,11 +103,31 @@ class ForegroundOverlay extends Component {
       _vignettePaint,
     );
 
-    _flickerPaint.color = Color.fromRGBO(0, 0, 0, _flicker);
+    _flickerPaint.color = Color.fromRGBO(
+      0,
+      0,
+      0,
+      _flicker * settings.atmosphere * 0.45,
+    );
     canvas.drawRect(full, _flickerPaint);
+    final brightness = settings.brightness;
+    if (brightness != 1) {
+      canvas.drawColor(
+        brightness > 1
+            ? Color.fromRGBO(190, 196, 200, (brightness - 1) * 0.32)
+            : Color.fromRGBO(0, 0, 0, 1 - brightness),
+        BlendMode.srcOver,
+      );
+    }
 
     final Image? grain = _grain;
-    if (grain == null) return;
+    if (grain == null || settings.atmosphere <= 0) return;
+    _grainPaint.color = Color.fromRGBO(
+      255,
+      255,
+      255,
+      0.035 * settings.atmosphere,
+    );
     final double ox = -_random.nextDouble() * grain.width;
     final double oy = -_random.nextDouble() * grain.height;
     final Rect src = Rect.fromLTWH(

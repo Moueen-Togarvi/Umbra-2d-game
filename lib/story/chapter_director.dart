@@ -56,6 +56,9 @@ class ChapterDirector {
 
   /// Opens on the title: the first chapter's opening shot, waiting.
   Future<void> start() async {
+    _queue.clear();
+    cardAlpha = 0;
+    blackness = 1;
     index = 0;
     _playing = false;
     await game.setStage(Chapters.all[0].build(game.intent, atTitle: true));

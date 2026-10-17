@@ -12,9 +12,11 @@ import 'player_intent.dart';
 /// It is a [Component] with no visual presence, added directly to the game so
 /// that `HasKeyboardHandlerComponents` can route events to it.
 class KeyboardInput extends Component with KeyboardHandler {
-  KeyboardInput(this._intent);
+  KeyboardInput(this._intent, {this.onPause, this.onActivity});
 
   final PlayerIntent _intent;
+  final void Function()? onPause;
+  final void Function()? onActivity;
 
   /// Both WASD and the arrow keys, so the game feels right to either habit.
   static final Set<LogicalKeyboardKey> _leftKeys = {
@@ -75,6 +77,7 @@ class KeyboardInput extends Component with KeyboardHandler {
       _intent.requestJump(fromUp: _upKeys.contains(event.logicalKey));
     }
     if (event is KeyDownEvent) {
+      onActivity?.call();
       switch (event.logicalKey) {
         case LogicalKeyboardKey.keyR:
           _intent.requestReset();
@@ -84,6 +87,8 @@ class KeyboardInput extends Component with KeyboardHandler {
           _intent.requestKnockdown();
         case LogicalKeyboardKey.keyM:
           _intent.requestAudioToggle();
+        case LogicalKeyboardKey.escape:
+          onPause?.call();
       }
     }
 

@@ -25,16 +25,17 @@ class Hazard extends BodyComponent with ContactCallbacks, OffScreenCulling {
         renderBody: false,
         bodyDef: BodyDef(type: BodyType.static, position: center.clone()),
         shapeSpecs: [
-          ShapeSpec(
-            Polygon.box(size.x / 2, size.y / 2),
-            ShapeDef(
-              isSensor: true,
-              filter: Filter(
-                categoryBits: CollisionLayers.sensor,
-                maskBits: CollisionLayers.player | CollisionLayers.ragdoll,
+          if (!stakes)
+            ShapeSpec(
+              Polygon.box(size.x / 2, size.y / 2),
+              ShapeDef(
+                isSensor: true,
+                filter: Filter(
+                  categoryBits: CollisionLayers.sensor,
+                  maskBits: CollisionLayers.player | CollisionLayers.ragdoll,
+                ),
               ),
             ),
-          ),
           // The floor the stakes stand in, a little below their points.
           ShapeSpec(
             Polygon.offsetBox(
@@ -66,7 +67,32 @@ class Hazard extends BodyComponent with ContactCallbacks, OffScreenCulling {
   final Vector2 _size;
 
   /// The stakes and the floor, built once in body-local metres.
-  late final Path _stakes = _buildStakes();
+  late final Path _stakes;
+  final List<List<Vector2>> _stakeHulls = [];
+  final Path _glints = Path();
+
+  @override
+  Body createBody() {
+    final result = super.createBody();
+    _stakes = _buildStakes();
+    if (stakes) {
+      for (final hull in _stakeHulls) {
+        result.createShape(
+          Polygon(hull),
+          ShapeDef(
+            isSensor: true,
+            enableSensorEvents: true,
+            filter: Filter(
+              categoryBits: CollisionLayers.sensor,
+              maskBits: CollisionLayers.player | CollisionLayers.ragdoll,
+            ),
+          ),
+        );
+      }
+    }
+    return result;
+  }
+
   late final Path _floor = _buildFloor();
 
   double get _hw => _size.x / 2;
@@ -122,35 +148,23 @@ class Hazard extends BodyComponent with ContactCallbacks, OffScreenCulling {
     Offset at(double across, double up) =>
         Offset(x + across * c + up * s, _base + 0.04 - (up * c - across * s));
     final double w = width / 2;
-    final points = <Offset>[at(-w, -0.04)];
-    // Hewn sides with a knot or two.
-    for (var k = 1; k <= 3; k++) {
-      final double up = height * 0.62 * k / 3;
-      points.add(at(-w + (random.nextDouble() - 0.5) * 0.012, up));
-    }
-    if (broken) {
-      // Snapped: a splintered top.
-      points
-        ..add(at(-w * 0.6, height + 0.02))
-        ..add(at(-w * 0.1, height - 0.03))
-        ..add(at(w * 0.25, height + 0.035))
-        ..add(at(w * 0.7, height - 0.01));
-    } else {
-      // A long cut point.
-      points
-        ..add(at(-w * 0.55, height * 0.86))
-        ..add(at(0, height + 0.05));
-    }
-    for (var k = 3; k >= 1; k--) {
-      final double up = height * 0.62 * k / 3;
-      points.add(at(w + (random.nextDouble() - 0.5) * 0.012, up));
-    }
-    points.add(at(w, -0.04));
-    path.moveTo(points.first.dx, points.first.dy);
-    for (final point in points.skip(1)) {
-      path.lineTo(point.dx, point.dy);
-    }
-    path.close();
+    final tip = broken ? height : height + 0.05;
+    final points = <Offset>[
+      at(-w, -0.04),
+      at(-w, height * 0.62),
+      at(-w * 0.55, height * 0.86),
+      at(broken ? w * 0.7 : 0, tip),
+      at(w, height * (broken ? 0.90 : 0.62)),
+      at(w, -0.04),
+    ];
+    _stakeHulls.add([for (final point in points) Vector2(point.dx, point.dy)]);
+    path.addPolygon(points, true);
+    // One worn face catches the fog light; the pole stays a solid silhouette.
+    final a = at(-w * 0.55, height * 0.60);
+    final b = at(-w * 0.3, height * 0.88);
+    _glints
+      ..moveTo(a.dx, a.dy)
+      ..lineTo(b.dx, b.dy);
   }
 
   /// The floor: trodden mud with lumps, stones half sunk in it and a few
@@ -197,6 +211,10 @@ class Hazard extends BodyComponent with ContactCallbacks, OffScreenCulling {
   }
 
   final Paint _shadowPaint = Paint();
+  final Paint _edgePaint = Paint()
+    ..color = const Color(0x505D6263)
+    ..style = PaintingStyle.stroke
+    ..strokeWidth = 0.014;
 
   @override
   void render(Canvas canvas) {
@@ -230,7 +248,10 @@ class Hazard extends BodyComponent with ContactCallbacks, OffScreenCulling {
       Rect.fromLTRB(-wide, _lip, wide, _base + 0.05),
       _shadowPaint,
     );
-    if (stakes) canvas.drawPath(_stakes, paint);
+    if (stakes) {
+      canvas.drawPath(_stakes, paint);
+      canvas.drawPath(_glints, _edgePaint);
+    }
     canvas.drawPath(_floor, paint);
   }
 

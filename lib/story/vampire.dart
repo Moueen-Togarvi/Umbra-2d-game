@@ -317,7 +317,6 @@ class Vampire extends Component implements BackdropDrawable {
     ..strokeCap = StrokeCap.round
     ..strokeJoin = StrokeJoin.round;
   final Paint _glow = Paint();
-
   @override
   void paint(Canvas canvas, Vector2 cam, Mood mood) {
     if (depth >= 1) _paintMotes(canvas);
@@ -333,7 +332,7 @@ class Vampire extends Component implements BackdropDrawable {
     // Burning, he greys towards ash.
     final double ash = (_burnt / burnSeconds).clamp(0.0, 1.0);
     final Color tone = Color.lerp(
-      Color.lerp(const Color(0xFF020202), mood.sky[2], fog)!,
+      Color.lerp(const Color(0xFF101012), mood.sky[2], fog)!,
       const Color(0xFF3A3632),
       ash * ash,
     )!;
@@ -465,7 +464,7 @@ class Vampire extends Component implements BackdropDrawable {
       _body,
     );
 
-    // The head: bald and narrow, a hooked nose, pointed ears.
+    // Narrow hooked face, pointed ear and swept-back hair.
     canvas.drawPath(
       Path()
         ..moveTo(head.dx - dir * 0.08, head.dy + 0.09)
@@ -497,6 +496,21 @@ class Vampire extends Component implements BackdropDrawable {
         ..moveTo(head.dx - dir * 0.05, head.dy - 0.03)
         ..lineTo(head.dx - dir * 0.13, head.dy - 0.16)
         ..lineTo(head.dx - dir * 0.02, head.dy - 0.06)
+        ..close(),
+      _body,
+    );
+    canvas.drawPath(
+      Path()
+        ..moveTo(head.dx + dir * 0.07, head.dy - 0.1)
+        ..quadraticBezierTo(
+          head.dx - dir * 0.07,
+          head.dy - 0.27,
+          head.dx - dir * 0.25,
+          head.dy - 0.22,
+        )
+        ..lineTo(head.dx - dir * 0.18, head.dy - 0.16)
+        ..lineTo(head.dx - dir * 0.32, head.dy - 0.15)
+        ..lineTo(head.dx - dir * 0.13, head.dy - 0.08)
         ..close(),
       _body,
     );

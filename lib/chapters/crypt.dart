@@ -8,6 +8,8 @@ import '../entities/ground.dart';
 import '../entities/water_props.dart';
 import '../physics/water.dart';
 import '../render/mood.dart';
+import '../render/fog_backdrop.dart';
+import '../render/fog_layer.dart';
 import '../render/scenery.dart';
 import '../story/creatures.dart';
 import '../story/vampire.dart';
@@ -38,7 +40,9 @@ class CryptChapter extends Chapter {
   @override
   double get width => 180;
   @override
-  MoodTrack get moods => const MoodTrack(Mood.cave);
+  MoodTrack get moods => const MoodTrack(Mood.crypt);
+  @override
+  List<FogLayerSpec> get backdropSpecs => FogBackdrop.hallSpecs;
 
   static const double hallLeft = 27, hallRight = 41;
   static const double drainLeft = 54, drainRight = 68;

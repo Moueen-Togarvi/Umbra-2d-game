@@ -112,7 +112,7 @@ void main() {
     final intent = PlayerIntent();
     final controls = TouchControls(intent);
     final buttons = controls.buildButtons();
-    expect(buttons, hasLength(6), reason: 'walk, jump, action and climb');
+    expect(buttons, hasLength(7), reason: 'walk, jump, action, climb and pause');
     buttons[1].onPressed!();
     buttons[2].onPressed!();
     buttons[3].onPressed!();

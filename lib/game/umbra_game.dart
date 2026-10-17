@@ -6,6 +6,8 @@ import 'package:flame/input.dart' show HasKeyboardHandlerComponents;
 import 'package:flame_forge2d/flame_forge2d.dart';
 
 import '../config/game_config.dart';
+import '../config/game_settings.dart';
+import '../character/character_interactions.dart';
 import '../audio/ambient_audio.dart';
 import '../config/palette.dart';
 import '../entities/player.dart';
@@ -50,7 +52,10 @@ class UmbraGame extends Forge2DGame with HasKeyboardHandlerComponents {
     this.debugTools = DebugHud.enabled,
     this.campaign = false,
     ProgressStore? progress,
-  }) : progress = progress ?? ProgressStore.memory(),
+    GameSettings? settings,
+    this.audioEnabled = false,
+  }) : settings = settings ?? GameSettings(),
+       progress = progress ?? ProgressStore.memory(),
        super(
          // Gravity is handed to the physics world at construction. Positive y is
          // downwards in Flame's coordinate system.
@@ -66,6 +71,10 @@ class UmbraGame extends Forge2DGame with HasKeyboardHandlerComponents {
        );
 
   final bool debugTools;
+  final GameSettings settings;
+
+  /// Explicitly enabled by the application; headless physics tools stay silent.
+  final bool audioEnabled;
 
   /// Whether this is the story rather than the proving ground.
   final bool campaign;
@@ -79,21 +88,78 @@ class UmbraGame extends Forge2DGame with HasKeyboardHandlerComponents {
   /// The shared intent object that input writes to and the player reads from.
   final PlayerIntent _intent = PlayerIntent();
   PlayerIntent get intent => _intent;
-  final AmbientAudio _audio = AmbientAudio();
+  late final AmbientAudio _audio = AmbientAudio(
+    settings: settings,
+    outputEnabled: audioEnabled,
+  );
+  void unlockAudio() => _audio.unlock();
+  double _controlScale = 1;
+  int _heardSteps = 0, _heardLandings = 0;
+  double _interactionSoundCooldown = 0;
 
   /// Owns the held-state of the on-screen walk buttons. Held as a field because
   /// the button callbacks close over it and it has to outlive [onLoad].
   late final TouchControls _touchControls = TouchControls(
     _intent,
+    settings: settings,
     onRope: () => _player?.isOnRope ?? false,
     debugVisible: () => _debugVisible,
     hidden: () =>
         _stage == null ||
+        isGameplayPaused ||
         _intent.isScripted ||
         (_stage?.controlsHidden ?? false) ||
         (director?.hidesControls ?? false),
+    onPause: pauseGameplay,
     debugTools: debugTools,
   );
+
+  static const String pauseOverlay = 'pause';
+  bool get isGameplayPaused => overlays.isActive(pauseOverlay);
+
+  void pauseGameplay() {
+    if (isGameplayPaused || (director?.hidesControls ?? false)) return;
+    _touchControls.clear();
+    _intent.clear();
+    pauseEngine();
+    overlays.add(pauseOverlay);
+    _audio.pause();
+  }
+
+  void resumeGameplay() {
+    if (!isGameplayPaused) return;
+    overlays.remove(pauseOverlay);
+    _simulationAccumulator = 0;
+    resumeEngine();
+    _audio.resume();
+  }
+
+  void resetFromPause() {
+    final player = _player;
+    if (player == null) return;
+    deathSequence.cancel();
+    checkpoints.respawn(player);
+    resumeGameplay();
+  }
+
+  Future<void> returnToTitle() async {
+    if (director == null) return;
+    deathSequence.cancel();
+    resumeGameplay();
+    await director!.start();
+  }
+
+  void _settingsChanged() {
+    _audio.updateMix();
+    if (_controlScale != settings.controlsScale) {
+      _controlScale = settings.controlsScale;
+      _touchControls.removeButtons();
+      camera.viewport.addAll(_touchControls.buildButtons());
+    }
+  }
+
+  bool get soundEnabled => _audio.enabled;
+  void toggleSound() => _audio.toggle();
 
   /// Respawn state: the current stage's.
   CheckpointService checkpoints = CheckpointService(
@@ -157,7 +223,8 @@ class UmbraGame extends Forge2DGame with HasKeyboardHandlerComponents {
     // If the assets are missing — which is the case in a bare test binding —
     // the scenery simply does not draw. The physics does not depend on it.
     await _loadArt();
-    await _audio.start();
+    _controlScale = settings.controlsScale;
+    settings.addListener(_settingsChanged);
 
     // Frame a 16 x 9 m window on the world, in metres. Flame fits it to the
     // screen and keeps it fitted through resizes; a wider phone sees more of
@@ -171,7 +238,7 @@ class UmbraGame extends Forge2DGame with HasKeyboardHandlerComponents {
     // black the picture fades to when he dies or a scene ends.
     await camera.viewport.addAll([
       ForegroundFog(camera: camera),
-      ForegroundOverlay(camera: camera),
+      ForegroundOverlay(camera: camera, settings: settings),
       ScreenFade(camera: camera, blackness: () => blackness),
     ]);
 
@@ -183,7 +250,9 @@ class UmbraGame extends Forge2DGame with HasKeyboardHandlerComponents {
     // costs nothing at runtime, it is what the test suite drives the player
     // with, and it means the game is still playable on a desktop while
     // developing.
-    await add(KeyboardInput(_intent));
+    await add(
+      KeyboardInput(_intent, onPause: pauseGameplay, onActivity: unlockAudio),
+    );
 
     // Touch controls go in the camera's *viewport*, not in the world. The
     // viewport is screen space, so the buttons keep a constant thumb-sized
@@ -341,6 +410,26 @@ class UmbraGame extends Forge2DGame with HasKeyboardHandlerComponents {
       return;
     }
     deathSequence.update(frameDt, player);
+    if (player.footfalls != _heardSteps) {
+      _heardSteps = player.footfalls;
+      _audio.effect(player.waterDepth > 0.05 ? 'water' : 'step', 0.5);
+    }
+    if (player.landings != _heardLandings) {
+      _heardLandings = player.landings;
+      _audio.effect('land', (player.lastLandingImpact / 7).clamp(0.15, 1));
+    }
+    _interactionSoundCooldown -= frameDt;
+    if (_interactionSoundCooldown <= 0 && player.velocity.length > 0.2) {
+      final mode = player.interactions.mode;
+      if (mode == InteractionMode.swinging) {
+        _audio.effect('rope', 0.35);
+        _interactionSoundCooldown = 1.2;
+      } else if (mode == InteractionMode.pushing ||
+          mode == InteractionMode.pulling) {
+        _audio.effect('drag', 0.45);
+        _interactionSoundCooldown = 0.45;
+      }
+    }
 
     // Lead the way he is running, easing the lead itself so a turn swings
     // the view round instead of jerking it.
@@ -435,6 +524,7 @@ class UmbraGame extends Forge2DGame with HasKeyboardHandlerComponents {
 
   @override
   void onRemove() {
+    settings.removeListener(_settingsChanged);
     _audio.dispose();
     _intent.clear();
     super.onRemove();

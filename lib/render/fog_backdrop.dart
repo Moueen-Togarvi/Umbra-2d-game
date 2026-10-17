@@ -368,9 +368,11 @@ class FogBackdrop extends Component {
     );
     canvas.drawRect(full, _paint);
 
-    // 2. Far layers, and any scenery standing among them.
+    // 2. Far layers. Draw each prop before its ground layer so the terrain
+    // buries the foot of the asset instead of exposing roots or flat edges.
     final List<BackdropDrawable> props = _props();
     for (var i = 0; i < 2; i++) {
+      _scenery(canvas, size, cam, ppm, mood, props, i);
       _layers[i].render(
         canvas,
         size,
@@ -380,7 +382,6 @@ class FogBackdrop extends Component {
         groundY: _ground,
         tint: mood.layerTones[i],
       );
-      _scenery(canvas, size, cam, ppm, mood, props, i);
     }
 
     // 3. The light, drifting very slowly with the camera.
@@ -430,6 +431,7 @@ class FogBackdrop extends Component {
 
     // 4. Mist, the mid layer, then shafts of light through it.
     _mist(canvas, size, _layers[1], cam.y, ppm, 0.55 * mood.mist, mood);
+    _scenery(canvas, size, cam, ppm, mood, props, 2);
     _layers[2].render(
       canvas,
       size,
@@ -439,11 +441,11 @@ class FogBackdrop extends Component {
       groundY: _ground,
       tint: mood.layerTones[2],
     );
-    _scenery(canvas, size, cam, ppm, mood, props, 2);
     _mist(canvas, size, _layers[2], cam.y, ppm, 0.45 * mood.mist, mood);
     _shafts(canvas, size, light, mood);
 
     // 5. Near layer.
+    _scenery(canvas, size, cam, ppm, mood, props, 3);
     _layers[3].render(
       canvas,
       size,
@@ -453,7 +455,6 @@ class FogBackdrop extends Component {
       groundY: _ground,
       tint: mood.layerTones[3],
     );
-    _scenery(canvas, size, cam, ppm, mood, props, 3);
     _mist(canvas, size, _layers[3], cam.y, ppm, 0.30 * mood.mist, mood);
 
     // 6. Dust, or drips.
@@ -461,8 +462,8 @@ class FogBackdrop extends Component {
     _paint.shader = null;
   }
 
-  /// The scenery between layer [i] and the next nearer one, drawn in world
-  /// metres.
+  /// The scenery assigned to layer [i], drawn just behind its terrain in
+  /// world metres.
   void _scenery(
     Canvas canvas,
     Size size,
@@ -700,7 +701,7 @@ class ForegroundFog extends Component {
       cam.y,
       ppm,
       groundY: FogBackdrop.groundY,
-      opacity: 0.94,
+      opacity: 0.68,
     );
   }
 

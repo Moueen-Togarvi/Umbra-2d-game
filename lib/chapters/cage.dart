@@ -137,8 +137,10 @@ class CageChapter extends Chapter {
       RockMass(
         [
           Vector2(stepPitRight, 7.6),
-          Vector2(stepPitRight, 5.4),
-          Vector2(49.55, 5.4),
+          // A reachable bank after the swinging cage. The old high bank
+          // could only be crossed by clipping through its lower face.
+          Vector2(stepPitRight, 6.2),
+          Vector2(49.55, 6.2),
           Vector2(49.55, 7.6),
         ],
         drips: false,

@@ -14,8 +14,7 @@ import 'figures.dart';
 /// The boy's home: the baked cottage silhouette with its lamp lit inside.
 ///
 /// The art has its windows and doorway cut out (see the bake config), and
-/// this draws what shows through them: a warm lamp-lit room, the shadows
-/// of the argument on the curtain of the upper window, and later his
+/// this draws what shows through them: a warm lamp-lit room and later his
 /// mother in the doorway. The door is a hinge simulated in one dimension
 /// (an angle, its speed, a stop at each end that it bounces off) and drawn
 /// in perspective, because it swings out towards the camera.
@@ -82,12 +81,6 @@ class Cottage extends Component {
   /// How bright the lamp is, 0 (out) to 1.
   double lamp = 1;
 
-  /// How hard the two shadows in the upper window are arguing (0 calm, 1
-  /// shouting), and whether the boy's shadow is still in the room.
-  double argue = 0;
-  bool boyInRoom = true;
-  double _boyShadowX = 0;
-
   /// The door: its angle (0 shut, about 1.95 thrown wide, swung out
   /// towards the camera), its angular speed, and whether something is
   /// pulling it shut.
@@ -144,8 +137,6 @@ class Cottage extends Component {
       if (doorSpeed < 0.25) doorSpeed = 0;
     }
     mother.update(dt);
-    final double target = boyInRoom ? 0 : 1;
-    _boyShadowX += (target - _boyShadowX) * math.min(1, dt * 1.6);
   }
 
   /// The lamp as it flickers now.
@@ -170,10 +161,7 @@ class Cottage extends Component {
     // The lamp itself, on the sill of the right window.
     _lampOnSill(canvas, windows[2], flame);
 
-    // 2. The argument, as shadows on the upper window's curtain.
-    _shadowPlay(canvas, windows[0], flame);
-
-    // 3. The cottage, a little lighter than the boy.
+    // 2. The cottage, a little lighter than the boy.
     final Image? art = _art;
     if (art != null) {
       final Mood mood =
@@ -309,104 +297,6 @@ class Cottage extends Component {
     );
     canvas.drawCircle(Offset(x, sill - 0.085), 0.07, _paint);
     _paint.shader = null;
-  }
-
-  /// Two figures on the curtain: the mother, taller, on the left, and the
-  /// boy on the right, both gesturing as hard as [argue].
-  void _shadowPlay(Canvas canvas, Rect w, double flame) {
-    if (argue <= 0.001 && _boyShadowX >= 0.999) return;
-    canvas.save();
-    canvas.clipRect(w);
-    final double t = _time;
-    final double a = argue;
-    // A shadow on a curtain is soft and not quite black.
-    _paint.color = Color.fromRGBO(20, 10, 4, 0.78);
-    final double unit = w.height;
-    final Offset mum = Offset(w.left + w.width * 0.3, w.bottom + unit * 0.05);
-    final double mumWave = math.sin(t * 3.4) * a;
-    _curtainFigure(
-      canvas,
-      mum,
-      unit * 0.95,
-      facing: 1,
-      armRaise: 0.6 + 0.8 * a + 0.5 * mumWave,
-      otherArm: 0.2 + 0.3 * a * math.sin(t * 1.7 + 1),
-      lean: 0.06 * a * math.sin(t * 1.3),
-      bun: true,
-    );
-    final double boyX = w.left + w.width * (0.72 + 0.6 * _boyShadowX);
-    final double stomp = math.max(0, math.sin(t * 4.1)) * a;
-    _curtainFigure(
-      canvas,
-      Offset(boyX, w.bottom + unit * 0.05 - stomp * unit * 0.03),
-      unit * 0.7,
-      facing: -1,
-      armRaise: 0.3 + 0.9 * a * math.max(0, math.sin(t * 2.3 + 2)),
-      otherArm: 0.1,
-      lean: -0.08 * a,
-      bun: false,
-    );
-    canvas.restore();
-  }
-
-  void _curtainFigure(
-    Canvas canvas,
-    Offset feet,
-    double h, {
-    required double facing,
-    required double armRaise,
-    required double otherArm,
-    required double lean,
-    required bool bun,
-  }) {
-    canvas.save();
-    canvas.translate(feet.dx, feet.dy);
-    canvas.rotate(lean);
-    final double headR = h * 0.075;
-    final Offset head = Offset(0, -h + headR);
-    final Offset shoulder = Offset(0, -h * 0.78);
-    canvas.drawCircle(head, headR, _paint);
-    if (bun) {
-      canvas.drawCircle(
-        head + Offset(-facing * headR * 0.9, -headR * 0.4),
-        headR * 0.55,
-        _paint,
-      );
-    }
-    canvas.drawPath(
-      Path()
-        ..moveTo(-h * 0.08, -h * 0.8)
-        ..lineTo(h * 0.08, -h * 0.8)
-        ..lineTo(h * (bun ? 0.17 : 0.07), 0)
-        ..lineTo(-h * (bun ? 0.17 : 0.07), 0)
-        ..close(),
-      _paint,
-    );
-    final stroke = Paint()
-      ..color = _paint.color
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = h * 0.045
-      ..strokeCap = StrokeCap.round;
-    for (final (raise, side) in [(armRaise, facing), (otherArm, -facing)]) {
-      final double angle = math.pi / 2 - raise * 1.4;
-      final Offset elbow =
-          shoulder +
-          Offset(side * math.cos(angle) * h * 0.2, math.sin(angle) * h * 0.2);
-      final Offset hand =
-          elbow +
-          Offset(
-            side * math.cos(angle - 0.4) * h * 0.2,
-            math.sin(angle - 0.4) * h * 0.2,
-          );
-      canvas.drawPath(
-        Path()
-          ..moveTo(shoulder.dx, shoulder.dy)
-          ..lineTo(elbow.dx, elbow.dy)
-          ..lineTo(hand.dx, hand.dy),
-        stroke,
-      );
-    }
-    canvas.restore();
   }
 
   void _door(Canvas canvas) {

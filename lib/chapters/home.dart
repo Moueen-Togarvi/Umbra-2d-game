@@ -114,7 +114,7 @@ class HomeChapter extends Chapter {
   late final Seesaw plank;
 
   /// Where the camera frames the cottage for the title and the opening.
-  static final Vector2 cottageShot = Vector2(9.0, 4.6);
+  static final Vector2 cottageShot = Vector2(9.0, 3.8);
 
   @override
   Future<void> furnish(List<Component> pieces) async {
@@ -281,10 +281,9 @@ class HomeChapter extends Chapter {
   void begin() {
     if (atTitle) {
       // Nothing moves until the story begins: the boy is indoors and the
-      // argument is muffled behind the window.
+      // upper window stays lit without visible figures.
       intent.beginScript();
       player.hidden = true;
-      cottage.argue = 0.45;
       cameraFocus = cottageShot.clone();
     }
   }
@@ -293,29 +292,19 @@ class HomeChapter extends Chapter {
   void startStory() {
     if (atTitle) {
       play(_opening());
-    } else {
-      // Arriving here from the chapter list: straight to playing, at the
-      // door with the lamp lit behind him.
-      cottage
-        ..argue = 0
-        ..boyInRoom = false;
     }
   }
 
   /// The argument, the door, his mother.
   Cutscene _opening() => Cutscene([
     Look(cottageShot),
-    Do((_) => cottage.argue = 1),
     Wait(3.4),
-    Do((_) => cottage.boyInRoom = false),
     Wait(1.1),
-    Do((_) => cottage.argue = 0.2),
     Wait(0.7),
     Do((_) => cottage.burstOpen()),
     Wait(0.16),
     Do((_) {
       player.hidden = false;
-      cottage.argue = 0;
     }),
     Together([
       Run(1, toX: 15.2),

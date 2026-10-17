@@ -53,96 +53,157 @@ class _TitleScreenState extends State<TitleScreen>
     final int reached = widget.game.progress.reached;
     final Size size = MediaQuery.sizeOf(context);
     final double unit = size.shortestSide / 100;
-    return FadeTransition(
-      opacity: CurvedAnimation(
-        parent: _fade,
-        curve: const Interval(0.27, 1, curve: Curves.easeInOut),
-      ),
-      child: Stack(
-        fit: StackFit.expand,
-        children: [
-          // A shade on the right, where the words are, so they read over
-          // the fog without a panel.
-          const IgnorePointer(
-            child: DecoratedBox(
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.centerLeft,
-                  end: Alignment.centerRight,
-                  colors: [
-                    Color(0x00000000),
-                    Color(0x00000000),
-                    Color(0x8C000000),
-                  ],
-                  stops: [0, 0.42, 1],
+    Widget chapterChoice(int i) => _Choice(
+      label: '${_roman(i + 1)}   ${Chapters.all[i].title}',
+      size: unit,
+      small: true,
+      status: i > reached
+          ? 'Locked'
+          : i == reached
+          ? 'Current'
+          : 'Replay',
+      enabled: i <= reached,
+      onTap: director == null || i > reached
+          ? null
+          : () =>
+                _go(() => i == 0 ? director.begin() : director.playChapter(i)),
+    );
+    return Material(
+      type: MaterialType.transparency,
+      child: FadeTransition(
+        opacity: CurvedAnimation(
+          parent: _fade,
+          curve: const Interval(0.27, 1, curve: Curves.easeInOut),
+        ),
+        child: Stack(
+          fit: StackFit.expand,
+          children: [
+            // A shade on the right, where the words are, so they read over
+            // the fog without a panel.
+            const IgnorePointer(
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.centerLeft,
+                    end: Alignment.centerRight,
+                    colors: [
+                      Color(0x00000000),
+                      Color(0x00000000),
+                      Color(0x77000000),
+                      Color(0xA6000000),
+                    ],
+                    stops: [0, 0.35, 0.55, 1],
+                  ),
                 ),
               ),
             ),
-          ),
-          Align(
-            alignment: const Alignment(0.62, -0.72),
-            child: SizedBox(
-              width: size.width * 0.38,
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Wordmark(height: unit * 13, eyes: Palette.lampAmber),
-                  SizedBox(height: unit * 2.4),
-                  Container(
-                    width: unit * 7,
-                    height: unit * 0.35,
-                    color: Palette.lampAmber.withValues(alpha: 0.8),
+            if (!_chapters)
+              Align(
+                alignment: const Alignment(0.62, 0),
+                child: SizedBox(
+                  width: size.width * 0.43,
+                  height: size.height * 0.86,
+                  child: SingleChildScrollView(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Wordmark(height: unit * 13, eyes: Palette.lampAmber),
+                        SizedBox(height: unit * 2.4),
+                        Container(
+                          width: unit * 7,
+                          height: unit * 0.35,
+                          color: Palette.lampAmber.withValues(alpha: 0.8),
+                        ),
+                        SizedBox(height: unit * 3.5),
+                        _Choice(
+                          label: 'Begin',
+                          size: unit,
+                          onTap: director == null
+                              ? null
+                              : () => _go(director.begin),
+                        ),
+                        if (reached > 0)
+                          _Choice(
+                            label: 'Continue',
+                            size: unit,
+                            onTap: director == null
+                                ? null
+                                : () =>
+                                      _go(() => director.playChapter(reached)),
+                          ),
+                        _Choice(
+                          label: 'Chapters',
+                          size: unit,
+                          onTap: () => setState(() => _chapters = true),
+                        ),
+                      ],
+                    ),
                   ),
-                  SizedBox(height: unit * 3.5),
-                  if (!_chapters) ...[
-                    _Choice(
-                      label: 'Begin',
-                      size: unit,
-                      onTap: director == null
-                          ? null
-                          : () => _go(director.begin),
-                    ),
-                    if (reached > 0)
-                      _Choice(
-                        label: 'Continue',
-                        size: unit,
-                        onTap: director == null
-                            ? null
-                            : () => _go(() => director.playChapter(reached)),
-                      ),
-                    _Choice(
-                      label: 'Chapters',
-                      size: unit,
-                      onTap: () => setState(() => _chapters = true),
-                    ),
-                  ] else ...[
-                    for (var i = 0; i < Chapters.all.length; i++)
-                      _Choice(
-                        label: '${_roman(i + 1)}   ${Chapters.all[i].title}',
-                        size: unit,
-                        small: true,
-                        enabled: i <= reached,
-                        onTap: director == null || i > reached
-                            ? null
-                            : () => _go(
-                                () => i == 0
-                                    ? director.begin()
-                                    : director.playChapter(i),
-                              ),
-                      ),
-                    SizedBox(height: unit * 2),
-                    _Choice(
-                      label: 'Back',
-                      size: unit,
-                      small: true,
-                      onTap: () => setState(() => _chapters = false),
-                    ),
-                  ],
-                ],
+                ),
               ),
-            ),
-          ),
-        ],
+            if (_chapters)
+              Align(
+                alignment: const Alignment(0.95, 0),
+                child: Container(
+                  width: size.width * 0.51,
+                  height: size.height * 0.88,
+                  padding: EdgeInsets.symmetric(horizontal: unit),
+                  child: SingleChildScrollView(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          'CHAPTERS',
+                          style: TextStyle(
+                            fontFamily: 'Cinzel',
+                            fontSize: (unit * 4).clamp(16, 28),
+                            letterSpacing: unit * 0.8,
+                            color: Palette.brandInk,
+                          ),
+                        ),
+                        SizedBox(height: unit * 3),
+                        Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Expanded(
+                              child: Column(
+                                children: [
+                                  for (
+                                    var i = 0;
+                                    i < (Chapters.all.length + 1) ~/ 2;
+                                    i++
+                                  )
+                                    chapterChoice(i),
+                                ],
+                              ),
+                            ),
+                            Expanded(
+                              child: Column(
+                                children: [
+                                  for (
+                                    var i = (Chapters.all.length + 1) ~/ 2;
+                                    i < Chapters.all.length;
+                                    i++
+                                  )
+                                    chapterChoice(i),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                        _Choice(
+                          label: 'Back',
+                          size: unit,
+                          small: true,
+                          onTap: () => setState(() => _chapters = false),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+          ],
+        ),
       ),
     );
   }
@@ -153,65 +214,79 @@ class _TitleScreenState extends State<TitleScreen>
   ][n.clamp(0, 15)];
 }
 
-/// One word of the menu: quiet ink, warming to amber under a finger.
-class _Choice extends StatefulWidget {
+/// Keyboard, touch and assistive-technology accessible menu choice.
+class _Choice extends StatelessWidget {
   const _Choice({
     required this.label,
     required this.size,
     required this.onTap,
     this.small = false,
     this.enabled = true,
+    this.status,
   });
   final String label;
   final double size;
   final VoidCallback? onTap;
-  final bool small;
-  final bool enabled;
-
-  @override
-  State<_Choice> createState() => _ChoiceState();
-}
-
-class _ChoiceState extends State<_Choice> {
-  bool _hot = false;
+  final bool small, enabled;
+  final String? status;
 
   @override
   Widget build(BuildContext context) {
-    final double u = widget.size;
-    final Color ink = !widget.enabled
-        ? Palette.brandInk.withValues(alpha: 0.25)
-        : _hot
-        ? Palette.lampAmber
-        : Palette.brandInk.withValues(alpha: 0.82);
-    return MouseRegion(
-      cursor: widget.onTap == null
-          ? SystemMouseCursors.basic
-          : SystemMouseCursors.click,
-      onEnter: (_) => setState(() => _hot = true),
-      onExit: (_) => setState(() => _hot = false),
-      child: GestureDetector(
-        behavior: HitTestBehavior.opaque,
-        onTapDown: (_) => setState(() => _hot = true),
-        onTapCancel: () => setState(() => _hot = false),
-        onTapUp: (_) => setState(() => _hot = false),
-        onTap: widget.onTap,
-        child: Padding(
-          padding: EdgeInsets.symmetric(
-            vertical: u * (widget.small ? 1.2 : 1.5),
-            horizontal: u * 4,
-          ),
-          child: AnimatedDefaultTextStyle(
-            duration: const Duration(milliseconds: 220),
-            style: TextStyle(
-              fontFamily: 'Cinzel',
-              fontSize: u * (widget.small ? 3.6 : 4.6),
-              letterSpacing: u * (widget.small ? 0.4 : 0.9),
-              color: ink,
-              fontWeight: FontWeight.w400,
+    final ink = Palette.brandInk.withValues(alpha: enabled ? .94 : .62);
+    return TextButton(
+      onPressed: enabled ? onTap : null,
+      style: ButtonStyle(
+        foregroundColor: WidgetStateProperty.resolveWith(
+          (states) =>
+              states.contains(WidgetState.hovered) ||
+                  states.contains(WidgetState.focused)
+              ? Palette.lampAmber
+              : ink,
+        ),
+        minimumSize: const WidgetStatePropertyAll(Size(44, 44)),
+        padding: WidgetStatePropertyAll(
+          EdgeInsets.symmetric(horizontal: size, vertical: small ? 5 : 8),
+        ),
+        overlayColor: const WidgetStatePropertyAll(Color(0x0CFFFFFF)),
+        textStyle: WidgetStatePropertyAll(
+          TextStyle(
+            fontFamily: 'Cinzel',
+            fontSize: (size * (small ? 2.7 : 4.6)).clamp(
+              small ? 11.0 : 15.0,
+              small ? 19.0 : 32.0,
             ),
-            child: Text(widget.label),
+            letterSpacing: small ? .6 : 2,
           ),
         ),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(label, textAlign: TextAlign.center),
+          if (status != null)
+            Padding(
+              padding: const EdgeInsets.only(top: 2),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  if (!enabled)
+                    Padding(
+                      padding: const EdgeInsets.only(right: 3),
+                      child: Icon(Icons.lock_outline, size: 10, color: ink),
+                    ),
+                  Text(
+                    status!,
+                    style: TextStyle(
+                      fontFamily: 'Roboto',
+                      fontSize: 9,
+                      letterSpacing: 1,
+                      color: status == 'Current' ? Palette.lampAmber : ink,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+        ],
       ),
     );
   }

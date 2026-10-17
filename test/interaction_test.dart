@@ -369,6 +369,44 @@ void main() {
     },
   );
 
+  test(
+    'a prop entering the landing late in a climb cancels without penetration',
+    () {
+      final world = _world();
+      _box(world, Vector2(1.5, 4), Vector2(2, 2));
+      final player = _player(world, Vector2(.23, 3.5));
+      final system = _interactions(world, player);
+      _input(system, grounded: false);
+      for (var i = 0; i < 50; i++) {
+        _input(system, grounded: false);
+        world.update(_step);
+      }
+      _input(system, grounded: false, jump: true);
+      while ((system.climbProgress ?? 1) < .8) {
+        _input(system, grounded: false);
+        world.update(_step);
+        expect(
+          player.shapes.first.filter.maskBits & 1,
+          1,
+          reason: 'terrain collision stays enabled',
+        );
+      }
+      expect(system.mode, InteractionMode.climbing);
+      _box(world, Vector2(.98, 2.45), Vector2(.25, .7));
+      final previous = player.position;
+      _input(system, grounded: false);
+      expect(system.mode, InteractionMode.none);
+      expect(player.gravityScale, 1);
+      expect(
+        (player.position - previous).length,
+        0,
+        reason: 'abort must not teleport',
+      );
+      world.update(_step);
+      expect(player.position.x, lessThan(.8));
+    },
+  );
+
   test('a low ceiling above the ledge rejects an unsafe climb', () {
     final world = _world();
     _box(world, Vector2(1.5, 4), Vector2(2, 2));

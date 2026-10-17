@@ -173,6 +173,35 @@ class Mood {
     trees: false,
   );
 
+  /// The crypt has a broader, still shaft and drier stone air than the caves.
+  static const crypt = Mood(
+    name: 'crypt',
+    sky: [
+      Color(0xFF0C0D10),
+      Color(0xFF292A2E),
+      Color(0xFF37393D),
+      Color(0xFF101113),
+    ],
+    layerTones: [
+      Color(0xFF46484C),
+      Color(0xFF303237),
+      Color(0xFF24262A),
+      Color(0xFF1C1E21),
+    ],
+    light: Palette.moonLight,
+    lightAt: Offset(0.3, 0.12),
+    lightDrift: 0.015,
+    lightSize: 0.46,
+    lightStrength: 0.66,
+    shafts: 1.0,
+    shaftTilt: 0.22,
+    shaftFan: 0.15,
+    mist: 0.42,
+    mistTone: Color(0xFF55585D),
+    dust: 0.7,
+    trees: false,
+  );
+
   /// Inside the castle at night: dark stone halls, the moon slanting in
   /// through high windows, a little dust in its beams.
   static const castle = Mood(
@@ -186,8 +215,8 @@ class Mood {
     layerTones: [
       Color(0xFF3E4146),
       Color(0xFF2A2C30),
-      Color(0xFF17181A),
-      Color(0xFF080808),
+      Color(0xFF23262A),
+      Color(0xFF1B1D20),
     ],
     light: Palette.moonLight,
     lightAt: Offset(0.28, -0.06),

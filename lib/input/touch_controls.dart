@@ -4,10 +4,11 @@ import 'dart:ui';
 import 'package:flame/components.dart';
 import 'package:flame/input.dart';
 import 'package:flutter/widgets.dart'
-    show EdgeInsets, TextPainter, TextSpan, TextStyle;
+    show EdgeInsets, TextPainter, TextSpan, TextStyle, VoidCallback;
 
 import '../config/game_config.dart';
 import '../config/palette.dart';
+import '../config/game_settings.dart';
 import 'player_intent.dart';
 
 /// On-screen controls for phones, LIMBO's whole vocabulary: walk left and
@@ -37,8 +38,11 @@ class TouchControls {
     bool Function()? debugVisible,
     bool Function()? onRope,
     bool Function()? hidden,
+    this.onPause,
     this.debugTools = false,
+    GameSettings? settings,
   }) : _debugVisible = debugVisible ?? (() => false),
+       settings = settings ?? GameSettings(),
        _onRope = onRope ?? (() => false),
        _hidden = hidden ?? (() => false);
 
@@ -52,6 +56,8 @@ class TouchControls {
 
   /// Whether the development buttons exist at all.
   final bool debugTools;
+  final GameSettings settings;
+  final VoidCallback? onPause;
 
   // Which walk buttons are currently held. Tracked as two booleans rather than
   // writing the axis directly on each press, for the same reason
@@ -67,11 +73,12 @@ class TouchControls {
   /// action first, then climb up and down, then the development buttons
   /// when [debugTools] is set.
   List<HudButtonComponent> buildButtons() {
-    const double diameter = GameConfig.controlButtonDiameterPx;
+    final double diameter =
+        GameConfig.controlButtonDiameterPx * settings.controlsScale;
     const double edge = GameConfig.controlEdgeMarginPx;
     const double gap = GameConfig.controlGapPx;
     const double small = 46;
-    const double climb = diameter * 0.78;
+    final double climb = diameter * 0.78;
 
     _buttons = [
       // Walk left — bottom-left corner.
@@ -85,10 +92,7 @@ class TouchControls {
       // Walk right — immediately to the right of the left button.
       _controlButton(
         glyph: _Glyph.right,
-        margin: const EdgeInsets.only(
-          left: edge + diameter + gap,
-          bottom: edge,
-        ),
+        margin: EdgeInsets.only(left: edge + diameter + gap, bottom: edge),
         onPress: () => _setHoldingRight(true),
         onRelease: () => _setHoldingRight(false),
       ),
@@ -110,10 +114,7 @@ class TouchControls {
       // The action hand — grab and pull. Held, like the key.
       _controlButton(
         glyph: _Glyph.hand,
-        margin: const EdgeInsets.only(
-          right: edge + diameter + gap,
-          bottom: edge,
-        ),
+        margin: EdgeInsets.only(right: edge + diameter + gap, bottom: edge),
         onPress: () => _intent.setTouchState(interact: true),
         onRelease: () => _intent.setTouchState(interact: false),
       ),
@@ -124,7 +125,7 @@ class TouchControls {
         glyph: _Glyph.up,
         diameter: climb,
         visible: _onRope,
-        margin: const EdgeInsets.only(
+        margin: EdgeInsets.only(
           left: edge + (diameter - climb) / 2,
           bottom: edge + diameter + gap,
         ),
@@ -135,7 +136,7 @@ class TouchControls {
         glyph: _Glyph.down,
         diameter: climb,
         visible: _onRope,
-        margin: const EdgeInsets.only(
+        margin: EdgeInsets.only(
           left: edge + diameter + gap + (diameter - climb) / 2,
           bottom: edge + diameter + gap,
         ),
@@ -143,11 +144,19 @@ class TouchControls {
         onRelease: () => _intent.setTouchState(down: false),
       ),
 
+      _controlButton(
+        glyph: _Glyph.pause,
+        diameter: small,
+        margin: const EdgeInsets.only(right: edge, top: edge),
+        onPress: () => onPause?.call(),
+        onRelease: () {},
+      ),
+
       if (debugTools) ...[
         _controlButton(
           label: 'DBG',
           diameter: small,
-          margin: const EdgeInsets.only(right: edge, top: edge),
+          margin: const EdgeInsets.only(right: edge + small + 8, top: edge),
           onPress: _intent.requestDebugToggle,
           onRelease: () {},
         ),
@@ -155,7 +164,10 @@ class TouchControls {
           label: 'RESET',
           diameter: small,
           visible: _debugVisible,
-          margin: const EdgeInsets.only(right: edge + (small + 8), top: edge),
+          margin: const EdgeInsets.only(
+            right: edge + (small + 8) * 2,
+            top: edge,
+          ),
           onPress: _intent.requestReset,
           onRelease: () {},
         ),
@@ -164,7 +176,7 @@ class TouchControls {
           diameter: small,
           visible: _debugVisible,
           margin: const EdgeInsets.only(
-            right: edge + (small + 8) * 2,
+            right: edge + (small + 8) * 3,
             top: edge,
           ),
           onPress: _intent.requestKnockdown,
@@ -174,7 +186,7 @@ class TouchControls {
           label: 'SOUND',
           diameter: small,
           margin: const EdgeInsets.only(
-            right: edge + (small + 8) * 3,
+            right: edge + (small + 8) * 4,
             top: edge,
           ),
           onPress: _intent.requestAudioToggle,
@@ -189,12 +201,14 @@ class TouchControls {
     _Glyph? glyph,
     String? label,
     bool Function()? visible,
-    double diameter = GameConfig.controlButtonDiameterPx,
+    double? diameter,
     required EdgeInsets margin,
     required void Function() onPress,
     required void Function() onRelease,
   }) {
-    final size = Vector2.all(diameter);
+    final size = Vector2.all(
+      diameter ?? GameConfig.controlButtonDiameterPx * settings.controlsScale,
+    );
     final bool Function() shown = visible ?? (() => true);
     return _VisibilityButton(
       // The development buttons stay usable in a cutscene.
@@ -204,12 +218,14 @@ class TouchControls {
         glyph: glyph,
         label: label,
         isPressed: false,
+        opacity: () => settings.controlsOpacity,
         size: size,
       ),
       buttonDown: _ControlFace(
         glyph: glyph,
         label: label,
         isPressed: true,
+        opacity: () => settings.controlsOpacity,
         size: size,
       ),
       margin: margin,
@@ -257,9 +273,17 @@ class TouchControls {
       }
     }
   }
+
+  void removeButtons() {
+    clear();
+    for (final button in _buttons) {
+      button.removeFromParent();
+    }
+    _buttons = [];
+  }
 }
 
-enum _Glyph { left, right, jump, hand, up, down }
+enum _Glyph { left, right, jump, hand, up, down, pause }
 
 /// A hidden development action neither draws nor receives a stray tap.
 class _VisibilityButton extends HudButtonComponent {
@@ -293,6 +317,7 @@ class _ControlFace extends PositionComponent {
     this.glyph,
     this.label,
     required this.isPressed,
+    required this.opacity,
     required Vector2 size,
   }) : super(size: size);
 
@@ -302,6 +327,7 @@ class _ControlFace extends PositionComponent {
 
   /// Whether to draw the held-down state.
   final bool isPressed;
+  final double Function() opacity;
 
   static final Paint _fill = Paint();
   static final Paint _ring = Paint()
@@ -320,6 +346,15 @@ class _ControlFace extends PositionComponent {
     final radius = size.x / 2;
     final center = Offset(radius, radius);
     _fill.color = isPressed ? Palette.controlPressed : Palette.control;
+    final alpha = isPressed ? 1.0 : opacity();
+    _fill.color = _fill.color.withValues(alpha: _fill.color.a * alpha);
+    _ring.color = Palette.controlRing.withValues(
+      alpha: Palette.controlRing.a * alpha,
+    );
+    _glyphPaint.color = Palette.controlGlyph.withValues(
+      alpha: Palette.controlGlyph.a * alpha,
+    );
+    _strokeGlyph.color = _glyphPaint.color;
     canvas.drawCircle(center, radius, _fill);
     // A thin ring, so the button is findable against a black floor without
     // becoming a bright disc that competes with the scene.
@@ -357,6 +392,21 @@ class _ControlFace extends PositionComponent {
         _chevron(canvas, center, r, -1);
       case _Glyph.down:
         _chevron(canvas, center, r, 1);
+      case _Glyph.pause:
+        canvas.drawRRect(
+          RRect.fromRectAndRadius(
+            Rect.fromLTWH(center.dx - r * 0.65, center.dy - r, r * 0.42, r * 2),
+            Radius.circular(r * 0.08),
+          ),
+          _glyphPaint,
+        );
+        canvas.drawRRect(
+          RRect.fromRectAndRadius(
+            Rect.fromLTWH(center.dx + r * 0.23, center.dy - r, r * 0.42, r * 2),
+            Radius.circular(r * 0.08),
+          ),
+          _glyphPaint,
+        );
     }
   }
 

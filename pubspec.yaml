@@ -20,6 +20,7 @@ dependencies:
   # longer exist. See STEP1_NOTES.md for the API differences that matter.
   flame_forge2d: ^0.20.0
   shared_preferences: ^2.5.6
+  audioplayers: ^6.8.1
 
 dev_dependencies:
   flutter_test:
@@ -29,15 +30,14 @@ dev_dependencies:
 flutter:
   uses-material-design: true
 
-  # Only the film grain is a bitmap: the boy, the ground and the fogged
-  # forest are all drawn procedurally. The older painted backgrounds and
-  # props under assets/images/ stay in the repo but are not bundled.
+  # Original procedural characters, existing painted scenery, and synthesized audio.
   assets:
     - assets/images/grain.png
     - assets/images/part1/
     - assets/images/part2/
     - assets/images/part3/
     - assets/brand/
+    - assets/audio/
 
   fonts:
     # Cinzel, by Natanael Gama, SIL Open Font License 1.1

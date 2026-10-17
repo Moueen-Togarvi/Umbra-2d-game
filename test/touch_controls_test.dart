@@ -1,11 +1,12 @@
 import 'package:flame/game.dart';
 import 'package:flame/input.dart';
-import 'package:flutter/widgets.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:umbra/entities/physics_props.dart';
 import 'package:umbra/config/game_config.dart';
 import 'package:umbra/entities/player.dart';
 import 'package:umbra/game/umbra_game.dart';
+import 'package:umbra/ui/pause_screen.dart';
 
 /// Checks the on-screen controls, which are the only way to play on a phone.
 ///
@@ -37,7 +38,15 @@ void main() {
     await tester.pumpWidget(
       MediaQuery(
         data: MediaQueryData(size: phoneSize.toSize()),
-        child: GameWidget(game: game),
+        child: MaterialApp(
+          home: GameWidget<UmbraGame>(
+            game: game,
+            overlayBuilderMap: {
+              UmbraGame.pauseOverlay: (context, game) =>
+                  PauseScreen(game: game),
+            },
+          ),
+        ),
       ),
     );
     for (
@@ -63,25 +72,79 @@ void main() {
     return (game, player, buttons);
   }
 
-  /// LIMBO's four controls, in this order, then the rope's climb buttons;
-  /// development buttons follow.
+  /// Four movement controls, rope controls, pause, then development buttons.
   const int walkLeft = 0;
   const int walkRight = 1;
   const int jump = 2;
   const int action = 3;
   const int climbUp = 4;
   const int climbDown = 5;
-  const int debugToggle = 6;
-  const int reset = 7;
-  const int knockdown = 8;
+  const int pause = 6;
+  const int debugToggle = 7;
+  const int reset = 8;
+  const int knockdown = 9;
 
   testWidgets('mobile actions mount into the camera viewport', (tester) async {
     final (_, _, buttons) = await boot(tester);
     expect(
       buttons,
-      hasLength(6),
-      reason: 'left, right, jump and action, and climbing for ropes',
+      hasLength(7),
+      reason: 'left, right, jump, action, rope climbing and pause',
     );
+  });
+
+  testWidgets('pause opens controls and resume returns to play', (
+    tester,
+  ) async {
+    final (game, _, buttons) = await boot(tester);
+    final tap = await tester.startGesture(
+      buttons[pause].absoluteCenter.toOffset(),
+    );
+    await tester.pump();
+    await tap.up();
+    expect(game.isGameplayPaused, isTrue);
+    expect(find.text('PAUSED'), findsOneWidget);
+    await tester.tap(find.text('RESUME'));
+    await tester.pump(const Duration(milliseconds: 100));
+    expect(game.isGameplayPaused, isFalse);
+  });
+
+  testWidgets('paused settings resize controls and pause cancels held input', (
+    tester,
+  ) async {
+    final (game, _, oldButtons) = await boot(tester);
+    final touch = await tester.startGesture(
+      oldButtons[walkRight].absoluteCenter.toOffset(),
+    );
+    await advance(tester, 4);
+    game.pauseGameplay();
+    await tester.pump();
+    expect(game.intent.horizontalAxis, 0);
+    expect(
+      oldButtons[walkRight].containsLocalPoint(oldButtons[walkRight].size / 2),
+      isFalse,
+    );
+    game.settings.set('controlsScale', 1.2);
+    game.settings.set('controlsOpacity', .4);
+    await touch.up();
+    await tester.tap(find.text('RESUME'));
+    await advance(tester, 5);
+    final resized = game.camera.viewport.children
+        .whereType<HudButtonComponent>()
+        .toList();
+    expect(resized, hasLength(7));
+    expect(
+      resized[0].size.x,
+      closeTo(GameConfig.controlButtonDiameterPx * 1.2, .01),
+    );
+    final move = await tester.startGesture(
+      resized[walkRight].absoluteCenter.toOffset(),
+    );
+    await advance(tester, 4);
+    expect(game.intent.horizontalAxis, 1);
+    await move.up();
+    await advance(tester, 2);
+    expect(game.intent.horizontalAxis, 0);
   });
 
   testWidgets('climb buttons only appear while holding a rope', (tester) async {
@@ -114,7 +177,7 @@ void main() {
 
   testWidgets('development builds add the debug buttons', (tester) async {
     final (_, _, buttons) = await boot(tester, debugTools: true);
-    expect(buttons, hasLength(10));
+    expect(buttons, hasLength(11));
   });
 
   testWidgets('controls sit on screen, along the bottom, thumbs apart', (

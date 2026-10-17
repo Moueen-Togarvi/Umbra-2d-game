@@ -482,7 +482,7 @@ class SwingRope extends BodyComponent {
   static final Paint _cord = Paint()
     ..color = const Color(0xFF181818)
     ..style = PaintingStyle.stroke
-    ..strokeWidth = 0.032
+    ..strokeWidth = 0.048
     ..strokeCap = StrokeCap.round
     ..strokeJoin = StrokeJoin.round;
   static final Paint _fray = Paint()
@@ -490,6 +490,11 @@ class SwingRope extends BodyComponent {
     ..strokeWidth = 0.012
     ..strokeCap = StrokeCap.round;
   static final Paint _knot = Paint()..color = const Color(0xFF181818);
+  static final Paint _cordLight = Paint()
+    ..color = const Color(0x706E716C)
+    ..style = PaintingStyle.stroke
+    ..strokeWidth = 0.012
+    ..strokeCap = StrokeCap.round;
   static final Paint _rubber = Paint()..color = const Color(0xFF070707);
   static final Paint _tread = Paint()
     ..color = const Color(0x24FFFFFF)
@@ -535,7 +540,17 @@ class SwingRope extends BodyComponent {
       _drawTyre(canvas, end, down);
       return;
     }
-    canvas.drawCircle(end, 0.03, _knot);
+    canvas.drawOval(
+      Rect.fromCenter(center: end, width: 0.105, height: 0.15),
+      _knot,
+    );
+    for (final dy in const [-0.035, 0.005, 0.045]) {
+      canvas.drawLine(
+        end + Offset(-0.035, dy),
+        end + Offset(0.035, dy - 0.012),
+        _cordLight,
+      );
+    }
     for (final splay in const [-0.25, 0.0, 0.3]) {
       final Offset tip =
           end +
@@ -601,6 +616,10 @@ class SwingRope extends BodyComponent {
     final end = at(_count);
     rope.lineTo(end.dx, end.dy);
     canvas.drawPath(rope, _cord);
+    canvas.save();
+    canvas.translate(-0.014, 0);
+    canvas.drawPath(rope, _cordLight);
+    canvas.restore();
     // A knot and a frayed end below it, rather than a ball; or the tyre.
     final Offset last = end - at(_count - 1);
     final double run = last.distance;

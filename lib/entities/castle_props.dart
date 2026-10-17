@@ -1761,7 +1761,7 @@ class Balustrade extends Component with OffScreenCulling {
         Rect.fromLTRB(left, floorY - height, right, floorY - height + 0.1),
       )
       ..addRect(Rect.fromLTRB(left, floorY - 0.12, right, floorY));
-    for (double x = left + 0.2; x < right - 0.1; x += 0.24) {
+    for (double x = left + 0.2; x < right - 0.1; x += 0.34) {
       // A baluster: narrow neck, a swelling belly, a narrow foot.
       final double top = floorY - height + 0.1, bottom = floorY - 0.12;
       final double h = bottom - top;
@@ -1787,7 +1787,7 @@ class Balustrade extends Component with OffScreenCulling {
     return path;
   }();
 
-  static final Paint _stone = Paint()..color = const Color(0xFF070707);
+  static final Paint _stone = Paint()..color = const Color(0xFF292A2B);
 
   @override
   void render(Canvas canvas) {

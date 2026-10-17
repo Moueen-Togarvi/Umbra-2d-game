@@ -55,14 +55,13 @@ abstract final class GameConfig {
 
   /// How much of the world the camera frames, in metres. Flame fits this box
   /// inside the screen, so a wider phone simply sees more of the level to the
-  /// sides. 10.5 m tall puts the 1.3 m boy at about an eighth of the screen,
-  /// which is how small LIMBO's camera keeps him against the forest.
+  /// sides. The 9.2 m height keeps the boy readable on a phone.
   static const double cameraVisibleWidth = 18.67;
-  static const double cameraVisibleHeight = 10.5;
+  static const double cameraVisibleHeight = 9.2;
 
   /// How far above the player's centre the camera aims. Positive is *up*.
   /// Looking up shows more sky and canopy and less dead black ground.
-  static const double cameraLookUp = 1.4;
+  static const double cameraLookUp = 2.05;
 
   /// How far ahead of the player, in the direction of travel, the camera
   /// leads at full running speed. Puts the running boy at about 40% of the
@@ -382,13 +381,13 @@ abstract final class GameConfig {
   ///
   /// Material's minimum touch target is 48dp; a game that is held in both hands
   /// and played with thumbs wants considerably more than the minimum.
-  static const double controlButtonDiameterPx = 84.0;
+  static const double controlButtonDiameterPx = 72.0;
 
   /// Gap between the screen edge and the nearest button.
-  static const double controlEdgeMarginPx = 28.0;
+  static const double controlEdgeMarginPx = 24.0;
 
   /// Gap between the two walk buttons.
-  static const double controlGapPx = 20.0;
+  static const double controlGapPx = 16.0;
 
   /// Size of the arrow glyph inside a button, as a fraction of its radius.
   static const double controlGlyphScale = 0.46;

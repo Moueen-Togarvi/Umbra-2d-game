@@ -467,7 +467,7 @@ class WaterBody extends Component {
       );
     canvas.drawPath(path, _body);
     _body.shader = null;
-    // The surface catches the light: a bright line, and fainter broken
+    // The surface catches the light: a subdued rim, and fainter broken
     // ones just under it that drift with the swell.
     final surface = Path()..moveTo(from, surfaceAt(from));
     for (double x = from; x <= to; x += _spacing) {
@@ -475,8 +475,8 @@ class WaterBody extends Component {
     }
     final Color shine = Color.lerp(fog, const Color(0xFFFFFFFF), 0.25)!;
     _line
-      ..strokeWidth = 0.03
-      ..color = shine.withValues(alpha: 0.85);
+      ..strokeWidth = 0.017
+      ..color = shine.withValues(alpha: 0.38);
     canvas.drawPath(surface, _line);
     _line
       ..strokeWidth = 0.016

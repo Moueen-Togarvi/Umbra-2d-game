@@ -36,8 +36,13 @@ class SceneryProp extends Component implements BackdropDrawable {
     this.depth = 1,
     double? fog,
     this.flip = false,
+    double? sourceBottom,
     super.priority,
-  }) : fog = fog ?? defaultFog(depth);
+  }) : assert(sourceBottom == null || (sourceBottom > 0 && sourceBottom <= 1)),
+       sourceBottom =
+           sourceBottom ??
+           (image.startsWith('part1/ch2_giant_tree_a') ? 0.84 : 1),
+       fog = fog ?? defaultFog(depth);
 
   /// The image's name under `assets/images/`, e.g. `part1/ch1_cottage.png`.
   final String image;
@@ -54,12 +59,16 @@ class SceneryProp extends Component implements BackdropDrawable {
   /// Drawn mirrored left to right.
   final bool flip;
 
+  /// Fraction of the existing asset retained from its top. The root-heavy
+  /// giant tree gets one shared crop wherever it appears in the campaign.
+  final double sourceBottom;
+
   /// How much fog a thing at [depth] stands behind.
   static double defaultFog(double depth) {
     if (depth >= 1) return 0;
     final double t = (1 - depth).clamp(0.0, 1.0);
     // Like the fog layers: dark for a while, then quickly paler.
-    return (0.06 + 0.86 * t * t).clamp(0.0, 0.92);
+    return (0.18 + 0.68 * t).clamp(0.0, 0.92);
   }
 
   Image? _art;
@@ -82,8 +91,10 @@ class SceneryProp extends Component implements BackdropDrawable {
     _stage = ancestors().whereType<Stage>().firstOrNull;
     if (inBackdrop) _stage?.backdropProps.add(this);
     // Blurred art reads better far off, and is cheaper to scale down.
-    final String far = image.replaceFirst('.png', '_far.png');
-    final String name = depth < 0.6 ? far : image;
+    final String far = image.endsWith('_far.png')
+        ? image
+        : image.replaceFirst('.png', '_far.png');
+    final String name = inBackdrop ? far : image;
     try {
       _art = await Flame.images.load(name);
     } catch (_) {
@@ -98,7 +109,9 @@ class SceneryProp extends Component implements BackdropDrawable {
   /// The rectangle the art would cover for a camera at [camera].
   Rect rectFor(Vector2 camera) {
     final Image? art = _art;
-    final double aspect = art == null ? 1 : art.width / art.height;
+    final double aspect = art == null
+        ? 1
+        : art.width / (art.height * sourceBottom);
     final double k = depth;
     final double cx = camera.x + (x - camera.x) * k;
     final double base = camera.y + (baseY - camera.y) * k;
@@ -140,7 +153,7 @@ class SceneryProp extends Component implements BackdropDrawable {
       0,
       0,
       art.width.toDouble(),
-      art.height.toDouble(),
+      art.height * sourceBottom,
     );
     if (flip) {
       canvas.save();
