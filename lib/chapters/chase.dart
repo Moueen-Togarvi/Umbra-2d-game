@@ -34,13 +34,27 @@ class ChaseChapter extends Chapter with KeeperChase {
   ChaseChapter({required super.intent});
 
   @override
+  void restoreWorld(double x) {
+    if (x >= panRight) {
+      pan.restoreTravel(pan.drop);
+      kitchenGate.restoreTravel(-kitchenGate.rise);
+    }
+    if (x >= 36 && x < pitLeft) chasing = true;
+    if (x >= pitLeft) {
+      _gateDown = true;
+      latchedGate.release();
+      endChase();
+    }
+  }
+
+  @override
   String? get ambience => 'dungeon';
   @override
-  int get number => 7;
+  int get number => 16;
   @override
   String get title => 'The Chase';
   @override
-  double get width => 140;
+  double get coreWidth => 140;
   @override
   MoodTrack get moods => const MoodTrack(Mood.castle);
   @override
@@ -58,7 +72,7 @@ class ChaseChapter extends Chapter with KeeperChase {
   static const double keeperStart = 30;
 
   @override
-  List<List<double>> get profile => const [
+  List<List<double>> get baseProfile => const [
     [0, floor, 10, floor, panLeft, floor],
     [panRight, floor, 40, floor, holeLeft, floor],
     [holeRight, floor, gapLeft, floor],
@@ -67,13 +81,13 @@ class ChaseChapter extends Chapter with KeeperChase {
   ];
 
   @override
-  List<double> get checkpointXs => const [12, 36, 60, 80, 95, 110];
+  List<double> get coreCheckpointXs => const [12, 36, 60, 80, 95, 110];
 
   @override
   Vector2 get spawn => Vector2(3, floor - GameConfig.playerHeight / 2);
 
   @override
-  double get exitX => 132;
+  double get coreExitX => 132;
 
   @override
   List<String> get art => const [

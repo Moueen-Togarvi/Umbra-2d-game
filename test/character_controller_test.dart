@@ -62,6 +62,70 @@ void main() {
     await tester.sendKeyUpEvent(LogicalKeyboardKey.keyA);
   });
 
+  testWidgets('running footfall cues stop in the air and while idle', (
+    tester,
+  ) async {
+    final (game, player) = await boot(tester);
+    advance(game, 0.4);
+    final idleSteps = player.footfalls;
+    advance(game, 0.4);
+    expect(player.footfalls, idleSteps);
+
+    await tester.sendKeyDownEvent(LogicalKeyboardKey.keyD);
+    advance(game, 0.65);
+    expect(player.footfalls, greaterThan(idleSteps));
+
+    await tester.sendKeyDownEvent(LogicalKeyboardKey.space);
+    advance(game, 0.13);
+    expect(player.isOnGround, isFalse);
+    final airborneSteps = player.footfalls;
+    advance(game, 0.2);
+    expect(player.isOnGround, isFalse);
+    expect(player.footfalls, airborneSteps);
+
+    await tester.sendKeyUpEvent(LogicalKeyboardKey.space);
+    await tester.sendKeyUpEvent(LogicalKeyboardKey.keyD);
+    advance(game, 1.0);
+    final stoppedSteps = player.footfalls;
+    advance(game, 0.4);
+    expect(player.footfalls, stoppedSteps);
+  });
+
+  testWidgets('slow walking and running sound every newly planted foot', (
+    tester,
+  ) async {
+    final (game, player) = await boot(tester);
+    for (final axis in [0.15, 1.0]) {
+      game.intent.setKeyboardState(axis: axis);
+      advance(game, 0.3);
+      var contacts = 0;
+      final before = player.footfalls;
+      var planted = player.rigFeetPlanted;
+      for (var i = 0; i < 90; i++) {
+        game.update(1 / 60);
+        final next = player.rigFeetPlanted;
+        if (player.isOnGround) {
+          for (var f = 0; f < 2; f++) {
+            if (next[f] && !planted[f]) contacts++;
+          }
+        }
+        planted = next;
+      }
+      expect(
+        contacts,
+        greaterThan(0),
+        reason: 'axis $axis has visible contacts',
+      );
+      expect(
+        player.footfalls - before,
+        contacts,
+        reason: 'one cue per contact, even below 20% gait weight',
+      );
+      game.intent.setKeyboardState(axis: 0);
+      advance(game, 0.4);
+    }
+  });
+
   testWidgets('turning round passes quickly through a front view', (
     tester,
   ) async {

@@ -32,13 +32,30 @@ class BonePitChapter extends Chapter {
   BonePitChapter({required super.intent});
 
   @override
-  String? get ambience => 'dungeon';
+  void restoreWorld(double x) {
+    if (x >= chamberRight) {
+      drain.pressed = true;
+      chamber.setLevel(floor - .02);
+    }
+    if (x >= shaftRight) {
+      _flooding = true;
+      shaft.setLevel(exitTop + .3);
+      keeper.gone = true;
+    }
+  }
+
   @override
-  int get number => 6;
+  String? get ambience => 'cave';
+  @override
+  String get footing => 'gravel';
+  @override
+  double get windLevel => 0.4;
+  @override
+  int get number => 13;
   @override
   String get title => 'The Bone Pit';
   @override
-  double get width => 150;
+  double get coreWidth => 150;
   @override
   MoodTrack get moods => const MoodTrack(Mood.cave);
 
@@ -49,7 +66,7 @@ class BonePitChapter extends Chapter {
   static const double exitTop = 2.4;
 
   @override
-  List<List<double>> get profile => const [
+  List<List<double>> get baseProfile => const [
     [0, 6.0, 6, 6.0, 9, 6.5, 12, 7.0, 18, 7.0, 22, 7.0, barrelsLeft, 7.0],
     [barrelsRight, 7.0, 44, 7.0, 50, 6.9, chamberLeft, 7.0],
     [
@@ -71,13 +88,13 @@ class BonePitChapter extends Chapter {
   ];
 
   @override
-  List<double> get checkpointXs => const [14, 39.5, 80, 104];
+  List<double> get coreCheckpointXs => const [14, 39.5, 80, 104];
 
   @override
   Vector2 get spawn => Vector2(3, 6.0 - GameConfig.playerHeight / 2);
 
   @override
-  double get exitX => 146;
+  double get coreExitX => 146;
 
   @override
   List<String> get art => const [

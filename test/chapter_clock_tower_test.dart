@@ -1,3 +1,4 @@
+import 'support/route_pilot.dart';
 import 'dart:math' as math;
 
 import 'package:flutter_test/flutter_test.dart';
@@ -13,7 +14,7 @@ void main() {
     tester,
   ) async {
     final game = await bootCampaign(tester);
-    final tower = await enterChapter<ClockTowerChapter>(tester, game, 9);
+    final tower = await enterChapter<ClockTowerChapter>(tester, game, 21);
     final player = tower.player;
     final intent = game.intent;
     final jumped = <String>{};
@@ -25,7 +26,7 @@ void main() {
       intent.requestJump();
     }
 
-    for (var i = 0; i < 60 * 200 && !tower.isComplete; i++) {
+    for (var i = 0; i < 60 * 900 && !tower.isComplete; i++) {
       final double x = player.body.position.x;
       final double feet = player.body.position.y + GameConfig.playerHeight / 2;
       final bool grounded = player.isOnGround;
@@ -98,6 +99,7 @@ void main() {
         if (mode == InteractionMode.hanging) axis = 1;
       }
       intent.setKeyboardState(axis: axis);
+      driveExtension(game);
       game.update(1 / 60);
       if (player.isDead) {
         fail(

@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Umbra — Home alignment and floating vampire</title>
+<style>
+:root{font:15px system-ui;background:#111415;color:#e0e6e2;color-scheme:dark}*{box-sizing:border-box}body{max-width:1500px;margin:auto;padding:35px 24px 70px}h1{font:40px Georgia;margin:15px 0}p{line-height:1.7;color:#b8c4bc;max-width:920px}small{color:#a0ada5;letter-spacing:2px}a{color:inherit;text-underline-offset:4px}nav{display:flex;flex-wrap:wrap;gap:14px;margin:25px 0}nav a,button{padding:11px 17px;background:#222a25;border:1px solid #57675b;color:#e0e6e2;font:inherit;border-radius:3px;cursor:pointer}img,video{display:block;width:100%;height:auto;background:#252b27;border:1px solid #3e4942}h2{font-size:21px;font-weight:500;margin:34px 0 16px}.grid{display:grid;grid-template-columns:1fr 1fr;gap:22px}figure{margin:0}figcaption{padding:12px 0;color:#aebbb2}.controls{display:flex;gap:10px;margin-top:15px}footer{margin-top:35px;border-top:1px solid #46524a;padding-top:20px;color:#aebbb2;font-size:13px;line-height:1.8}@media(max-width:750px){.grid{grid-template-columns:1fr}body{padding:24px 16px}h1{font-size:32px}}
+</style>
+<small>UMBRA / GAME RENDERER REVIEW</small><h1>Home alignment &amp; floating vampire</h1>
+<p>The Home fence now shares one ground baseline. The wall has a single silhouette, with stone detail ending at the soil. The floating vampire has a brighter, saturated red eye.</p>
+<nav><a href="../../vampire-preview/" target="_blank">Play updated game ↗</a><a href="motion.mp4">Open animation video ↗</a><a href="tests.txt">Tests</a><a href="analysis.txt">Analysis</a></nav>
+<h2>Chapter 1 — matching before / after</h2>
+<p>Same camera, scale, player position and scene timing.</p><div id="home" class="grid"></div>
+<h2>Floating vampire — red eye and local ground mist</h2>
+<img src="scene.png" alt="Floating vampire beside the hero in the Halls" width="1600" height="720">
+<p>Legs removed. The articulated upper body hovers above ground mist, while the coat fades into smoke. Hands keep the waist-height pose. The camera and player are positioned for inspection; neighbouring enemies are hidden in this paused test capture.</p>
+<h2>Hover, glide, reach and settle — 20 seconds</h2>
+<video id="motion" controls playsinline preload="metadata" poster="after/idle-left.png"><source src="motion.mp4" type="video/mp4"></video>
+<div class="controls"><button id="slow">0.5× slow motion</button><button id="normal">1× normal speed</button></div>
+<h2>Movement and pose details</h2><div id="views" class="grid"></div>
+<footer>Live Canvas animation uses the existing separated character parts. The coat uses a deforming textured mesh; local fog and wisps are procedural. Existing AI ground coordinates, climbing/drop events and interactions remain the gameplay authority. These diagnostic captures do not measure mobile performance. The concept sample is an art reference; the images and video here are rendered by the actual game.</footer>
+<script>
+const home=document.getElementById('home');
+for(const [file,title] of [['overview','Home overview'],['fence','Fence'],['wall','Wall']]){for(const pass of ['before','after']){const figure=document.createElement('figure');const src=`../../chapters-preview/home-props/${pass}_${file}.png`;figure.innerHTML=`<a href="${src}" target="_blank"><img loading="lazy" src="${src}" width="1600" height="720" alt="${title} / ${pass}"></a><figcaption>${title} / ${pass.toUpperCase()}</figcaption>`;home.append(figure);}}
+const view=document.getElementById('views');
+for(const [file,title] of [['idle-left','Hover / left'],['idle-right','Hover / right'],['walk-left','Glide / left'],['chase-right','Fast pursuit / right'],['reach-left','Reach / left'],['crouch-right','Settle / right']]){const figure=document.createElement('figure');figure.innerHTML=`<a href="after/${file}.png" target="_blank"><img loading="lazy" src="after/${file}.png" width="960" height="640" alt="${title}"></a><figcaption>${title}</figcaption>`;view.append(figure);}
+const video=document.getElementById('motion');document.getElementById('slow').onclick=()=>{video.playbackRate=.5;video.play();};document.getElementById('normal').onclick=()=>{video.playbackRate=1;video.play();};
+</script></html>

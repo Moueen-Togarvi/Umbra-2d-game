@@ -205,6 +205,9 @@ class Pursuer {
       }
     }
     vampire.drive(x: x, groundY: _feet, dt: dt);
+    if (!blocked && !boy.isDead && (boy.body.position.x - x).abs() < 18) {
+      stage.reportThreat(ThreatLevel.chase);
+    }
     final double gap = (boy.body.position.x - x).abs();
     vampire.reachGoal = blocked || gap < 2.6 ? 1 : 0.25;
     if (!boy.isDead && !caught) {
@@ -231,6 +234,7 @@ mixin KeeperChase on Component {
 
   void startChase() {
     chasing = true;
+    pursuer.stage.reportThreat(ThreatLevel.chase);
     pursuer.start();
   }
 
@@ -327,6 +331,8 @@ class Stalker {
   double? _goal;
 
   bool awake = false;
+  double? _lastSeenX;
+  double _searchTime = 0;
   bool caught = false;
   double _lit = 0;
 
@@ -388,8 +394,27 @@ class Stalker {
     final double boyFeet = b.y + GameConfig.playerHeight / 2;
     // Only for him on its own floor: one above or below it can only watch.
     final bool level = (boyFeet - ground(b.x.clamp(left, right))).abs() < 1.2;
-    if (!awake && level && !boy.isDead && (b.x - x).abs() < wake) {
+    final visible =
+        level &&
+        stage.seesPlayer(
+          Vector2(x, ground(x) - .65),
+          facing: awake ? null : vampire.facing,
+          range: awake ? wake + 3 : wake,
+        );
+    if (visible) {
       awake = true;
+      _lastSeenX = b.x;
+      // Allow the trip to the last sighting, then three seconds to inspect it.
+      // A fixed three-second timeout abandoned distant sightings mid-walk.
+      // This remains bounded if light prevents reaching the remembered spot.
+      _searchTime = 3 + (b.x - x).abs() / math.max(speed, .1);
+      stage.reportThreat(ThreatLevel.chase);
+    } else if (awake) {
+      _searchTime -= dt;
+      if (_searchTime <= 0) {
+        awake = false;
+        _lastSeenX = null;
+      }
     }
     if (awake && !level && !boy.isDead) {
       vampire
@@ -415,7 +440,7 @@ class Stalker {
       vampire.reachGoal = 0;
       return;
     }
-    final double target = b.x.clamp(left, right);
+    final double target = (_lastSeenX ?? b.x).clamp(left, right);
     final double dir = (target - x).sign;
     final double next = x + dir * speed * dt;
     // Up to the edge of any light, and no further.
@@ -429,6 +454,7 @@ class Stalker {
       vampire.reachGoal = (b.x - x).abs() < 2.5 ? 0.8 : 0.2;
     }
     if (!caught &&
+        !stage.playerHidden &&
         !boyLit &&
         (b.x - vampire.x).abs() < 0.8 &&
         (boyFeet - vampire.groundY).abs() < 1.3) {
@@ -441,6 +467,8 @@ class Stalker {
   /// Back to how he was, at [x] (after a death undid the boy's work).
   void reset(double x) {
     awake = false;
+    _lastSeenX = null;
+    _searchTime = 0;
     caught = false;
     _lit = 0;
     _goal = null;

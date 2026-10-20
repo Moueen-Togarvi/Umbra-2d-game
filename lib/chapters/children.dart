@@ -36,13 +36,31 @@ class ChildrenChapter extends Chapter {
   ChildrenChapter({required super.intent});
 
   @override
+  void restoreWorld(double x) {
+    for (var i = 0; i < cells.length; i++) {
+      if (cells[i].left < x) {
+        cells[i].open();
+        kids[i].following = true;
+        kids[i].feet.setValues(x - kids[i].back, floor);
+      }
+    }
+    if (x >= corridorEnd) watcher.gone = true;
+    if (x >= drainX) {
+      _escaped = true;
+      for (final kid in kids) {
+        kid.gone = true;
+      }
+    }
+  }
+
+  @override
   String? get ambience => 'dungeon';
   @override
-  int get number => 11;
+  int get number => 25;
   @override
   String get title => 'The Children';
   @override
-  double get width => 110;
+  double get coreWidth => 110;
   @override
   MoodTrack get moods => const MoodTrack(Mood.castle);
   @override
@@ -56,18 +74,18 @@ class ChildrenChapter extends Chapter {
   static const double drainX = 88;
 
   @override
-  List<List<double>> get profile => const [
+  List<List<double>> get baseProfile => const [
     [0, floor, 110, floor],
   ];
 
   @override
-  List<double> get checkpointXs => const [10, 19, 41, 47, 66, 80];
+  List<double> get coreCheckpointXs => const [10, 19, 41, 47, 66, 80];
 
   @override
   Vector2 get spawn => Vector2(3, floor - GameConfig.playerHeight / 2);
 
   @override
-  double get exitX => 104;
+  double get coreExitX => 104;
 
   @override
   List<String> get art => const [

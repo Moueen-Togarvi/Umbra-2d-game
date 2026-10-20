@@ -32,13 +32,30 @@ class MillChapter extends Chapter {
   MillChapter({required super.intent});
 
   @override
+  void restoreWorld(double x) {
+    if (x >= raceRight) {
+      _sluice = true;
+      race.setLevel(7.8);
+      race.current = 1.5;
+      gate.restoreOpen();
+    }
+    if (x >= basinRight) {
+      _flood = true;
+      basin.setLevel(ledge + .25);
+      for (final v in drowned) {
+        v.gone = true;
+      }
+    }
+  }
+
+  @override
   String? get ambience => 'river';
   @override
-  int get number => 12;
+  int get number => 28;
   @override
   String get title => 'The Mill';
   @override
-  double get width => 120;
+  double get coreWidth => 120;
   @override
   MoodTrack get moods => const MoodTrack(Mood.castle);
   @override
@@ -53,20 +70,20 @@ class MillChapter extends Chapter {
   static const double basinFloor = 11.0, ledge = 4.0;
 
   @override
-  List<List<double>> get profile => const [
+  List<List<double>> get baseProfile => const [
     [0, floor, raceLeft, floor],
     [raceRight, floor, basinLeft, floor],
     [basinRight, ledge, 120, ledge],
   ];
 
   @override
-  List<double> get checkpointXs => const [10, 33, 42, 66];
+  List<double> get coreCheckpointXs => const [10, 33, 42, 66];
 
   @override
   Vector2 get spawn => Vector2(3, floor - GameConfig.playerHeight / 2);
 
   @override
-  double get exitX => 112;
+  double get coreExitX => 112;
 
   @override
   List<String> get art => const [

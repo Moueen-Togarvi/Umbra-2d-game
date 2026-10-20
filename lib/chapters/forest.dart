@@ -32,11 +32,16 @@ class ForestChapter extends Chapter {
   ForestChapter({required super.intent});
 
   @override
-  int get number => 2;
+  void restoreWorld(double x) {
+    if (x > 100) stranger.gone = true;
+  }
+
+  @override
+  int get number => 5;
   @override
   String get title => 'The Night Forest';
   @override
-  double get width => 204;
+  double get coreWidth => 204;
   @override
   MoodTrack get moods => const MoodTrack(Mood.night);
 
@@ -44,7 +49,7 @@ class ForestChapter extends Chapter {
   static const double ravineLeft = 66.5, ravineRight = 69.9;
 
   @override
-  List<List<double>> get profile => const [
+  List<List<double>> get baseProfile => const [
     [
       0,
       7.0,
@@ -73,14 +78,23 @@ class ForestChapter extends Chapter {
   ];
 
   @override
-  List<double> get checkpointXs => const [14, 34, 41, 72, 100, 133, 160, 184];
+  List<double> get coreCheckpointXs => const [
+    14,
+    34,
+    41,
+    72,
+    100,
+    133,
+    160,
+    184,
+  ];
 
   @override
   Vector2 get spawn => Vector2(3, 7.0 - GameConfig.playerHeight / 2);
 
   /// Never crossed: the chapter ends in the clearing's scene.
   @override
-  double get exitX => width + 10;
+  double get coreExitX => width + 10;
 
   @override
   List<String> get art => const [
@@ -280,7 +294,7 @@ class ForestChapter extends Chapter {
         ..eyes = 1
         ..walkTo(cam - 30);
     });
-    onReach(188, () => play(_taken()));
+    onReach(188 + extensionLength, () => play(_taken()));
   }
 
   @override

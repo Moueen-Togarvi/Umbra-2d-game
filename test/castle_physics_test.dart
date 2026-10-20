@@ -1,4 +1,5 @@
 import 'package:flame/game.dart';
+import 'package:flame/flame.dart';
 import 'package:flame_forge2d/flame_forge2d.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:umbra/config/game_config.dart';
@@ -120,6 +121,10 @@ void main() {
   testWidgets('a hung chandelier falls when let go, and its candles go out '
       'in the crash', (tester) async {
     final game = await boot(tester);
+    // Image decoding needs real asynchronous work outside the test clock.
+    await tester.runAsync(
+      () => Flame.images.load('part3/ch9_far_chandelier.png'),
+    );
     final chandelier = HungChandelier(
       anchor: Vector2(5, 0),
       ropeLength: 2,

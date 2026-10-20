@@ -5,6 +5,8 @@ import 'package:flame/components.dart';
 import 'package:flutter/services.dart' show rootBundle;
 
 import 'chapter_backgrounds.dart';
+import 'mood.dart';
+import 'scenery.dart';
 
 /// Painted backgrounds behind the real physics world. One atlas is owned by
 /// the active chapter; at most two panels are drawn during a transition.
@@ -15,12 +17,16 @@ class ChapterBackdrop extends Component {
     required this.plan,
     required this.stageWidth,
     this.groundFor,
+    required this.moods,
+    required this.props,
   });
 
   final CameraComponent camera;
   final ChapterBackground plan;
   final double stageWidth;
   final double Function(double)? groundFor;
+  final MoodTrack moods;
+  final List<BackdropDrawable> Function() props;
   Image? _atlas;
   double? _ground;
   final Paint _paint = Paint()..filterQuality = FilterQuality.low;
@@ -73,6 +79,17 @@ class ChapterBackdrop extends Component {
     canvas.drawRect(viewport, _fill);
     _drawPanel(canvas, image, blend.from, 1);
     if (blend.to != blend.from) _drawPanel(canvas, image, blend.to, blend.mix);
+    // Story actors at distant depths remain live. Replaced decorative
+    // SceneryProps never register here, so painted geometry is not doubled.
+    final cam = camera.viewfinder.position;
+    final view = camera.visibleWorldRect;
+    canvas.save();
+    canvas.scale(size.x / view.width, size.y / view.height);
+    canvas.translate(-view.left, -view.top);
+    for (final prop in props()) {
+      prop.paint(canvas, cam, moods.at(cam.x));
+    }
+    canvas.restore();
     canvas.restore();
   }
 

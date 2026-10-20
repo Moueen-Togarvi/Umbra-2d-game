@@ -14,6 +14,7 @@ import '../render/scenery.dart';
 import '../story/creatures.dart';
 import '../story/vampire.dart';
 import 'chapter.dart';
+import '../world/stage.dart';
 
 /// Chapter five, The Crypt.
 ///
@@ -34,13 +35,29 @@ class CryptChapter extends Chapter {
   CryptChapter({required super.intent});
 
   @override
-  String? get ambience => 'dungeon';
+  void restoreWorld(double x) {
+    if (x >= drainRight) {
+      drain.pressed = true;
+      passage.setLevel(9.45);
+    }
+    if (x >= streamLeft) {
+      _woken = true;
+      tomb.gone = true;
+    }
+  }
+
   @override
-  int get number => 5;
+  String? get ambience => 'cave';
+  @override
+  String get footing => 'gravel';
+  @override
+  double get windLevel => 0.4;
+  @override
+  int get number => 11;
   @override
   String get title => 'The Crypt';
   @override
-  double get width => 180;
+  double get coreWidth => 180;
   @override
   MoodTrack get moods => const MoodTrack(Mood.crypt);
   @override
@@ -52,7 +69,7 @@ class CryptChapter extends Chapter {
   static const double tombX = 80.3;
 
   @override
-  List<List<double>> get profile => const [
+  List<List<double>> get baseProfile => const [
     [
       0, 6.2, 5, 6.2, 7, 6.45, 9, 6.7, 11, 6.95, 13, 7.0, 18, 7.0, //
       24, 7.0, hallLeft, 7.0,
@@ -66,13 +83,13 @@ class CryptChapter extends Chapter {
   ];
 
   @override
-  List<double> get checkpointXs => const [14, 42.5, 69.5, 102, 140];
+  List<double> get coreCheckpointXs => const [14, 42.5, 69.5, 102, 140];
 
   @override
   Vector2 get spawn => Vector2(3, 6.2 - GameConfig.playerHeight / 2);
 
   @override
-  double get exitX => 176;
+  double get coreExitX => 176;
 
   @override
   List<String> get art => const [
@@ -279,6 +296,13 @@ class CryptChapter extends Chapter {
   @override
   void update(double dt) {
     super.update(dt);
+    if (_woken &&
+        !tomb.gone &&
+        player.isMounted &&
+        !player.isDead &&
+        player.body.position.x < streamLeft) {
+      reportThreat(ThreatLevel.chase);
+    }
     if (!player.isMounted || player.isDead) return;
     final double x = player.body.position.x;
     if (!_woken && x > 84 && x < streamLeft) {

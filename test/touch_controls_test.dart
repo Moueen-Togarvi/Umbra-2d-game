@@ -72,24 +72,25 @@ void main() {
     return (game, player, buttons);
   }
 
-  /// Four movement controls, rope controls, pause, then development buttons.
+  /// Five movement controls, rope controls, pause, then development buttons.
   const int walkLeft = 0;
   const int walkRight = 1;
   const int jump = 2;
   const int action = 3;
-  const int climbUp = 4;
-  const int climbDown = 5;
-  const int pause = 6;
-  const int debugToggle = 7;
-  const int reset = 8;
-  const int knockdown = 9;
+  const int sit = 4;
+  const int climbUp = 5;
+  const int climbDown = 6;
+  const int pause = 7;
+  const int debugToggle = 8;
+  const int reset = 9;
+  const int knockdown = 10;
 
   testWidgets('mobile actions mount into the camera viewport', (tester) async {
     final (_, _, buttons) = await boot(tester);
     expect(
       buttons,
-      hasLength(7),
-      reason: 'left, right, jump, action, rope climbing and pause',
+      hasLength(8),
+      reason: 'left, right, jump, action, sit, rope climbing and pause',
     );
   });
 
@@ -132,7 +133,7 @@ void main() {
     final resized = game.camera.viewport.children
         .whereType<HudButtonComponent>()
         .toList();
-    expect(resized, hasLength(7));
+    expect(resized, hasLength(8));
     expect(
       resized[0].size.x,
       closeTo(GameConfig.controlButtonDiameterPx * 1.2, .01),
@@ -177,7 +178,7 @@ void main() {
 
   testWidgets('development builds add the debug buttons', (tester) async {
     final (_, _, buttons) = await boot(tester, debugTools: true);
-    expect(buttons, hasLength(11));
+    expect(buttons, hasLength(12));
   });
 
   testWidgets('controls sit on screen, along the bottom, thumbs apart', (
@@ -199,7 +200,7 @@ void main() {
         reason: 'button hangs below the screen: $rect in $viewport',
       );
     }
-    for (final button in buttons.take(4)) {
+    for (final button in buttons.take(5)) {
       expect(button.toRect().center.dy, greaterThan(viewport.y / 2));
     }
     for (var a = 0; a < buttons.length; a++) {
@@ -212,6 +213,7 @@ void main() {
     expect(buttons[walkLeft].toRect().right, lessThan(viewport.x / 2));
     expect(buttons[jump].toRect().left, greaterThan(viewport.x / 2));
     expect(buttons[action].toRect().left, greaterThan(viewport.x / 2));
+    expect(buttons[sit].toRect().left, greaterThan(viewport.x / 2));
     expect(
       buttons[walkLeft].toRect().overlaps(buttons[walkRight].toRect()),
       isFalse,

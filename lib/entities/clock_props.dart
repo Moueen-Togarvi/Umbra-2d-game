@@ -303,6 +303,13 @@ class Gear extends BodyComponent with OffScreenCulling {
     return b;
   }
 
+  /// A completed gear puzzle restored from an authored checkpoint.
+  void restoreJammed() {
+    if (!isReady) return;
+    _drive.motorSpeed = 0;
+    body.angularVelocity = 0;
+  }
+
   /// Turning freely again, nothing in its teeth.
   void free() {
     if (!isReady) return;

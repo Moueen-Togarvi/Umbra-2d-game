@@ -1,0 +1,98 @@
+[
+ {
+  "name": "ui_arrow_a",
+  "size": "1024*1024",
+  "prompt": "A bold chunky arrow pointing to the right, built from a few sharp angular faceted shards, with three short speed lines trailing behind it on the left. one single solid pure black (#000000) flat silhouette pictogram, centred on a completely plain pure white (#FFFFFF) background, bold angular faceted cut-paper style with sharp straight polygon edges and chunky simplified shapes, like a minimalist stencil icon, a few small sharp debris shards and short speed lines around it, high contrast, no text.",
+  "negative": "text, letters, words, numbers, watermark, signature, frame, border, circle, colour, grey, gradient, shading, texture, ground line, floor, horizon, background scenery, multiple figures, adult, realistic"
+ },
+ {
+  "name": "ui_arrow_b",
+  "size": "1024*1024",
+  "prompt": "A thick heavy right-pointing arrowhead with a short broad shaft, chiselled angular facets cut into it, small shards flying off its tail. one single solid pure black (#000000) flat silhouette pictogram, centred on a completely plain pure white (#FFFFFF) background, bold angular faceted cut-paper style with sharp straight polygon edges and chunky simplified shapes, like a minimalist stencil icon, a few small sharp debris shards and short speed lines around it, high contrast, no text.",
+  "negative": "text, letters, words, numbers, watermark, signature, frame, border, circle, colour, grey, gradient, shading, texture, ground line, floor, horizon, background scenery, multiple figures, adult, realistic"
+ },
+ {
+  "name": "ui_arrow_c",
+  "size": "1024*1024",
+  "prompt": "A bold right-pointing chevron arrow made of two overlapping angular shards, dynamic and fast, three parallel motion streaks behind it. one single solid pure black (#000000) flat silhouette pictogram, centred on a completely plain pure white (#FFFFFF) background, bold angular faceted cut-paper style with sharp straight polygon edges and chunky simplified shapes, like a minimalist stencil icon, a few small sharp debris shards and short speed lines around it, high contrast, no text.",
+  "negative": "text, letters, words, numbers, watermark, signature, frame, border, circle, colour, grey, gradient, shading, texture, ground line, floor, horizon, background scenery, multiple figures, adult, realistic"
+ },
+ {
+  "name": "ui_arrow_d",
+  "size": "1024*1024",
+  "prompt": "A strong angular arrow pointing right, slightly tilted forward like it is rushing, jagged cut-paper edges, short speed lines at its back. one single solid pure black (#000000) flat silhouette pictogram, centred on a completely plain pure white (#FFFFFF) background, bold angular faceted cut-paper style with sharp straight polygon edges and chunky simplified shapes, like a minimalist stencil icon, a few small sharp debris shards and short speed lines around it, high contrast, no text.",
+  "negative": "text, letters, words, numbers, watermark, signature, frame, border, circle, colour, grey, gradient, shading, texture, ground line, floor, horizon, background scenery, multiple figures, adult, realistic"
+ },
+ {
+  "name": "ui_jump_a",
+  "size": "1024*1024",
+  "prompt": "a small thin child seen from the side, an oversized round head with messy tousled spiky hair, skinny arms and skinny legs, short trousers and small boots, leaping high up into the air, knees tucked up to his chest, both arms thrown up over his head, three vertical speed lines below his feet. one single solid pure black (#000000) flat silhouette pictogram, centred on a completely plain pure white (#FFFFFF) background, bold angular faceted cut-paper style with sharp straight polygon edges and chunky simplified shapes, like a minimalist stencil icon, a few small sharp debris shards and short speed lines around it, high contrast, no text.",
+  "negative": "text, letters, words, numbers, watermark, signature, frame, border, circle, colour, grey, gradient, shading, texture, ground line, floor, horizon, background scenery, multiple figures, adult, realistic"
+ },
+ {
+  "name": "ui_jump_b",
+  "size": "1024*1024",
+  "prompt": "a small thin child seen from the side, an oversized round head with messy tousled spiky hair, skinny arms and skinny legs, short trousers and small boots, jumping upward in mid-air, one knee raised high and the other leg trailing, arms reaching up, dust shards bursting from the ground below him. one single solid pure black (#000000) flat silhouette pictogram, centred on a completely plain pure white (#FFFFFF) background, bold angular faceted cut-paper style with sharp straight polygon edges and chunky simplified shapes, like a minimalist stencil icon, a few small sharp debris shards and short speed lines around it, high contrast, no text.",
+  "negative": "text, letters, words, numbers, watermark, signature, frame, border, circle, colour, grey, gradient, shading, texture, ground line, floor, horizon, background scenery, multiple figures, adult, realistic"
+ },
+ {
+  "name": "ui_jump_c",
+  "size": "1024*1024",
+  "prompt": "a small thin child seen from the side, an oversized round head with messy tousled spiky hair, skinny arms and skinny legs, short trousers and small boots, springing up off the ground in a big jump, body stretched, arms up, legs bent behind, short vertical motion streaks under him. one single solid pure black (#000000) flat silhouette pictogram, centred on a completely plain pure white (#FFFFFF) background, bold angular faceted cut-paper style with sharp straight polygon edges and chunky simplified shapes, like a minimalist stencil icon, a few small sharp debris shards and short speed lines around it, high contrast, no text.",
+  "negative": "text, letters, words, numbers, watermark, signature, frame, border, circle, colour, grey, gradient, shading, texture, ground line, floor, horizon, background scenery, multiple figures, adult, realistic"
+ },
+ {
+  "name": "ui_jump_d",
+  "size": "1024*1024",
+  "prompt": "a small thin child seen from the side, an oversized round head with messy tousled spiky hair, skinny arms and skinny legs, short trousers and small boots, mid-jump at the top of a leap, knees pulled up, arms out for balance, little shards and speed lines beneath. one single solid pure black (#000000) flat silhouette pictogram, centred on a completely plain pure white (#FFFFFF) background, bold angular faceted cut-paper style with sharp straight polygon edges and chunky simplified shapes, like a minimalist stencil icon, a few small sharp debris shards and short speed lines around it, high contrast, no text.",
+  "negative": "text, letters, words, numbers, watermark, signature, frame, border, circle, colour, grey, gradient, shading, texture, ground line, floor, horizon, background scenery, multiple figures, adult, realistic"
+ },
+ {
+  "name": "ui_sit_a",
+  "size": "1024*1024",
+  "prompt": "a small thin child seen from the side, an oversized round head with messy tousled spiky hair, skinny arms and skinny legs, short trousers and small boots, sitting on the ground hugging his knees to his chest, arms wrapped around his shins, head resting on his knees, side view. one single solid pure black (#000000) flat silhouette pictogram, centred on a completely plain pure white (#FFFFFF) background, bold angular faceted cut-paper style with sharp straight polygon edges and chunky simplified shapes, like a minimalist stencil icon, a few small sharp debris shards and short speed lines around it, high contrast, no text.",
+  "negative": "text, letters, words, numbers, watermark, signature, frame, border, circle, colour, grey, gradient, shading, texture, ground line, floor, horizon, background scenery, multiple figures, adult, realistic"
+ },
+ {
+  "name": "ui_sit_b",
+  "size": "1024*1024",
+  "prompt": "a small thin child seen from the side, an oversized round head with messy tousled spiky hair, skinny arms and skinny legs, short trousers and small boots, sitting down on the floor with knees bent up, both hands resting on his knees, back slightly hunched, side view. one single solid pure black (#000000) flat silhouette pictogram, centred on a completely plain pure white (#FFFFFF) background, bold angular faceted cut-paper style with sharp straight polygon edges and chunky simplified shapes, like a minimalist stencil icon, a few small sharp debris shards and short speed lines around it, high contrast, no text.",
+  "negative": "text, letters, words, numbers, watermark, signature, frame, border, circle, colour, grey, gradient, shading, texture, ground line, floor, horizon, background scenery, multiple figures, adult, realistic"
+ },
+ {
+  "name": "ui_sit_c",
+  "size": "1024*1024",
+  "prompt": "a small thin child seen from the side, an oversized round head with messy tousled spiky hair, skinny arms and skinny legs, short trousers and small boots, crouching low and squatting down close to the ground, arms around his knees, head down, side view. one single solid pure black (#000000) flat silhouette pictogram, centred on a completely plain pure white (#FFFFFF) background, bold angular faceted cut-paper style with sharp straight polygon edges and chunky simplified shapes, like a minimalist stencil icon, a few small sharp debris shards and short speed lines around it, high contrast, no text.",
+  "negative": "text, letters, words, numbers, watermark, signature, frame, border, circle, colour, grey, gradient, shading, texture, ground line, floor, horizon, background scenery, multiple figures, adult, realistic"
+ },
+ {
+  "name": "ui_sit_d",
+  "size": "1024*1024",
+  "prompt": "a small thin child seen from the side, an oversized round head with messy tousled spiky hair, skinny arms and skinny legs, short trousers and small boots, sitting on the ground with legs drawn up and arms around them, looking forward, a few small shards on the ground beside him. one single solid pure black (#000000) flat silhouette pictogram, centred on a completely plain pure white (#FFFFFF) background, bold angular faceted cut-paper style with sharp straight polygon edges and chunky simplified shapes, like a minimalist stencil icon, a few small sharp debris shards and short speed lines around it, high contrast, no text.",
+  "negative": "text, letters, words, numbers, watermark, signature, frame, border, circle, colour, grey, gradient, shading, texture, ground line, floor, horizon, background scenery, multiple figures, adult, realistic"
+ },
+ {
+  "name": "ui_hand_a",
+  "size": "1024*1024",
+  "prompt": "A hand tightly gripping and clenching a short thick rope, seen from the side, bold angular knuckles, two small spark stars near the fingers. one single solid pure black (#000000) flat silhouette pictogram, centred on a completely plain pure white (#FFFFFF) background, bold angular faceted cut-paper style with sharp straight polygon edges and chunky simplified shapes, like a minimalist stencil icon, a few small sharp debris shards and short speed lines around it, high contrast, no text.",
+  "negative": "text, letters, words, numbers, watermark, signature, frame, border, circle, colour, grey, gradient, shading, texture, ground line, floor, horizon, background scenery, multiple figures, adult, realistic"
+ },
+ {
+  "name": "ui_hand_b",
+  "size": "1024*1024",
+  "prompt": "A hand reaching out to grab, fingers curled into a strong grip, angular faceted shapes, a couple of small star sparks. one single solid pure black (#000000) flat silhouette pictogram, centred on a completely plain pure white (#FFFFFF) background, bold angular faceted cut-paper style with sharp straight polygon edges and chunky simplified shapes, like a minimalist stencil icon, a few small sharp debris shards and short speed lines around it, high contrast, no text.",
+  "negative": "text, letters, words, numbers, watermark, signature, frame, border, circle, colour, grey, gradient, shading, texture, ground line, floor, horizon, background scenery, multiple figures, adult, realistic"
+ },
+ {
+  "name": "ui_hand_c",
+  "size": "1024*1024",
+  "prompt": "A clenched fist grabbing the edge of a small block, chunky angular fingers, small spark stars beside it. one single solid pure black (#000000) flat silhouette pictogram, centred on a completely plain pure white (#FFFFFF) background, bold angular faceted cut-paper style with sharp straight polygon edges and chunky simplified shapes, like a minimalist stencil icon, a few small sharp debris shards and short speed lines around it, high contrast, no text.",
+  "negative": "text, letters, words, numbers, watermark, signature, frame, border, circle, colour, grey, gradient, shading, texture, ground line, floor, horizon, background scenery, multiple figures, adult, realistic"
+ },
+ {
+  "name": "ui_hand_d",
+  "size": "1024*1024",
+  "prompt": "An open hand reaching forward with fingers spread ready to grab, chiselled angular facets, tiny motion lines behind the wrist. one single solid pure black (#000000) flat silhouette pictogram, centred on a completely plain pure white (#FFFFFF) background, bold angular faceted cut-paper style with sharp straight polygon edges and chunky simplified shapes, like a minimalist stencil icon, a few small sharp debris shards and short speed lines around it, high contrast, no text.",
+  "negative": "text, letters, words, numbers, watermark, signature, frame, border, circle, colour, grey, gradient, shading, texture, ground line, floor, horizon, background scenery, multiple figures, adult, realistic"
+ }
+]

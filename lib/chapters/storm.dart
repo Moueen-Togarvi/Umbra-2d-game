@@ -32,13 +32,25 @@ class StormChapter extends Chapter with KeeperChase {
   StormChapter({required super.intent});
 
   @override
+  void restoreWorld(double x) {
+    if (x < chasmRight) {
+      chasing = true;
+      stones.active = x >= 20;
+    } else {
+      bridge.snap();
+      stones.stop();
+      endChase();
+    }
+  }
+
+  @override
   String? get ambience => 'rain';
   @override
-  int get number => 14;
+  int get number => 35;
   @override
   String get title => 'The Storm';
   @override
-  double get width => 92;
+  double get coreWidth => 92;
   @override
   MoodTrack get moods => const MoodTrack(Mood.storm);
   @override
@@ -48,19 +60,19 @@ class StormChapter extends Chapter with KeeperChase {
   static const double ledge = 5.5;
 
   @override
-  List<List<double>> get profile => const [
+  List<List<double>> get baseProfile => const [
     [0, 7.0, 10, 7.0, 20, 7.0, 30, 6.3, 40, ledge, chasmLeft, ledge],
     [chasmRight, ledge, 70, 5.3, 80, 5.0, 92, 5.0],
   ];
 
   @override
-  List<double> get checkpointXs => const [8, 20, 44, 62];
+  List<double> get coreCheckpointXs => const [8, 20, 44, 62];
 
   @override
   Vector2 get spawn => Vector2(4, 7.0 - GameConfig.playerHeight / 2);
 
   @override
-  double get exitX => 86;
+  double get coreExitX => 86;
 
   @override
   List<String> get art => const [

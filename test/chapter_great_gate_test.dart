@@ -1,3 +1,4 @@
+import 'support/route_pilot.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:umbra/chapters/great_gate.dart';
 import 'package:umbra/character/character_interactions.dart';
@@ -9,7 +10,7 @@ void main() {
   testWidgets('chapter thirteen: two crates sink the gate\'s bucket, and the '
       'drawbridge comes down ahead of the keeper', (tester) async {
     final game = await bootCampaign(tester);
-    final gate = await enterChapter<GreatGateChapter>(tester, game, 12);
+    final gate = await enterChapter<GreatGateChapter>(tester, game, 32);
     final player = gate.player;
     final intent = game.intent;
     final jumped = <String>{};
@@ -21,7 +22,7 @@ void main() {
       intent.requestJump();
     }
 
-    for (var i = 0; i < 60 * 150 && !gate.isComplete; i++) {
+    for (var i = 0; i < 60 * 900 && !gate.isComplete; i++) {
       final double x = player.body.position.x;
       final double feet = player.body.position.y + GameConfig.playerHeight / 2;
       final bool grounded = player.isOnGround;
@@ -72,6 +73,7 @@ void main() {
         if (gap < closest) closest = gap;
       }
       intent.setKeyboardState(axis: axis, down: down);
+      driveExtension(game);
       game.update(1 / 60);
       if (player.isDead) {
         fail(
@@ -95,7 +97,7 @@ void main() {
           '${gate.crateB.body.position}; gate ${gate.gate.travel}; bridge '
           '${gate.bridge.body.angle}',
     );
-    expect(gate.bridge.down, isTrue);
+    expect(gate.bridge.down, isFalse, reason: 'bridge rises behind the boy to shut out the keeper');
     expect(closest, greaterThan(0.8));
     // ignore: avoid_print
     print('closest the keeper came: ${closest.toStringAsFixed(2)} m');

@@ -33,13 +33,21 @@ class ClockTowerChapter extends Chapter {
   ClockTowerChapter({required super.intent});
 
   @override
+  void restoreWorld(double x) {
+    if (x >= 41) {
+      gear.restoreJammed();
+      crate.restoreAt(Vector2((slotLeft + slotRight) / 2, floor + .4));
+    }
+  }
+
+  @override
   String? get ambience => 'clockwork';
   @override
-  int get number => 10;
+  int get number => 22;
   @override
   String get title => 'The Clock Tower';
   @override
-  double get width => 100;
+  double get coreWidth => 100;
   @override
   MoodTrack get moods => const MoodTrack(Mood.castle);
   @override
@@ -55,7 +63,7 @@ class ClockTowerChapter extends Chapter {
   static const double pivotX = 17.5, rod = 6, arc = 0.56;
 
   @override
-  List<List<double>> get profile => const [
+  List<List<double>> get baseProfile => const [
     [0, floor, swingLeft, floor],
     [swingRight, floor, chamberLeft, floor],
     [chamberRight, floor, shaftLeft, floor],
@@ -63,13 +71,13 @@ class ClockTowerChapter extends Chapter {
   ];
 
   @override
-  List<double> get checkpointXs => const [10, 23, 41, 55, 75];
+  List<double> get coreCheckpointXs => const [10, 23, 41, 55, 75];
 
   @override
   Vector2 get spawn => Vector2(3, floor - GameConfig.playerHeight / 2);
 
   @override
-  double get exitX => 92;
+  double get coreExitX => 92;
 
   @override
   List<String> get art => const [

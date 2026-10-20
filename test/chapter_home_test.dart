@@ -1,3 +1,4 @@
+import 'support/route_pilot.dart';
 import 'package:flame/game.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:umbra/chapters/home.dart';
@@ -28,6 +29,7 @@ void main() {
 
   void step(UmbraGame game, double seconds) {
     for (var i = 0; i < (seconds * 60).round(); i++) {
+      driveExtension(game);
       game.update(1 / 60);
     }
   }
@@ -59,6 +61,7 @@ void main() {
     double widest = 0, reach = 0;
     var seenOut = false;
     for (var i = 0; i < 60 * 20 && game.intent.isScripted; i++) {
+      driveExtension(game);
       game.update(1 / 60);
       widest = widest < home.cottage.doorAngle
           ? home.cottage.doorAngle
@@ -86,6 +89,7 @@ void main() {
     final home = game.stage! as HomeChapter;
     game.director!.begin();
     for (var i = 0; i < 60 * 20 && game.intent.isScripted; i++) {
+      driveExtension(game);
       game.update(1 / 60);
     }
     final player = home.player;
@@ -100,7 +104,7 @@ void main() {
       intent.requestJump();
     }
 
-    for (var i = 0; i < 60 * 150 && !home.isComplete; i++) {
+    for (var i = 0; i < 60 * 900 && !home.isComplete; i++) {
       intent.setKeyboardState(axis: 1);
       releaseCooldown -= 1 / 60;
       final double x = player.body.position.x;
@@ -166,6 +170,7 @@ void main() {
           jump('log2');
         }
       }
+      driveExtension(game);
       game.update(1 / 60);
       expect(
         player.isDead,
@@ -198,6 +203,7 @@ void main() {
     final home = game.stage! as HomeChapter;
     game.director!.begin();
     for (var i = 0; i < 60 * 20 && game.intent.isScripted; i++) {
+      driveExtension(game);
       game.update(1 / 60);
     }
     // Put him on the far side of the cart, at the foot of the wall.

@@ -1,3 +1,4 @@
+import 'support/route_pilot.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:umbra/chapters/mill.dart';
 import 'package:umbra/character/character_interactions.dart';
@@ -9,7 +10,7 @@ void main() {
   testWidgets('chapter twelve: the race turns the wheel that winds the gate, '
       'and the flood drowns them and lifts him to the ledge', (tester) async {
     final game = await bootCampaign(tester);
-    final mill = await enterChapter<MillChapter>(tester, game, 11);
+    final mill = await enterChapter<MillChapter>(tester, game, 27);
     final player = mill.player;
     final intent = game.intent;
     final jumped = <String>{};
@@ -22,7 +23,7 @@ void main() {
       intent.requestJump();
     }
 
-    for (var i = 0; i < 60 * 200 && !mill.isComplete; i++) {
+    for (var i = 0; i < 60 * 900 && !mill.isComplete; i++) {
       final double x = player.body.position.x;
       final double feet = player.body.position.y + GameConfig.playerHeight / 2;
       final bool grounded = player.isOnGround;
@@ -94,6 +95,7 @@ void main() {
         if (mode == InteractionMode.hanging) axis = 1;
       }
       intent.setKeyboardState(axis: axis, down: down);
+      driveExtension(game);
       game.update(1 / 60);
       if (player.isDead) {
         fail(

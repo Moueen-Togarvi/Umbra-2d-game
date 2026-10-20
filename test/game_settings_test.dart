@@ -38,4 +38,27 @@ void main() {
       expect(settings.controlsOpacity, .3);
     },
   );
+  test('music and sound choices survive reload', () async {
+    SharedPreferences.setMockInitialValues({});
+    final settings = await GameSettings.load();
+    expect(settings.musicOn, isTrue);
+    expect(settings.soundOn, isTrue);
+    expect(settings.background, GameSettings.defaultBackground);
+    expect(settings.music, .6);
+    var heard = 0;
+    settings.addListener(() => heard++);
+    settings
+      ..set('music', .25)
+      ..setFlag('musicOn', false)
+      ..setFlag('soundOn', false)
+      ..setBackground('bg_descent');
+    expect(heard, 4);
+    await Future<void>.delayed(Duration.zero);
+    final reloaded = await GameSettings.load();
+    expect(reloaded.music, .25);
+    expect(reloaded.musicOn, isFalse);
+    expect(reloaded.soundOn, isFalse);
+    expect(reloaded.background, 'bg_descent');
+    expect(() => settings.setFlag('nonsense', true), throwsArgumentError);
+  });
 }

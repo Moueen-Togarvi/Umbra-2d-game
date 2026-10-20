@@ -118,18 +118,28 @@ class ChapterCard extends Component {
           color: Palette.brandInk,
         ),
       );
-      _title.text = TextSpan(
+      TextSpan title(double size) => TextSpan(
         text: director.cardTitle,
         style: TextStyle(
           fontFamily: 'Cinzel',
-          fontSize: unit * 8.5,
-          letterSpacing: unit * 0.5,
+          fontSize: size,
+          letterSpacing: size * 0.06,
           fontWeight: FontWeight.w400,
           color: Palette.brandInk,
         ),
       );
       _small.layout();
-      _title.layout();
+      _title
+        ..text = title(unit * 8.5)
+        ..layout();
+      // A long line (a list of names in the credits) comes down in size
+      // to fit across the screen.
+      final double room = view.x * 0.9;
+      if (_title.width > room) {
+        _title
+          ..text = title(unit * 8.5 * room / _title.width)
+          ..layout();
+      }
     }
     final bool onBlack = director.cardOnBlack;
     final Rect full = Rect.fromLTWH(0, 0, view.x, view.y);

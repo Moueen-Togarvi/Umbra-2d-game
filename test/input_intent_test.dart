@@ -25,6 +25,7 @@ void main() {
     held.addAll({LogicalKeyboardKey.keyE, LogicalKeyboardKey.arrowDown});
     input.onKeyEvent(down(LogicalKeyboardKey.keyE), held);
     expect(intent.isDownHeld && intent.isInteractHeld, isTrue);
+    expect(intent.isSitHeld, isTrue, reason: 'down also sits, on the ground');
     expect(intent.consumeInteractRequest(), isTrue);
     input.onKeyEvent(
       KeyRepeatEvent(
@@ -47,6 +48,7 @@ void main() {
     input.onKeyEvent(down(LogicalKeyboardKey.controlLeft), held);
     expect(intent.isInteractHeld, isTrue);
     expect(intent.isDownHeld, isFalse);
+    expect(intent.isSitHeld, isFalse);
     expect(intent.horizontalAxis, 1);
   });
 
@@ -114,8 +116,8 @@ void main() {
     final buttons = controls.buildButtons();
     expect(
       buttons,
-      hasLength(7),
-      reason: 'walk, jump, action, climb and pause',
+      hasLength(8),
+      reason: 'walk, jump, action, sit, climb and pause',
     );
     buttons[1].onPressed!();
     buttons[2].onPressed!();
@@ -129,14 +131,21 @@ void main() {
     expect(intent.consumeInteractRelease(), isTrue);
     expect(intent.horizontalAxis, 1);
     buttons[4].onPressed!();
-    expect(intent.isUpHeld, isTrue);
-    buttons[4].onReleased!();
+    expect(intent.isSitHeld, isTrue);
+    expect(intent.isDownHeld, isFalse, reason: 'sit is not rope-down');
+    buttons[4].onCancelled!();
+    expect(intent.isSitHeld, isFalse);
     buttons[5].onPressed!();
+    expect(intent.isUpHeld, isTrue);
+    buttons[5].onReleased!();
+    buttons[6].onPressed!();
     expect(intent.isUpHeld, isFalse);
     expect(intent.isDownHeld, isTrue);
+    buttons[4].onPressed!();
     controls.clear();
     expect(intent.horizontalAxis, 0);
     expect(intent.isJumpHeld, isFalse);
     expect(intent.isDownHeld, isFalse);
+    expect(intent.isSitHeld, isFalse);
   });
 }

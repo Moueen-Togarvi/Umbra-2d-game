@@ -1,11 +1,27 @@
 # Umbra chapters
 
-The story: a boy runs from home after an argument, vampires take him in the night forest, and he has to escape their land. It is told in 15 wordless chapters. All 15 are built, in five parts:
-- **Part 1** (chapters 1–3): home and the forest
-- **Part 2** (chapters 4–6): the water under the castle
-- **Part 3** (chapters 7–9): the castle itself
-- **Part 4** (chapters 10–12): the tower, the dungeons and the mill
-- **Part 5** (chapters 13–15): the escape and the way home
+The campaign has 40 chapters in eight groups of five. Original story chapters appear at positions 1, 5, 6, 8, 11, 13, 16, 18, 20, 22, 25, 28, 33, 35 and 40. The detailed original set-piece notes below retain their historical chapter numbers.
+
+| Group | Campaign order |
+|---|---|
+| 1–5 | Home → Old Orchard → Hunters’ Road → Graveyard → The Night Forest |
+| 6–10 | The Cage → Chainworks → The Caves → Sluice Tunnels → Drowned Quarry |
+| 11–15 | The Crypt → Coffin Gallery → The Bone Pit → Floodworks → Lower Castle |
+| 16–20 | The Chase → Servants’ Passage → The Halls → Shadow Gallery → The Chandeliers |
+| 21–25 | Organ Loft → The Clock Tower → Bell Foundry → Watchers’ Walk → The Children |
+| 26–30 | Abandoned Ward → Drainways → The Mill → Broken Aqueduct → Black Reservoir |
+| 31–35 | Furnace Passage → Outer Ramparts → The Great Gate → The Moat → The Storm |
+| 36–40 | Shattered Coast → Last Watch → Eastern Woods → Homeward Road → Dawn |
+
+Stable IDs and display names live in `lib/chapters/campaign_catalog.dart`; `tools/campaign40.json` describes the same artwork roster. `JourneyChapter.routes` selects authored room combinations, while original chapters append routes through `Chapter.extensionPlans`. Physics dimensions and jump tuning remain unchanged.
+
+Chapters 30, 32, 33 and 35–40 include connected upper/lower sections. Unloading a chest lets the counterweighted lift rise to an upper control. That control drains the low passage below; the player returns through the courtyard, then reuses the unloaded chest in the crawl route. A visible pipe connects the control and drain. Last Watch also links the control to a shutter that exposes its exit watcher to light. These sections restore as complete only at the next safe boundary; restarting inside one rebuilds the lift, chest, water and raised pedal together.
+
+Safe checkpoint records use `umbra.campaign.v2`: version, furthest chapter ID, current chapter ID and checkpoint ID. Old numeric saves are migrated once. Restoration rebuilds an authored state, consumes passed story triggers and places the player on permanent geometry. It does not serialize moving physics bodies. `test/checkpoint_restore_test.dart` rebuilds every checkpoint and checks death-respawn safety.
+
+Paintings are explicitly referenced by stable IDs. Only the active atlas is decoded, and it is disposed on exit. Recoverable PNG sources and retired design files are outside the repo at the location recorded in `assets/design/archive-manifest.json`; every archived file has a SHA-256 digest. `python3 tools/prepare_campaign_assets.py` exports from that source archive. The source archive must accompany the repository if future art re-export is needed.
+
+First successful human playthrough targets remain 5–8 minutes early, 8–12 middle, and 12–18 late. These are **targets awaiting human measurement**, not observed test results. The automated pilot knows each puzzle and is expected to be faster.
 
 The last chapter ends on "The End", then the credits under the ending music, then a pair of red eyes opening in the dark over "UMBRA · II".
 
@@ -27,7 +43,7 @@ Run the story with `flutter run`. Pass `--dart-define=UMBRA_PROVING_GROUND=true`
   - the fades
   - the end of the part
 
-  It is a queue of steps played in game time, so it behaves the same at any frame rate and in tests. Progress (the furthest chapter reached) is saved with `shared_preferences`.
+  It is a queue of steps played in game time, so it behaves the same at any frame rate and in tests. Progress and the last safe checkpoint are saved with `shared_preferences`.
 - **`Cutscene`** (`lib/story/cutscene.dart`) is a list of beats: `Run`, `Wait`, `Do`, `Look` (camera), `Fade`, `WaitUntil`, `Together` and `Sequence`. While one runs it holds the controls, so the touch buttons hide and keys do nothing.
 - **Moods** (`lib/render/mood.dart`) set the fog: dusk, night or cave. `MoodTrack` blends from one to another across x. A cave mood stands rock in the fog instead of trees.
 - **Water** (`WaterBody`, `lib/physics/water.dart`) floats everything by Archimedes. Each step:

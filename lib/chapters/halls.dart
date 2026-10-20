@@ -33,13 +33,31 @@ class HallsChapter extends Chapter {
   HallsChapter({required super.intent});
 
   @override
-  int get number => 8;
+  void restoreWorld(double x) {
+    if (x >= 14) visitor.gone = true;
+    if (x >= 46) corridor.gone = true;
+    if (x >= galleryLeft) {
+      lift.restoreTravel(-lift.rise);
+      counterweight.restoreTravel(counterweight.drop);
+    }
+    if (x >= doorway) {
+      for (final w in windows) {
+        w.open();
+      }
+      keeper.gone = true;
+    }
+  }
+
+  @override
+  int get number => 18;
   @override
   String get title => 'The Halls';
   @override
-  double get width => 104;
+  double get coreWidth => 104;
   @override
   MoodTrack get moods => const MoodTrack(Mood.castle);
+  @override
+  String? get ambience => 'dungeon';
   @override
   List<FogLayerSpec>? get backdropSpecs => FogBackdrop.hallSpecs;
   @override
@@ -52,18 +70,18 @@ class HallsChapter extends Chapter {
   static const double doorway = 76.6;
 
   @override
-  List<List<double>> get profile => const [
+  List<List<double>> get baseProfile => const [
     [0, floor, 104, floor],
   ];
 
   @override
-  List<double> get checkpointXs => const [14, 46, 55, 62, 78];
+  List<double> get coreCheckpointXs => const [14, 46, 55, 62, 78];
 
   @override
   Vector2 get spawn => Vector2(3, floor - GameConfig.playerHeight / 2);
 
   @override
-  double get exitX => 96;
+  double get coreExitX => 96;
 
   @override
   List<String> get art => const [

@@ -1,3 +1,4 @@
+import 'support/route_pilot.dart';
 import 'package:flame/game.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:umbra/chapters/crypt.dart';
@@ -10,9 +11,10 @@ import 'support/campaign.dart';
 void main() {
   testWidgets('a chained coffin floats, then sinks under him', (tester) async {
     final game = await bootCampaign(tester);
-    final crypt = await enterChapter<CryptChapter>(tester, game, 4);
+    final crypt = await enterChapter<CryptChapter>(tester, game, 10);
     final coffin = crypt.floating[2];
     for (var i = 0; i < 120; i++) {
+      driveExtension(game);
       game.update(1 / 60);
     }
     final double afloat = coffin.body.position.y;
@@ -23,12 +25,14 @@ void main() {
     );
     // It settles under him, slowly.
     for (var i = 0; i < 60 * 3; i++) {
+      driveExtension(game);
       game.update(1 / 60);
     }
     expect(coffin.body.position.y, greaterThan(afloat + 0.3));
     // Off it again (a respawn), it comes back up.
     crypt.player.teleportTo(Vector2(20, crypt.groundAt(20) - 0.65));
     for (var i = 0; i < 60 * 6; i++) {
+      driveExtension(game);
       game.update(1 / 60);
     }
     expect(coffin.body.position.y, closeTo(afloat, 0.12));
@@ -36,10 +40,11 @@ void main() {
 
   testWidgets('it will not cross running water', (tester) async {
     final game = await bootCampaign(tester);
-    final crypt = await enterChapter<CryptChapter>(tester, game, 4);
+    final crypt = await enterChapter<CryptChapter>(tester, game, 10);
     // Running when the tomb opens, as he would be.
     crypt.player.teleportTo(Vector2(82.4, crypt.groundAt(82.4) - 0.65));
     for (var i = 0; i < 30; i++) {
+      driveExtension(game);
       game.update(1 / 60);
     }
     // Into the stream, and stand there.
@@ -51,6 +56,7 @@ void main() {
       if (crypt.player.isOnGround && x > 87.6 && x < 88.3) {
         game.intent.requestJump();
       }
+      driveExtension(game);
       game.update(1 / 60);
     }
     expect(died, isFalse, reason: 'it never reached him');
@@ -61,7 +67,7 @@ void main() {
   testWidgets('chapter five: over the sinking coffins, through the drained '
       'passage, and away from the tomb across the stream', (tester) async {
     final game = await bootCampaign(tester);
-    final crypt = await enterChapter<CryptChapter>(tester, game, 4);
+    final crypt = await enterChapter<CryptChapter>(tester, game, 10);
     final player = crypt.player;
     final intent = game.intent;
     final jumped = <String>{};
@@ -74,7 +80,7 @@ void main() {
       intent.requestJump();
     }
 
-    for (var i = 0; i < 60 * 200 && !crypt.isComplete; i++) {
+    for (var i = 0; i < 60 * 900 && !crypt.isComplete; i++) {
       final double x = player.body.position.x;
       final double feet = player.body.position.y + GameConfig.playerHeight / 2;
       final bool grounded = player.isOnGround;
@@ -137,6 +143,7 @@ void main() {
         }
       }
       intent.setKeyboardState(axis: axis);
+      driveExtension(game);
       game.update(1 / 60);
       if (player.isDead) {
         fail(

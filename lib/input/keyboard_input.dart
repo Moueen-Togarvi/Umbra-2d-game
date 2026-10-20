@@ -48,7 +48,8 @@ class KeyboardInput extends Component with KeyboardHandler {
     LogicalKeyboardKey.keyW,
   };
 
-  /// Climbs down a rope and lets go of a ledge; there is no crouch.
+  /// Climbs down a rope and lets go of a ledge; on the ground, sits (held
+  /// still) or crouches (held while moving).
   static final Set<LogicalKeyboardKey> _downKeys = {
     LogicalKeyboardKey.keyS,
     LogicalKeyboardKey.arrowDown,
@@ -67,6 +68,7 @@ class KeyboardInput extends Component with KeyboardHandler {
       jump: keysPressed.any(_jumpKeys.contains),
       interact: keysPressed.any(_actionKeys.contains),
       down: keysPressed.any(_downKeys.contains),
+      sit: keysPressed.any(_downKeys.contains),
       up: keysPressed.any(_upKeys.contains),
     );
 

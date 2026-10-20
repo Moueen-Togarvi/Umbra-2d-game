@@ -1,4 +1,7 @@
+import 'dart:ui' show Rect, Offset;
 import 'package:flame/components.dart';
+import 'package:flame_forge2d/flame_forge2d.dart' show QueryFilter;
+import '../physics/collision_layers.dart';
 
 import '../entities/player.dart';
 import '../render/fog_layer.dart';
@@ -13,7 +16,53 @@ import 'checkpoint_service.dart';
 /// The game holds one at a time. It asks the stage how big it is (to keep
 /// the camera inside it), what the air is like (for the fog behind it) and
 /// where the boy is; the stage builds and owns everything in it.
+enum ThreatLevel { calm, tension, chase }
+
 abstract class Stage extends Component {
+  ThreatLevel _threat = ThreatLevel.calm;
+  double _threatHold = 0;
+  ThreatLevel get threat => _threat;
+  final List<Rect> hidingPlaces = [];
+
+  bool get playerHidden =>
+      player.isMounted &&
+      player.isLow &&
+      player.isOnGround &&
+      player.velocity.x.abs() <= 0.9 &&
+      hidingPlaces.any(
+        (r) =>
+            r.contains(Offset(player.body.position.x, player.body.position.y)),
+      );
+
+  bool seesPlayer(Vector2 from, {double? facing, double range = 9}) {
+    if (!player.isMounted || player.isDead || playerHidden) return false;
+    final to = player.body.position;
+    final delta = to - from;
+    if (delta.length > range || delta.y.abs() > 1.5) return false;
+    if (facing != null && delta.x * facing < -0.35) return false;
+    var clear = true;
+    player.body.world.castRay(from, delta, (hit) {
+      if (hit.shape.isSensor || hit.shape.body == player.body) return -1;
+      clear = false;
+      return 0;
+    }, filter: QueryFilter(maskBits: CollisionLayers.solid));
+    return clear;
+  }
+
+  void reportThreat(ThreatLevel value) {
+    if (value.index >= _threat.index) {
+      _threat = value;
+      _threatHold = value == ThreatLevel.chase ? 1.5 : 3;
+    }
+  }
+
+  @override
+  void update(double dt) {
+    super.update(dt);
+    _threatHold -= dt;
+    if (_threatHold <= 0) _threat = ThreatLevel.calm;
+  }
+
   /// Metres, from x = 0 and y = 0 at the top.
   double get width;
   double get height;
@@ -37,26 +86,35 @@ abstract class Stage extends Component {
   /// nearer and further than it.
   final List<BackdropDrawable> backdropProps = [];
 
-  /// Sounds asked for this frame, as (name, loudness 0–1), and how hard
-  /// the picture should shake; the game plays and empties them.
-  final List<(String, double)> cues = [];
+  /// Sounds asked for this frame, as (name, loudness 0–1, pan −1–1), and
+  /// how hard the picture should shake; the game plays and empties them.
+  final List<(String, double, double)> cues = [];
   double shake = 0;
 
   /// The loop that sets this place's sound, under the wind (rain, the
   /// works of a clock, running water, birds at dawn), or null.
   String? get ambience => null;
 
+  /// How much of the wind is heard here, 0–1 (indoors, hardly any).
+  double get windLevel => 1;
+
+  /// What the boy's feet fall on here, where he is not on something
+  /// that moves: grass, gravel (a cave), stone (a hall).
+  String get footing => 'grass';
+
   /// Asks for the sound [name], as loud as [weight] and quieter the
-  /// further [at] is from the camera; and a shake of [shake] (0–1).
+  /// further [at] is from the camera, from its side; and a shake of
+  /// [shake] (0–1).
   void cue(String name, {double weight = 1, Vector2? at, double shake = 0}) {
-    double w = weight;
+    double w = weight, pan = 0;
     final Vector2? camera =
         cameraFocus ?? (isMounted ? player.body.position : null);
     if (at != null && camera != null) {
       final double d = (at - camera).length;
       w *= (1 - (d - 6) / 18).clamp(0.0, 1.0);
+      pan = ((at.x - camera.x) / 10).clamp(-0.8, 0.8);
     }
-    if (w > 0.02) cues.add((name, w));
+    if (w > 0.02) cues.add((name, w, pan));
     if (shake > 0 && w > 0.02) {
       this.shake = (this.shake + shake * w).clamp(0, 1);
     }

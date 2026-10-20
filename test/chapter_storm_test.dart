@@ -1,3 +1,4 @@
+import 'support/route_pilot.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:umbra/chapters/storm.dart';
 import 'package:umbra/character/character_interactions.dart';
@@ -9,7 +10,7 @@ void main() {
   testWidgets('chapter fourteen: up the cliff over the falling stones, across '
       'the rope bridge, and the lightning takes it behind him', (tester) async {
     final game = await bootCampaign(tester);
-    final storm = await enterChapter<StormChapter>(tester, game, 13);
+    final storm = await enterChapter<StormChapter>(tester, game, 34);
     final player = storm.player;
     final intent = game.intent;
     var hops = 0, gusts = 0;
@@ -18,7 +19,7 @@ void main() {
     double cooldown = 0;
     final flashesAtStart = storm.lightning.flashed;
 
-    for (var i = 0; i < 60 * 120 && !storm.isComplete; i++) {
+    for (var i = 0; i < 60 * 900 && !storm.isComplete; i++) {
       final double x = player.body.position.x;
       final double feet = player.body.position.y + GameConfig.playerHeight / 2;
       final bool grounded = player.isOnGround;
@@ -48,6 +49,7 @@ void main() {
         if (gap < closest) closest = gap;
       }
       intent.setKeyboardState(axis: axis);
+      driveExtension(game);
       game.update(1 / 60);
       if (player.isDead) {
         fail(

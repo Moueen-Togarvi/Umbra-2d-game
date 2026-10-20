@@ -33,13 +33,27 @@ class CavesChapter extends Chapter {
   CavesChapter({required super.intent});
 
   @override
-  String? get ambience => 'dungeon';
+  void restoreWorld(double x) {
+    if (x >= cisternRight) {
+      _floodIn = -1;
+      cistern.setLevel(exitTop + .05);
+      gate.shut = true;
+      crank.pressed = true;
+    }
+  }
+
   @override
-  int get number => 4;
+  String? get ambience => 'cave';
+  @override
+  String get footing => 'gravel';
+  @override
+  double get windLevel => 0.4;
+  @override
+  int get number => 8;
   @override
   String get title => 'The Caves';
   @override
-  double get width => 200;
+  double get coreWidth => 200;
   @override
   MoodTrack get moods => const MoodTrack(Mood.cave);
 
@@ -50,7 +64,7 @@ class CavesChapter extends Chapter {
   static const double cisternFloor = 9.45;
 
   @override
-  List<List<double>> get profile => const [
+  List<List<double>> get baseProfile => const [
     [0, 7.0, 6, 7.0, 12, 7.1, 18, 6.9, poolLeft, 7.0],
     [
       poolRight, 7.0, 32, 6.95, 38, 7.05, 44, 6.9, 48, 6.8, 52, 6.75, //
@@ -69,13 +83,13 @@ class CavesChapter extends Chapter {
   ];
 
   @override
-  List<double> get checkpointXs => const [12, 29.5, 64, 96, 112, 129, 165];
+  List<double> get coreCheckpointXs => const [12, 29.5, 64, 96, 112, 129, 165];
 
   @override
   Vector2 get spawn => Vector2(3, 7.0 - GameConfig.playerHeight / 2);
 
   @override
-  double get exitX => 196;
+  double get coreExitX => 196;
 
   @override
   List<String> get art => const [

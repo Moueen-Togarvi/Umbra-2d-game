@@ -1,3 +1,4 @@
+import 'support/route_pilot.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:umbra/chapters/children.dart';
 import 'package:umbra/character/character_interactions.dart';
@@ -12,7 +13,7 @@ void main() {
     tester,
   ) async {
     final game = await bootCampaign(tester);
-    final dungeon = await enterChapter<ChildrenChapter>(tester, game, 10);
+    final dungeon = await enterChapter<ChildrenChapter>(tester, game, 24);
     final player = dungeon.player;
     final intent = game.intent;
     final jumped = <String>{};
@@ -35,7 +36,7 @@ void main() {
       (dungeon.cellCords[2], () => dungeon.cells[2].isOpen),
     ];
     var next = 0;
-    for (var i = 0; i < 60 * 240 && !dungeon.isComplete; i++) {
+    for (var i = 0; i < 60 * 900 && !dungeon.isComplete; i++) {
       final double x = player.body.position.x;
       final double feet = player.body.position.y + GameConfig.playerHeight / 2;
       final bool grounded = player.isOnGround;
@@ -93,6 +94,7 @@ void main() {
         if (mode == InteractionMode.hanging) axis = 1;
       }
       intent.setKeyboardState(axis: axis, down: down);
+      driveExtension(game);
       game.update(1 / 60);
       if (player.isDead) {
         fail(

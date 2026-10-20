@@ -5,11 +5,13 @@ import 'package:flame/flame.dart';
 import 'package:flame/components.dart' show Component;
 import 'package:flame/input.dart' show HasKeyboardHandlerComponents;
 import 'package:flame_forge2d/flame_forge2d.dart';
+import 'package:flutter/foundation.dart' show visibleForTesting;
 
 import '../config/game_config.dart';
 import '../config/game_settings.dart';
 import '../character/character_interactions.dart';
 import '../audio/ambient_audio.dart';
+import '../audio/sound_bank.dart';
 import '../config/palette.dart';
 import '../entities/player.dart';
 import '../input/keyboard_input.dart';
@@ -18,9 +20,11 @@ import '../input/touch_controls.dart';
 import '../render/debug_hud.dart';
 import '../render/fog_backdrop.dart';
 import '../render/chapter_backdrop.dart';
+import '../render/npc_atlas.dart';
 import '../render/foreground_overlay.dart';
 import '../story/chapter_card.dart';
 import '../story/chapter_director.dart';
+import '../chapters/chapter.dart';
 import '../story/progress_store.dart';
 import '../world/checkpoint_service.dart';
 import '../world/death_sequence.dart';
@@ -96,7 +100,7 @@ class UmbraGame extends Forge2DGame with HasKeyboardHandlerComponents {
   );
   void unlockAudio() => _audio.unlock();
   double _controlScale = 1;
-  int _heardSteps = 0, _heardLandings = 0;
+  int _heardLandings = 0, _heardSits = 0;
   double _interactionSoundCooldown = 0;
 
   /// Owns the held-state of the on-screen walk buttons. Held as a field because
@@ -140,7 +144,12 @@ class UmbraGame extends Forge2DGame with HasKeyboardHandlerComponents {
     final player = _player;
     if (player == null) return;
     deathSequence.cancel();
-    checkpoints.respawn(player);
+    final current = _stage;
+    if (current is Chapter) {
+      current.restartCheckpoint();
+    } else {
+      checkpoints.respawn(player);
+    }
     resumeGameplay();
   }
 
@@ -306,6 +315,7 @@ class UmbraGame extends Forge2DGame with HasKeyboardHandlerComponents {
   /// fog behind is rebuilt for the new mood, and the camera starts on the
   /// boy.
   Future<void> setStage(Stage stage) async {
+    _audio.cancelEffects();
     final Stage? old = _stage;
     if (old != null) {
       world.remove(old);
@@ -335,6 +345,8 @@ class UmbraGame extends Forge2DGame with HasKeyboardHandlerComponents {
             plan: stage.backgroundPlan!,
             stageWidth: stage.width,
             groundFor: stage.backdropGround,
+            moods: stage.moods,
+            props: () => stage.backdropProps,
           )
         : FogBackdrop(
             camera: camera,
@@ -349,6 +361,9 @@ class UmbraGame extends Forge2DGame with HasKeyboardHandlerComponents {
     await world.add(stage);
     final Player player = _player = stage.player;
     player.debugEnabled = _debugVisible;
+    player.drainFootContacts();
+    _heardLandings = player.landings;
+    _heardSits = player.sitDowns;
 
     // Start the camera on the boy so the first frame is not a pan.
     _lookAhead = 0;
@@ -364,8 +379,18 @@ class UmbraGame extends Forge2DGame with HasKeyboardHandlerComponents {
 
   /// Shared film grain. Chapter artwork is owned by its backdrop.
   Future<void> _loadArt() async {
+    if (campaign) {
+      await Future.wait([
+        Flame.images.load('characters/mother_reference.png'),
+        NpcAtlas.load('vampire'),
+      ]);
+    }
     try {
       await Flame.images.load('grain.png');
+    } catch (_) {}
+    // The control icons, before the buttons are built.
+    try {
+      await Flame.images.loadAll(TouchControls.icons);
     } catch (_) {}
   }
 
@@ -409,12 +434,30 @@ class UmbraGame extends Forge2DGame with HasKeyboardHandlerComponents {
     _simulationAccumulator += frameDt;
     while (_simulationAccumulator + 1e-10 >= _simulationStep) {
       super.update(_simulationStep);
+      final player = _player;
+      if (player != null && player.isMounted) {
+        // Consume after every physics tick: a slow render frame can contain
+        // more than one foot contact. Each contact gets its own sound.
+        for (final contact in player.drainFootContacts()) {
+          _footstep(player, contact);
+        }
+      }
       _simulationAccumulator = math.max(
         0,
         _simulationAccumulator - _simulationStep,
       );
     }
-    director?.update(frameDt);
+    // Cards and credits follow active elapsed time, like the music. The
+    // physics catch-up cap must not stretch a sixty-second ending at low FPS.
+    director?.update(math.max(0.0, dt));
+    final Stage? place = _stage;
+    if (place != null) {
+      _audio
+        ..bed(place.ambience)
+        ..windLevel = place.windLevel;
+    }
+    _audio.score(_scoreNow(place));
+    _audio.update(frameDt);
     final Player? player = _player;
     if (player == null || !player.isMounted) {
       return;
@@ -423,26 +466,29 @@ class UmbraGame extends Forge2DGame with HasKeyboardHandlerComponents {
     // What the stage asked to be heard, and felt.
     final Stage? stage = _stage;
     if (stage != null) {
-      for (final (name, weight) in stage.cues) {
-        _audio.effect(name, weight);
+      for (final (name, weight, pan) in stage.cues) {
+        _audio.effect(name, weight, pan);
       }
       stage.cues.clear();
       if (stage.shake > 0) {
         _trauma = math.max(_trauma, stage.shake);
         stage.shake = 0;
       }
-      if (stage.ambience != _ambience) {
-        _ambience = stage.ambience;
-        _audio.bed(_ambience);
-      }
     }
-    if (player.footfalls != _heardSteps) {
-      _heardSteps = player.footfalls;
-      _audio.effect(player.waterDepth > 0.05 ? 'water' : 'step', 0.5);
-    }
+    final String surface = _surface(player, onProp: player.onProp);
     if (player.landings != _heardLandings) {
       _heardLandings = player.landings;
-      _audio.effect('land', (player.lastLandingImpact / 7).clamp(0.15, 1));
+      final double impact = (player.lastLandingImpact / 7).clamp(0.15, 1.0);
+      _audio
+        ..effect(_stepSound(surface), 0.4 + 0.4 * impact)
+        ..effect('land', impact);
+    }
+    if (player.sitDowns != _heardSits) {
+      _heardSits = player.sitDowns;
+      // Settling on the ground: a soft scuff.
+      _audio
+        ..effect(_stepSound(surface), 0.22)
+        ..effect('land', 0.12);
     }
     _interactionSoundCooldown -= frameDt;
     if (_interactionSoundCooldown <= 0 && player.velocity.length > 0.2) {
@@ -505,9 +551,56 @@ class UmbraGame extends Forge2DGame with HasKeyboardHandlerComponents {
   }
 
   double _zoom = 1;
-  String? _ambience;
 
   /// Plays a piece of music once through (null stops it).
+  /// A background the music menu is trying out, played over the menu's
+  /// own music while the menu is open; null otherwise.
+  String? previewBackground;
+
+  /// The music for now: the menu's on the title (or the one being tried
+  /// out there), the chase's while a keeper is after him, and otherwise
+  /// the one the player picked.
+  @visibleForTesting
+  String get musicNow => _scoreNow(_stage);
+
+  String _scoreNow(Stage? place) {
+    if (director?.showingTitle ?? false) {
+      return previewBackground ?? SoundBank.menu;
+    }
+    if (place?.threat == ThreatLevel.chase) {
+      return SoundBank.chase;
+    }
+    if (place?.threat == ThreatLevel.tension) return 'bg_tomb';
+    final String picked = previewBackground ?? settings.background;
+    return SoundBank.backgrounds.any((b) => b.$1 == picked)
+        ? picked
+        : GameSettings.defaultBackground;
+  }
+
+  /// What his feet fall on: water, something that moves (wood), or the
+  /// place's own ground (grass, gravel, stone).
+  String _surface(Player player, {required bool onProp}) =>
+      player.waterDepth > 0.05
+      ? 'water'
+      : onProp
+      ? 'wood'
+      : _stage?.footing ?? 'grass';
+
+  /// The step sound for [surface]: on stone, wood and in water their own;
+  /// on grass and in the caves, the recorded step.
+  static String _stepSound(String surface) =>
+      surface == 'grass' || surface == 'gravel' ? 'step_run' : 'step_$surface';
+
+  /// One foot coming down: a soft step on what it came down on.
+  void _footstep(Player player, FootContact contact) {
+    final String surface = _surface(player, onProp: contact.onProp);
+    _audio.effect(
+      _stepSound(surface),
+      contact.strength,
+      ((contact.x - player.body.position.x) * 2).clamp(-0.2, 0.2),
+    );
+  }
+
   void music(String? name) => _audio.music(name);
 
   /// Plays one effect now, from outside a stage (a card, the credits).

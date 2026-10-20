@@ -1,3 +1,4 @@
+import 'support/route_pilot.dart';
 import 'package:flame/components.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:umbra/chapters/halls.dart';
@@ -11,7 +12,7 @@ void main() {
       'lift rises without the chest, and the moon drives the last down the '
       'gallery', (tester) async {
     final game = await bootCampaign(tester);
-    final halls = await enterChapter<HallsChapter>(tester, game, 7);
+    final halls = await enterChapter<HallsChapter>(tester, game, 17);
     final player = halls.player;
     final intent = game.intent;
     final jumped = <String>{};
@@ -25,7 +26,7 @@ void main() {
       intent.requestJump();
     }
 
-    for (var i = 0; i < 60 * 240 && !halls.isComplete; i++) {
+    for (var i = 0; i < 60 * 900 && !halls.isComplete; i++) {
       final double x = player.body.position.x;
       final double feet = player.body.position.y + GameConfig.playerHeight / 2;
       final bool grounded = player.isOnGround;
@@ -117,6 +118,7 @@ void main() {
         if (mode == InteractionMode.hanging) axis = 1;
       }
       intent.setKeyboardState(axis: axis, down: down);
+      driveExtension(game);
       game.update(1 / 60);
       if (player.isDead) {
         fail(
@@ -155,13 +157,14 @@ void main() {
     tester,
   ) async {
     final game = await bootCampaign(tester);
-    final halls = await enterChapter<HallsChapter>(tester, game, 7);
+    final halls = await enterChapter<HallsChapter>(tester, game, 17);
     final player = halls.player;
     player.teleportTo(Vector2(20, HallsChapter.floor - 0.65));
     var died = false;
     // (The rule is shown first, under the window behind him.)
     for (var i = 0; i < 60 * 20 && !died; i++) {
       game.intent.setKeyboardState(axis: 1);
+      driveExtension(game);
       game.update(1 / 60);
       died = player.isDead;
     }

@@ -36,11 +36,24 @@ class GreatGateChapter extends Chapter with KeeperChase {
   GreatGateChapter({required super.intent});
 
   @override
-  int get number => 13;
+  void restoreWorld(double x) {
+    if (x >= panRight) {
+      pan.restoreTravel(pan.drop);
+      gate.restoreTravel(-gate.rise);
+    }
+    if (x >= 31 && x < moatLeft) chasing = true;
+    if (x >= moatLeft) {
+      bridge.lower();
+      endChase();
+    }
+  }
+
+  @override
+  int get number => 33;
   @override
   String get title => 'The Great Gate';
   @override
-  double get width => 80;
+  double get coreWidth => 80;
   @override
   MoodTrack get moods => const MoodTrack(Mood.night);
   @override
@@ -53,20 +66,20 @@ class GreatGateChapter extends Chapter with KeeperChase {
   static const double moatLeft = 50, moatRight = 56.4;
 
   @override
-  List<List<double>> get profile => const [
+  List<List<double>> get baseProfile => const [
     [0, floor, panLeft, floor],
     [panRight, floor, moatLeft, floor],
     [moatRight, floor, 62, 6.9, 70, 6.7, 80, 6.6],
   ];
 
   @override
-  List<double> get checkpointXs => const [10, 31, 46, 60];
+  List<double> get coreCheckpointXs => const [10, 31, 46, 60];
 
   @override
   Vector2 get spawn => Vector2(3, floor - GameConfig.playerHeight / 2);
 
   @override
-  double get exitX => 74;
+  double get coreExitX => 74;
 
   @override
   List<String> get art => const [
@@ -236,6 +249,10 @@ class GreatGateChapter extends Chapter with KeeperChase {
   @override
   void begin() {
     onReach(gateX + 4.2, () => play(_alarm()));
+    onReach(moatRight + 3, () {
+      bridge.raise();
+      endChase();
+    });
   }
 
   /// The bell, and the keeper down off the wall behind him.
@@ -275,6 +292,10 @@ class GreatGateChapter extends Chapter with KeeperChase {
       crateB.resetToStart();
       pan.resetToStart();
       gate.resetToStart();
+    }
+    if (at >= moatRight) {
+      bridge.raise();
+      endChase();
     }
     if (at < moatLeft) {
       bridge.raise();

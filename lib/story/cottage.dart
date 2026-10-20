@@ -110,6 +110,7 @@ class Cottage extends Component {
 
   @override
   Future<void> onLoad() async {
+    await mother.load();
     final game = findGame();
     if (game is FlameGame) _camera = game.camera;
     _stage = ancestors().whereType<Stage>().firstOrNull;

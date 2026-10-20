@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 
 import '../config/palette.dart';
 import '../game/umbra_game.dart';
+import 'audio_settings.dart';
 
 /// Settings live outside the fixed-step simulation and persist independently.
 class PauseScreen extends StatefulWidget {
@@ -54,7 +55,7 @@ class _PauseScreenState extends State<PauseScreen> {
                         ),
                         const SizedBox(height: 10),
                         const Text(
-                          'A / D  Move    Space  Jump\nE  Hold to grab / pull\nOn a rope: W / S to climb',
+                          'A / D  Move    Space  Jump\nE  Hold to grab / pull\nS / Down  Hold to crouch / hide\nOn a rope: W / S to climb',
                           style: TextStyle(
                             color: Color(0xFFB4B5B2),
                             fontSize: 12,
@@ -89,49 +90,41 @@ class _PauseScreenState extends State<PauseScreen> {
                           ),
                         ),
                         const SizedBox(height: 14),
-                        _slider(
-                          'Brightness',
-                          'brightness',
-                          game.settings.brightness,
-                          .8,
-                          1.3,
+                        SettingSlider(
+                          settings: game.settings,
+                          label: 'Brightness',
+                          setting: 'brightness',
+                          min: .8,
+                          max: 1.3,
                         ),
-                        _slider(
-                          'Film effects',
-                          'atmosphere',
-                          game.settings.atmosphere,
-                          0,
-                          1,
+                        SettingSlider(
+                          settings: game.settings,
+                          label: 'Film effects',
+                          setting: 'atmosphere',
                         ),
-                        _slider(
-                          'Ambience',
-                          'ambience',
-                          game.settings.ambience,
-                          0,
-                          1,
+                        SettingSlider(
+                          settings: game.settings,
+                          label: 'Button size',
+                          setting: 'controlsScale',
+                          min: .8,
+                          max: 1.3,
                         ),
-                        _slider(
-                          'Effects',
-                          'effects',
-                          game.settings.effects,
-                          0,
-                          1,
+                        SettingSlider(
+                          settings: game.settings,
+                          label: 'Button opacity',
+                          setting: 'controlsOpacity',
+                          min: .3,
+                          max: 1,
                         ),
-                        const SizedBox(height: 8),
-                        _slider(
-                          'Button size',
-                          'controlsScale',
-                          game.settings.controlsScale,
-                          .8,
-                          1.3,
+                        const SizedBox(height: 12),
+                        AudioSettings(settings: game.settings),
+                        SwitchListTile(
+                          title: const Text('Vibration'),
+                          value: game.settings.vibration,
+                          onChanged: (v) =>
+                              game.settings.setFlag('vibration', v),
                         ),
-                        _slider(
-                          'Button opacity',
-                          'controlsOpacity',
-                          game.settings.controlsOpacity,
-                          .3,
-                          1,
-                        ),
+                        _action('RESET SETTINGS', () => game.settings.reset()),
                         const SizedBox(height: 6),
                         const Text(
                           'Settings are saved automatically.',
@@ -147,7 +140,9 @@ class _PauseScreenState extends State<PauseScreen> {
                         padding: const EdgeInsets.symmetric(vertical: 6),
                         child: wide
                             ? Row(
-                                crossAxisAlignment: CrossAxisAlignment.center,
+                                // The menu at the top, beside the settings
+                                // (taller now, with the music list).
+                                crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Expanded(flex: 4, child: menu),
                                   Container(
@@ -197,54 +192,4 @@ class _PauseScreenState extends State<PauseScreen> {
         ),
         child: Text(label),
       );
-
-  Widget _slider(
-    String label,
-    String key,
-    double value,
-    double min,
-    double max,
-  ) => SizedBox(
-    height: 34,
-    child: Row(
-      children: [
-        SizedBox(
-          width: 100,
-          child: Text(
-            label,
-            style: const TextStyle(color: Palette.brandInk, fontSize: 12),
-          ),
-        ),
-        Expanded(
-          child: SliderTheme(
-            data: SliderThemeData(
-              activeTrackColor: Palette.brandInk.withValues(alpha: .75),
-              inactiveTrackColor: const Color(0xFF363B3D),
-              thumbColor: Palette.lampAmber,
-              trackHeight: 2,
-              thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 5),
-              overlayShape: const RoundSliderOverlayShape(overlayRadius: 13),
-            ),
-            child: Slider(
-              key: ValueKey(key),
-              value: value,
-              min: min,
-              max: max,
-              semanticFormatterCallback: (v) =>
-                  '$label ${(v * 100).round()} percent',
-              onChanged: (v) => widget.game.settings.set(key, v),
-            ),
-          ),
-        ),
-        SizedBox(
-          width: 32,
-          child: Text(
-            '${(value * 100).round()}',
-            textAlign: TextAlign.right,
-            style: const TextStyle(color: Color(0xFFB4B5B2), fontSize: 11),
-          ),
-        ),
-      ],
-    ),
-  );
 }

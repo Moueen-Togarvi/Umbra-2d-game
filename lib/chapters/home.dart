@@ -35,11 +35,17 @@ class HomeChapter extends Chapter {
   final bool atTitle;
 
   @override
+  void restoreWorld(double x) {
+    player.hidden = false;
+    cottage.burstOpen();
+  }
+
+  @override
   int get number => 1;
   @override
   String get title => 'Home';
   @override
-  double get width => 122;
+  double get coreWidth => 122;
 
   @override
   MoodTrack get moods => const MoodTrack(Mood.dusk, Mood.night, 66, 112);
@@ -51,7 +57,7 @@ class HomeChapter extends Chapter {
   static const double yard = 7.0;
 
   @override
-  List<List<double>> get profile => const [
+  List<List<double>> get baseProfile => const [
     // The yard, the garden and the meadow, to the ditch.
     [
       0, yard, 8, yard, 14, 7.02, 18, 6.96, 24, 7.04, 30, 7.0, //
@@ -70,14 +76,14 @@ class HomeChapter extends Chapter {
   static const double gullyLeft = 66.0, gullyRight = 69.2;
 
   @override
-  List<double> get checkpointXs => const [16, 37.5, 52.5, 71, 100];
+  List<double> get coreCheckpointXs => const [16, 37.5, 52.5, 71, 100];
 
   @override
   Vector2 get spawn =>
       Vector2(cottage.door.center.dx, yard - GameConfig.playerHeight / 2);
 
   @override
-  double get exitX => 118.5;
+  double get coreExitX => 118.5;
 
   @override
   List<String> get art => const [
@@ -247,7 +253,13 @@ class HomeChapter extends Chapter {
       ),
       LowFence(x: 28.6, groundY: g(28.6)),
       cart,
-      StoneWall(left: 34.3, right: 36.2, top: yard - 2.8, bottom: yard + 0.6),
+      StoneWall(
+        left: 34.3,
+        right: 36.2,
+        top: yard - 2.8,
+        bottom: yard + 0.6,
+        groundY: g(35.25),
+      ),
       plank,
       Ground.restingLog(
         left: 58.2,

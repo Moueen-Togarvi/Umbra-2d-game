@@ -16,6 +16,7 @@ import '../config/palette.dart';
 import '../input/player_intent.dart';
 import '../physics/collision_layers.dart';
 import '../render/character_silhouette.dart';
+import '../story/figures.dart' show Calm;
 
 /// What he does with himself while standing about.
 enum IdleAction { none, lookUp, lookBack, shiftFeet }
@@ -70,17 +71,38 @@ class Player extends BodyComponent {
   bool hidden = false;
 
   /// Whether what he stands on is free to move (a raft, a plank).
-  bool _onLoose = false;
+  bool _onLoose = false, _onProp = false;
 
   /// How deep his feet are in water (set by the water he is in): he wades
   /// slowly through it.
   double waterDepth = 0;
+  final Map<Object, double> _waterDepths = {};
+  void reportWaterDepth(Object source, double depth) {
+    if (depth > 0) {
+      _waterDepths[source] = depth;
+    } else {
+      _waterDepths.remove(source);
+    }
+    waterDepth = _waterDepths.values.fold(0.0, math.max);
+  }
 
   /// A scene has him look back over his shoulder, or up, and hold it.
   bool forceLookBack = false;
   bool forceLookUp = false;
   bool _dead = false;
   bool _grounded = false;
+
+  /// Down low: crouched or sitting, on a capsule shortened from the top.
+  bool _low = false;
+  Shape? _capsule;
+  double _lowStill = 0;
+
+  /// How far into the crouch and the sit he is drawn, each following its
+  /// goal on a critically damped spring so he settles without a bob.
+  final Calm _crouch = Calm(0, hertz: 2.2), _sit = Calm(0, hertz: 1.3);
+
+  /// How many times he has sat down, so a sound can go with it.
+  int sitDowns = 0;
 
   /// Whether the ground is under his centre, not just under one side of
   /// the capsule; if not, which side has it (+1 ahead in x, −1 behind).
@@ -168,6 +190,13 @@ class Player extends BodyComponent {
 
   bool get isOnGround => _grounded;
 
+  /// Crouched or sitting, on the short capsule.
+  bool get isLow => _low;
+
+  /// Whether he stands on something that moves (a crate, a plank, a lift)
+  /// rather than the ground.
+  bool get onProp => _onProp;
+
   /// Sliding down a steep slope on his feet.
   bool get isSliding => _sliding;
 
@@ -248,14 +277,21 @@ class Player extends BodyComponent {
         userData: this,
       ),
     );
+    _capsule = _createCapsule(playerBody);
+    return playerBody;
+  }
+
+  /// His capsule: full height, or when [_low] shortened from the top, the
+  /// soles where they were. The mass stays the same either way.
+  Shape _createCapsule(Body target) {
     const radius = GameConfig.playerWidth / 2;
     const halfHeight = GameConfig.playerHeight / 2;
-    const area =
-        2 * radius * (GameConfig.playerHeight - 2 * radius) +
-        math.pi * radius * radius;
-    playerBody.createShape(
+    final double height = _capsuleHeight;
+    final double area =
+        2 * radius * (height - 2 * radius) + math.pi * radius * radius;
+    return target.createShape(
       Capsule(
-        center1: Vector2(0, -halfHeight + radius),
+        center1: Vector2(0, halfHeight - height + radius),
         center2: Vector2(0, halfHeight - radius),
         radius: radius,
       ),
@@ -271,7 +307,81 @@ class Player extends BodyComponent {
         enableHitEvents: true,
       ),
     );
-    return playerBody;
+  }
+
+  double get _capsuleHeight =>
+      GameConfig.playerHeight * (_low ? GameConfig.lowHeightRatio : 1);
+
+  void _setLow(bool low) {
+    if (low == _low) return;
+    _low = low;
+    final Shape? old = _capsule;
+    if (old != null && old.isValid) old.destroy();
+    _capsule = _createCapsule(body);
+  }
+
+  /// Down while sit is held on the ground (sitting still, creeping when
+  /// moving); up again when it is let go, if there is room to stand.
+  void _updateLow(double dt, bool jumpPressed) {
+    final bool want =
+        _intent.isSitHeld &&
+        !jumpPressed &&
+        (_grounded || (_low && _timeSinceGrounded < 0.2)) &&
+        (interactions.mode == InteractionMode.none ||
+            interactions.mode == InteractionMode.pushing) &&
+        !_sliding &&
+        waterDepth < 0.25 &&
+        _hardLandingHold <= 0;
+    if (want != _low) {
+      if (want || _standingClear()) {
+        _setLow(want);
+      } else if (jumpPressed) {
+        // No room to stand: no jump either.
+        _timeSinceJumpPressed = double.infinity;
+      }
+    }
+    final bool still = _intent.horizontalAxis == 0 && _actualSpeed.abs() < 0.3;
+    final double before = _lowStill;
+    _lowStill = _low && still ? _lowStill + dt : 0;
+    final bool sitting = _lowStill >= GameConfig.sitAfterSeconds;
+    if (sitting && before < GameConfig.sitAfterSeconds) sitDowns++;
+    _sit.step(sitting ? 1 : 0, dt);
+    _crouch.step(_low && !sitting ? 1 : 0, dt);
+  }
+
+  /// Whether there is room over him to stand up from low.
+  bool _standingClear() {
+    final double top = body.position.y - GameConfig.playerHeight / 2;
+    final double lowTop =
+        body.position.y +
+        GameConfig.playerHeight / 2 -
+        GameConfig.playerHeight * GameConfig.lowHeightRatio;
+    var clear = true;
+    for (final x in const [
+      -GameConfig.playerWidth * 0.4,
+      0.0,
+      GameConfig.playerWidth * 0.4,
+    ]) {
+      world.castRay(
+        Vector2(body.position.x + x, lowTop + 0.02),
+        Vector2(0, top - lowTop - 0.04),
+        (hit) {
+          if (hit.shape.body == body || hit.shape.isSensor) return -1;
+          clear = false;
+          return 0;
+        },
+        filter: QueryFilter(maskBits: CollisionLayers.solid),
+      );
+    }
+    return clear;
+  }
+
+  /// Back to full height at once (a death, a respawn), and the pose with it.
+  void _resetLow() {
+    _setLow(false);
+    _lowStill = 0;
+    _crouch.value = 0;
+    _sit.value = 0;
   }
 
   @override
@@ -375,6 +485,7 @@ class Player extends BodyComponent {
     final support = _supportBelow();
     _grounded = support != null;
     _onLoose = support != null && support.shape.body.type == BodyType.dynamic;
+    _onProp = support != null && support.shape.body.type != BodyType.static;
     if (support != null) {
       _supportSlope = -support.normal.x / support.normal.y;
       _supportY =
@@ -429,8 +540,8 @@ class Player extends BodyComponent {
       axis: _intent.horizontalAxis,
       facing: _facing,
       grounded: _grounded,
-      interactPressed: interactPressed,
-      interactHeld: _intent.isInteractHeld,
+      interactPressed: interactPressed && !_low,
+      interactHeld: _intent.isInteractHeld && !_low,
       jumpPressed: jumpPressed,
       downHeld: _intent.isDownHeld,
       upHeld: _intent.isUpHeld,
@@ -451,6 +562,7 @@ class Player extends BodyComponent {
     _timeSinceJumpPressed = jumpPressed && !interactions.releasedThisStep
         ? 0
         : _timeSinceJumpPressed + dt;
+    _updateLow(dt, jumpPressed);
     _hardLandingHold = math.max(0, _hardLandingHold - dt);
 
     final axis = _intent.horizontalAxis;
@@ -475,6 +587,13 @@ class Player extends BodyComponent {
           : GameConfig.pushSpeedHeavy;
       speed = math.min(speed, light + (heavy - light) * weight);
     }
+    // Low he creeps; getting up off the ground he barely moves.
+    if (_low) {
+      speed = math.min(
+        speed,
+        GameConfig.crouchSpeedMetersPerSecond * (1 - 0.85 * _sit.value),
+      );
+    }
     final surfaceScale = _grounded
         ? 1 / math.sqrt(1 + _supportSlope * _supportSlope)
         : 1.0;
@@ -487,7 +606,8 @@ class Player extends BodyComponent {
         _edgeSide != 0 &&
         !_sliding &&
         interactions.mode == InteractionMode.none &&
-        _anticipationTime <= 0;
+        _anticipationTime <= 0 &&
+        !_low;
     final target = _steppingBack
         ? supportX + _edgeSide * GameConfig.edgeStepBackSpeed * surfaceScale
         : !_grounded && axis == 0
@@ -644,13 +764,52 @@ class Player extends BodyComponent {
   /// ground, and arms that swing from the shoulders or hold on.
   int footfalls = 0;
 
+  /// Feet that have come down on the ground and not yet been heard, each
+  /// with how hard and on what. See [drainFootContacts].
+  final List<FootContact> _contacts = [];
+  final List<double> _lastContact = [-1, -1];
+
+  /// How many times a foot has come down, and the last time it did.
+  int footContacts = 0;
+  FootContact? lastFootContact;
+
+  /// The feet that have come down since the last call: every stride, and
+  /// every little step in place.
+  List<FootContact> drainFootContacts() {
+    final List<FootContact> out = List.of(_contacts);
+    _contacts.clear();
+    return out;
+  }
+
   void _simulateLimbs(double dt) {
     // A footstrike while running gives the spring a small kick.
     final planted = _feet.planted;
     for (var i = 0; i < 2; i++) {
       if (_grounded && planted[i] && !_wasPlanted[i]) {
         _pelvisSpeed += 0.28 * _gaitWeight;
-        if (_gaitWeight > 0.2) footfalls++;
+        // Slow walking is still a footstrike. Ignore idle weight shifts
+        // and sliding, which do not make separate locomotion impacts.
+        final bool stride = _actualSpeed.abs() > 0.12;
+        if (stride && !isSliding) footfalls++;
+        // Every foot that comes down is heard, a stride or a step in
+        // place, softer the slower he goes; never twice in a tenth of a
+        // second for the same foot.
+        if (!isSliding &&
+            _time - _lastContact[i] > 0.1 &&
+            _contacts.length < 8) {
+          _lastContact[i] = _time;
+          final Body? on = _feet.supports[i];
+          footContacts++;
+          _contacts.add(
+            lastFootContact = FootContact(
+              foot: i,
+              x: _feet.targets[i].x,
+              onProp: on != null && on.isValid && on.type != BodyType.static,
+              stride: stride,
+              strength: stride ? 0.35 + 0.35 * _gaitWeight : 0.2,
+            ),
+          );
+        }
       }
     }
     _wasPlanted = planted;
@@ -953,6 +1112,7 @@ class Player extends BodyComponent {
     final bool free =
         _grounded &&
         !_sliding &&
+        !_low &&
         interactions.mode == InteractionMode.none &&
         _hardLandingHold <= 0;
     if (!free || _actualSpeed.abs() > 1.0) _teeterArmed = true;
@@ -1076,6 +1236,10 @@ class Player extends BodyComponent {
       state = CharacterState.sliding;
     } else if (_landing > 0.2 || _hardLandingHold > 0) {
       state = CharacterState.landing;
+    } else if (_low) {
+      state = _lowStill >= GameConfig.sitAfterSeconds
+          ? CharacterState.sitting
+          : CharacterState.crouching;
     } else if (_intent.horizontalAxis != 0 &&
         _actualSpeed * _intent.horizontalAxis < -0.1) {
       state = CharacterState.turning;
@@ -1130,7 +1294,9 @@ class Player extends BodyComponent {
         final foot = climbFeet[i];
         return foot == null ? null : local(foot);
       }
-      return _grounded ? local(targets[i]) : null;
+      if (!_grounded) return null;
+      // Sitting, the feet go out in front and the knees come up.
+      return local(targets[i]) + Offset(_sit.value * (i == 0 ? 0.15 : 0.11), 0);
     }
 
     Offset? normalAt(int i) {
@@ -1191,6 +1357,8 @@ class Player extends BodyComponent {
       hipFloor: hipFloor,
       lookUp: _smooth(_lookUp),
       headTurn: _smooth(_headTurn / 0.85) * 0.85,
+      crouch: _crouch.value.clamp(0.0, 1.0),
+      sit: _sit.value.clamp(0.0, 1.0),
     );
   }
 
@@ -1211,6 +1379,7 @@ class Player extends BodyComponent {
     if (_ragdoll != null || _recoveryPose != null) return;
     interactions.release();
     final rig = rigPoseWorld;
+    _resetLow();
     _ragdoll = CharacterRagdoll.activate(
       world: world.physicsWorld,
       pose: rig,
@@ -1280,6 +1449,7 @@ class Player extends BodyComponent {
     _ragdoll = null;
     _recoveryPose = null;
     _dead = false;
+    _resetLow();
     body.isEnabled = true;
     body.setTransform(position, const Rot.identity());
     body.linearVelocity = Vector2.zero();
@@ -1379,9 +1549,9 @@ class Player extends BodyComponent {
       RRect.fromRectAndRadius(
         Rect.fromLTWH(
           -radius,
-          -GameConfig.playerHeight / 2,
+          GameConfig.playerHeight / 2 - _capsuleHeight,
           radius * 2,
-          GameConfig.playerHeight,
+          _capsuleHeight,
         ),
         const Radius.circular(radius),
       ),
@@ -1423,4 +1593,23 @@ class Player extends BodyComponent {
     _ragdoll?.destroy();
     super.onRemove();
   }
+}
+
+/// A foot coming down on the ground: which (0 front, 1 back), where (world
+/// x), whether on something that moves (a crate, a plank: wood) rather
+/// than the ground, whether in a stride or a step in place, and how hard,
+/// 0–1.
+class FootContact {
+  const FootContact({
+    required this.foot,
+    required this.x,
+    required this.onProp,
+    required this.stride,
+    required this.strength,
+  });
+
+  final int foot;
+  final double x;
+  final bool onProp, stride;
+  final double strength;
 }

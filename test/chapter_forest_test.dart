@@ -1,3 +1,4 @@
+import 'support/route_pilot.dart';
 import 'package:flame/game.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:umbra/chapters/cage.dart';
@@ -35,6 +36,7 @@ void main() {
     int frames = 900,
   }) async {
     for (var i = 0; i < frames && !done(); i++) {
+      driveExtension(game);
       game.update(1 / 60);
       if (i % 4 == 0) {
         await tester.runAsync(
@@ -49,9 +51,10 @@ void main() {
       'his', (tester) async {
     final game = await boot(tester);
     for (var i = 0; i < 180; i++) {
+      driveExtension(game);
       game.update(1 / 60);
     }
-    game.director!.playChapter(1);
+    game.director!.playChapter(4);
     await until(
       tester,
       game,
@@ -68,9 +71,10 @@ void main() {
   ) async {
     final game = await boot(tester);
     for (var i = 0; i < 180; i++) {
+      driveExtension(game);
       game.update(1 / 60);
     }
-    game.director!.playChapter(1);
+    game.director!.playChapter(4);
     await until(
       tester,
       game,
@@ -90,7 +94,7 @@ void main() {
       intent.requestJump();
     }
 
-    for (var i = 0; i < 60 * 200 && !forest.isComplete; i++) {
+    for (var i = 0; i < 60 * 900 && !forest.isComplete; i++) {
       intent.setKeyboardState(axis: 1);
       releaseCooldown -= 1 / 60;
       final double x = player.body.position.x;
@@ -155,6 +159,7 @@ void main() {
         }
       }
       glimpsed |= forest.stranger.eyes > 0.5;
+      driveExtension(game);
       game.update(1 / 60);
       expect(
         player.isDead,

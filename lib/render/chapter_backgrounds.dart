@@ -1,3 +1,5 @@
+import '../chapters/campaign_catalog.dart';
+
 /// Four painted locations per chapter, timed to the actual story geography.
 /// The atlas is a 2x2 sheet in reading order; it contains background only.
 class BackgroundArea {
@@ -11,7 +13,7 @@ class ChapterBackground {
   final int number;
   final List<BackgroundArea> areas;
   String get asset =>
-      'assets/images/backgrounds/chapter_${number.toString().padLeft(2, '0')}.png';
+      'assets/images/backgrounds/${CampaignCatalog.ids[number - 1]}.webp';
 
   /// Crossfade over eight metres, driven by position (also works backwards).
   /// Outside a transition just one opaque panel is drawn.
@@ -40,7 +42,7 @@ class ChapterBackground {
 }
 
 abstract final class ChapterBackgrounds {
-  static const all = [
+  static const legacy = [
     ChapterBackground(1, [
       BackgroundArea(0, 'Village edge'),
       BackgroundArea(32, 'Quiet fields'),
@@ -133,5 +135,14 @@ abstract final class ChapterBackgrounds {
     ]),
   ];
 
+  static final all = List<ChapterBackground>.generate(40, (i) {
+    final old = CampaignCatalog.legacyPositions.indexOf(i + 1);
+    return ChapterBackground(i + 1, old >= 0 ? legacy[old].areas : [
+      const BackgroundArea(0, 'Arrival'),
+      BackgroundArea(40.0 * (i < 10 ? 1 : 2), 'Inner passage'),
+      BackgroundArea(80.0 * (i < 10 ? 1 : 2), 'Heart of the chapter'),
+      BackgroundArea(120.0 * (i < 10 ? 1 : 2), 'Far boundary'),
+    ]);
+  });
   static ChapterBackground forChapter(int number) => all[number - 1];
 }

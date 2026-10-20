@@ -1,7 +1,10 @@
 import 'package:flame/components.dart';
-import 'package:flame/flame.dart';
+import 'package:flame_forge2d/flame_forge2d.dart' show QueryFilter, BodyType;
+import '../physics/collision_layers.dart';
 
 import '../config/game_config.dart';
+import 'campaign_catalog.dart';
+import 'puzzle_route.dart';
 import '../entities/ground.dart';
 import '../entities/hazard.dart';
 import '../entities/hill_ground.dart';
@@ -11,6 +14,7 @@ import '../physics/water.dart';
 import '../render/dust.dart';
 import '../render/chapter_backgrounds.dart';
 import '../render/grass.dart';
+import '../render/white_blossom_tree.dart';
 import '../story/cutscene.dart';
 import '../world/checkpoint_service.dart';
 import '../world/stage.dart';
@@ -33,27 +37,129 @@ abstract class Chapter extends Stage {
 
   /// Its place in the story, from 1, and its name on the card.
   int get number;
+  String get id => CampaignCatalog.ids[number - 1];
   @override
-  ChapterBackground get backgroundPlan => ChapterBackgrounds.forChapter(number);
+  ChapterBackground get backgroundPlan {
+    final plan = ChapterBackgrounds.forChapter(number);
+    return ChapterBackground(number, [
+      for (var i = 0; i < 4; i++)
+        BackgroundArea(i * width / 4, plan.areas[i].name),
+    ]);
+  }
+
   String get title;
 
   /// Each bank as flat x, y pairs, left to right.
-  List<List<double>> get profile;
+  List<List<double>> get baseProfile => const [];
+  double get coreWidth => 0;
+  double get coreExitX => coreWidth - 4;
+  List<double> get coreCheckpointXs => const [];
+  static const extensionPlans = <int, List<PuzzleKind>>{
+    1: [PuzzleKind.crawl, PuzzleKind.crate],
+    5: [PuzzleKind.rope, PuzzleKind.crawl],
+    6: [PuzzleKind.crawl, PuzzleKind.patrol],
+    8: [PuzzleKind.drain, PuzzleKind.raft],
+    11: [PuzzleKind.crawl, PuzzleKind.raft, PuzzleKind.patrol],
+    13: [PuzzleKind.drain, PuzzleKind.rope, PuzzleKind.raft],
+    16: [PuzzleKind.weight, PuzzleKind.crawl, PuzzleKind.rope],
+    18: [PuzzleKind.lantern, PuzzleKind.patrol, PuzzleKind.weight],
+    20: [PuzzleKind.rope, PuzzleKind.cages, PuzzleKind.pendulum],
+    22: [
+      PuzzleKind.pendulum,
+      PuzzleKind.weight,
+      PuzzleKind.hammer,
+      PuzzleKind.rope,
+    ],
+    25: [
+      PuzzleKind.crawl,
+      PuzzleKind.patrol,
+      PuzzleKind.drain,
+      PuzzleKind.weight,
+    ],
+    28: [PuzzleKind.drain, PuzzleKind.raft, PuzzleKind.weight, PuzzleKind.raft],
+    33: [
+      PuzzleKind.returnLoop,
+      PuzzleKind.patrol,
+      PuzzleKind.rope,
+      PuzzleKind.crawl,
+      PuzzleKind.raft,
+    ],
+    35: [
+      PuzzleKind.rope,
+      PuzzleKind.returnLoop,
+      PuzzleKind.pendulum,
+      PuzzleKind.crawl,
+      PuzzleKind.rope,
+    ],
+    40: [
+      PuzzleKind.crate,
+      PuzzleKind.rope,
+      PuzzleKind.crawl,
+      PuzzleKind.raft,
+      PuzzleKind.returnLoop,
+    ],
+  };
+  double get extensionRoomLength => number <= 10
+      ? 42
+      : number <= 20
+      ? 48
+      : 54;
+  double get extensionLength => extensionPlans.containsKey(number)
+      ? extensionPlans[number]!.length * extensionRoomLength + 18
+      : 0;
+  @override
+  double get width => coreWidth + extensionLength;
+  late final List<PuzzleRoom> extensionRooms = [
+    for (var i = 0; i < (extensionPlans[number]?.length ?? 0); i++)
+      PuzzleRoom(
+        extensionPlans[number]![i],
+        coreWidth + i * extensionRoomLength,
+        floor: baseProfile.last.last,
+        length: extensionRoomLength,
+      ),
+  ];
+  late final PuzzleRoute extensionRoute = PuzzleRoute(this, extensionRooms);
+
+  List<List<double>> get profile {
+    final result = [for (final bank in baseProfile) List<double>.of(bank)];
+    if (extensionRooms.isEmpty) return result;
+    final floor = baseProfile.last.last;
+    var from = result.last[result.last.length - 2];
+    for (final room in extensionRooms) {
+      final gap = room.gap;
+      if (gap == null) continue;
+      result.last.addAll([gap.$1, floor]);
+      result.add([gap.$2, floor]);
+      from = gap.$2;
+    }
+    if (width > from) result.last.addAll([width, floor]);
+    return result;
+  }
 
   /// Where the boy comes back after a death, as he passes each.
-  List<double> get checkpointXs;
+  List<double> get checkpointXs => [
+    ...coreCheckpointXs,
+    for (final room in extensionRooms) room.x + 2,
+  ];
 
   /// Where he starts.
   Vector2 get spawn;
 
   /// Crossing this x ends the chapter.
-  double get exitX;
+  double get exitX => coreExitX + extensionLength;
 
-  /// Every image the chapter draws, loaded before it builds.
+  /// Source artwork roster for auditing. Live components load their own art;
+  /// paintings replaced by the atlas must not enter the decoded image cache.
   List<String> get art => const [];
 
   /// Whether grass grows on its ground (not on a castle's stone floors).
   bool get grassy => true;
+
+  /// Indoors (no grass), his feet fall on stone and the wind is far off.
+  @override
+  String get footing => grassy ? 'grass' : 'stone';
+  @override
+  double get windLevel => grassy ? 1 : 0.25;
 
   @override
   double get height => GameConfig.levelHeight;
@@ -128,6 +234,55 @@ abstract class Chapter extends Stage {
     return terrain.heightAt(x) ?? GameConfig.floorSurfaceY;
   }
 
+  /// A checkpoint rests on permanent geometry, including galleries above
+  /// the terrain profile. Never resume inside a staircase or on a moving crate.
+  Vector2 checkpointPosition(double x) {
+    final ground = groundAt(x);
+    var surface = ground;
+    if (player.isMounted) {
+      var best = 2.0;
+      player.body.world.castRay(Vector2(x, ground - 4), Vector2(0, 8), (hit) {
+        if (hit.shape.isSensor ||
+            hit.shape.body.type != BodyType.static ||
+            hit.normal.y > -.5) {
+          return -1;
+        }
+        if (hit.fraction < best) {
+          best = hit.fraction;
+          surface = hit.point.y;
+        }
+        return hit.fraction;
+      }, filter: QueryFilter(maskBits: CollisionLayers.solid));
+    }
+    return Vector2(x, surface - GameConfig.playerHeight / 2);
+  }
+
+  /// Three story-wide blossom landmarks, spaced across safe ground.
+  /// If a nominal position lands over a pit it moves to the nearest bank.
+  List<double> get blossomTreeXs => [
+    for (final fraction in const [.22, .50, .78])
+      _nearestSurfaceX(width * fraction),
+  ];
+
+  double _nearestSurfaceX(double target) {
+    if (terrain.segmentAt(target) != null) return target;
+    var best = terrain.segments.first.left;
+    var distance = double.infinity;
+    for (final segment in terrain.segments) {
+      final inset = ((segment.right - segment.left) * .08).clamp(.35, 1.2);
+      final candidate = target.clamp(
+        segment.left + inset,
+        segment.right - inset,
+      );
+      final d = (candidate - target).abs();
+      if (d < distance) {
+        best = candidate;
+        distance = d;
+      }
+    }
+    return best;
+  }
+
   /// What fills the gap after bank [index], from [left] to [right] below
   /// the lower lip at [lip]: stakes, unless a chapter fills it otherwise
   /// (with water, say).
@@ -180,16 +335,47 @@ abstract class Chapter extends Stage {
   /// Called when he comes back at a checkpoint after a death.
   void onRespawned() {}
   bool _wasDead = false;
+  void Function(String id)? onCheckpoint;
+  String? _pendingRestore;
+  void resumeAt(String checkpointId) => _pendingRestore = checkpointId;
+  void restartCheckpoint() {
+    cutscene?.stop();
+    cutscene = null;
+    intent.endScript();
+    cameraFocus = null;
+    extensionRoute.restoreAt(checkpoints.activeCheckpoint.x);
+    onRespawned();
+    player.teleportTo(checkpoints.activeCheckpoint);
+  }
+
+  /// Reconstitute puzzle outcomes before placing the player at a safe boundary.
+  void restoreWorld(double x) {}
+
+  bool _restorePending() {
+    final id = _pendingRestore;
+    if (id == null || !player.isMounted) return false;
+    _pendingRestore = null;
+    final index = int.tryParse(id.replaceFirst('checkpoint-', ''));
+    if (index == null || index < 0 || index >= checkpointXs.length) {
+      return false;
+    }
+    final x = checkpointXs[index];
+    cutscene?.stop();
+    cutscene = null;
+    intent.endScript();
+    cameraFocus = null;
+    _triggers.removeWhere((t) => t.$1 <= x);
+    _nextCheckpoint = index + 1;
+    checkpoints.setCheckpoint(checkpointPosition(x));
+    restoreWorld(x);
+    extensionRoute.restoreAt(x);
+    player.teleportTo(checkpoints.activeCheckpoint);
+    onRespawned();
+    return true;
+  }
 
   @override
   Future<void> onLoad() async {
-    for (final name in art) {
-      try {
-        await Flame.images.load(name);
-      } catch (_) {
-        // A bare test binding has no assets; the scenery leaves itself out.
-      }
-    }
     final List<Component> pieces = [];
     // First, since the water in the pits watches him.
     player = Player(
@@ -217,7 +403,26 @@ abstract class Chapter extends Stage {
       final double lip = a.surface.last.y > b.surface.first.y
           ? a.surface.last.y
           : b.surface.first.y;
-      pieces.addAll(buildPit(i, a.right, b.left, lip));
+      final extension = extensionRooms
+          .where((r) => r.gap?.$1 == a.right)
+          .firstOrNull;
+      if (extension == null) {
+        pieces.addAll(buildPit(i, a.right, b.left, lip));
+      } else {
+        final pit = extension.pit(this);
+        pieces.addAll(
+          pit.isNotEmpty
+              ? pit
+              : [
+                  Hazard.zone(
+                    left: a.right,
+                    right: b.left,
+                    top: lip + GameConfig.pitDepth,
+                    bottom: height,
+                  ),
+                ],
+        );
+      }
     }
 
     // Walls at both ends; the exit is a little short of the right one.
@@ -237,6 +442,24 @@ abstract class Chapter extends Stage {
     }
 
     await furnish(pieces);
+    for (final room in extensionRooms) {
+      room.furnish(this, pieces);
+    }
+    if (extensionRooms.isNotEmpty) pieces.add(extensionRoute);
+    for (var i = 0; i < blossomTreeXs.length; i++) {
+      final x = blossomTreeXs[i];
+      pieces.add(
+        WhiteBlossomTree(
+          kind: i == 1
+              ? WhiteBlossomTreeKind.weeping
+              : WhiteBlossomTreeKind.windSwept,
+          at: Vector2(x, groundAt(x) + .08),
+          height: i == 1 ? 5.0 : (i == 0 ? 4.7 : 4.4),
+          seed: number * 101 + i * 37,
+          flip: i == 2,
+        ),
+      );
+    }
     pieces
       ..add(player)
       ..add(DustField(player: player));
@@ -254,6 +477,7 @@ abstract class Chapter extends Stage {
   void update(double dt) {
     super.update(dt);
     wind.update(dt);
+    if (_restorePending()) return;
     final Cutscene? scene = cutscene;
     if (scene != null && scene.update(dt)) cutscene = null;
     if (!player.isMounted) return;
@@ -261,16 +485,20 @@ abstract class Chapter extends Stage {
     wind.pusherSpeed = player.velocity.x;
     final Vector2 at = player.cameraPosition;
     if (at.y > height + 3 || at.x < -1 || at.x > width + 1) player.die();
-    if (_wasDead && !player.isDead) onRespawned();
+    if (_wasDead && !player.isDead) {
+      extensionRoute.restoreAt(checkpoints.activeCheckpoint.x);
+      onRespawned();
+    }
     _wasDead = player.isDead;
     if (player.isDead) return;
     final double x = player.body.position.x;
     while (_nextCheckpoint < checkpointXs.length &&
-        x >= checkpointXs[_nextCheckpoint]) {
+        x >= checkpointXs[_nextCheckpoint] &&
+        player.isOnGround &&
+        !intent.isScripted) {
       final double cx = checkpointXs[_nextCheckpoint++];
-      checkpoints.setCheckpoint(
-        Vector2(cx, groundAt(cx) - GameConfig.playerHeight / 2),
-      );
+      checkpoints.setCheckpoint(checkpointPosition(cx));
+      onCheckpoint?.call('checkpoint-${_nextCheckpoint - 1}');
     }
     for (var i = 0; i < _triggers.length; i++) {
       final (tx, action) = _triggers[i];

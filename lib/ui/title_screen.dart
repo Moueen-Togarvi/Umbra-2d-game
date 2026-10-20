@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 
 import '../chapters/chapters.dart';
+import '../chapters/campaign_catalog.dart';
 import '../config/palette.dart';
 import '../game/umbra_game.dart';
+import 'audio_settings.dart';
 import 'wordmark.dart';
 
 /// The title, laid over the game's first scene: the cottage at dusk with
@@ -25,6 +27,9 @@ class _TitleScreenState extends State<TitleScreen>
     duration: const Duration(milliseconds: 3300),
   );
   bool _chapters = false;
+
+  /// The music and sound settings are open.
+  bool _music = false;
   bool _leaving = false;
 
   @override
@@ -36,6 +41,7 @@ class _TitleScreenState extends State<TitleScreen>
 
   @override
   void dispose() {
+    widget.game.previewBackground = null;
     _fade.dispose();
     super.dispose();
   }
@@ -54,12 +60,12 @@ class _TitleScreenState extends State<TitleScreen>
     final Size size = MediaQuery.sizeOf(context);
     final double unit = size.shortestSide / 100;
     Widget chapterChoice(int i) => _Choice(
-      label: '${_roman(i + 1)}   ${Chapters.all[i].title}',
+      label: '${CampaignCatalog.roman(i + 1)}   ${Chapters.all[i].title}',
       size: unit,
       small: true,
       status: i > reached
           ? 'Locked'
-          : i == reached
+          : i == widget.game.progress.current
           ? 'Current'
           : 'Replay',
       enabled: i <= reached,
@@ -97,7 +103,7 @@ class _TitleScreenState extends State<TitleScreen>
                 ),
               ),
             ),
-            if (!_chapters)
+            if (!_chapters && !_music)
               Align(
                 alignment: const Alignment(0.62, 0),
                 child: SizedBox(
@@ -122,19 +128,28 @@ class _TitleScreenState extends State<TitleScreen>
                               ? null
                               : () => _go(director.begin),
                         ),
-                        if (reached > 0)
+                        if (widget.game.progress.canContinue)
                           _Choice(
                             label: 'Continue',
                             size: unit,
                             onTap: director == null
                                 ? null
-                                : () =>
-                                      _go(() => director.playChapter(reached)),
+                                : () => _go(
+                                    () => director.playChapter(
+                                      widget.game.progress.current,
+                                      resume: true,
+                                    ),
+                                  ),
                           ),
                         _Choice(
                           label: 'Chapters',
                           size: unit,
                           onTap: () => setState(() => _chapters = true),
+                        ),
+                        _Choice(
+                          label: 'Music',
+                          size: unit,
+                          onTap: () => setState(() => _music = true),
                         ),
                       ],
                     ),
@@ -162,35 +177,17 @@ class _TitleScreenState extends State<TitleScreen>
                           ),
                         ),
                         SizedBox(height: unit * 3),
-                        Row(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Expanded(
-                              child: Column(
-                                children: [
-                                  for (
-                                    var i = 0;
-                                    i < (Chapters.all.length + 1) ~/ 2;
-                                    i++
-                                  )
-                                    chapterChoice(i),
-                                ],
-                              ),
+                        for (var group = 0; group < 8; group++) ...[
+                          Padding(
+                            padding: const EdgeInsets.only(top: 12, bottom: 4),
+                            child: Text(
+                              '${group * 5 + 1}–${group * 5 + 5}',
+                              style: const TextStyle(color: Palette.lampAmber),
                             ),
-                            Expanded(
-                              child: Column(
-                                children: [
-                                  for (
-                                    var i = (Chapters.all.length + 1) ~/ 2;
-                                    i < Chapters.all.length;
-                                    i++
-                                  )
-                                    chapterChoice(i),
-                                ],
-                              ),
-                            ),
-                          ],
-                        ),
+                          ),
+                          for (var i = group * 5; i < group * 5 + 5; i++)
+                            chapterChoice(i),
+                        ],
                         _Choice(
                           label: 'Back',
                           size: unit,
@@ -202,16 +199,51 @@ class _TitleScreenState extends State<TitleScreen>
                   ),
                 ),
               ),
+            if (_music)
+              Align(
+                alignment: const Alignment(0.95, 0),
+                child: Container(
+                  width: (size.width * 0.5).clamp(320.0, 560.0),
+                  height: size.height * 0.9,
+                  padding: EdgeInsets.symmetric(horizontal: unit * 1.5),
+                  child: SingleChildScrollView(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          'MUSIC',
+                          style: TextStyle(
+                            fontFamily: 'Cinzel',
+                            fontSize: (unit * 4).clamp(16, 28),
+                            letterSpacing: unit * 0.8,
+                            color: Palette.brandInk,
+                          ),
+                        ),
+                        SizedBox(height: unit * 2),
+                        AudioSettings(
+                          settings: widget.game.settings,
+                          // Picked here, it plays at once to be heard.
+                          onTry: (id) => widget.game.previewBackground = id,
+                        ),
+                        _Choice(
+                          label: 'Back',
+                          size: unit,
+                          small: true,
+                          onTap: () => setState(() {
+                            _music = false;
+                            widget.game.previewBackground = null;
+                          }),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
           ],
         ),
       ),
     );
   }
-
-  static String _roman(int n) => const [
-    '', 'I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X', //
-    'XI', 'XII', 'XIII', 'XIV', 'XV',
-  ][n.clamp(0, 15)];
 }
 
 /// Keyboard, touch and assistive-technology accessible menu choice.

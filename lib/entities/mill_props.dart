@@ -205,6 +205,18 @@ class WinchGate extends BodyComponent with OffScreenCulling {
     return b;
   }
 
+  void restoreOpen() {
+    _lift = rise;
+    _from = wheel.turned;
+    _started = true;
+    body
+      ..setTransform(
+        Vector2(x, floorY - height / 2 - rise),
+        const Rot.identity(),
+      )
+      ..linearVelocity = Vector2.zero();
+  }
+
   /// Shut again, the rope run out.
   void reset() {
     _lift = 0;

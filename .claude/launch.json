@@ -21,13 +21,13 @@
       "runtimeArgs": [
         "-m",
         "http.server",
-        "8790",
+        "8795",
         "--bind",
         "127.0.0.1",
         "--directory",
         "build/web"
       ],
-      "port": 8790
+      "port": 8795
     }
   ]
 }

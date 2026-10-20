@@ -86,6 +86,9 @@ abstract final class Palette {
   /// The ring around a control button.
   static const Color controlRing = Color(0x24FFFFFF);
 
-  /// The arrow glyph drawn inside a control button.
+  /// The controls' white icons (at the player's chosen opacity).
   static const Color controlGlyph = Color(0x73FFFFFF);
+
+  /// The soft shadow under each control's icon, so it reads on bright fog.
+  static const Color controlShadow = Color(0xFF000000);
 }

@@ -1,3 +1,4 @@
+import 'support/route_pilot.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:umbra/chapters/dawn.dart';
 import 'package:umbra/character/character_interactions.dart';
@@ -10,7 +11,7 @@ void main() {
   testWidgets('chapter fifteen: the sun catches the last two behind him, and '
       'he comes home, and his eyes go red', (tester) async {
     final game = await bootCampaign(tester);
-    final dawn = await enterChapter<DawnChapter>(tester, game, 14);
+    final dawn = await enterChapter<DawnChapter>(tester, game, 39);
     final player = dawn.player;
     final intent = game.intent;
     final jumped = <String>{};
@@ -21,7 +22,7 @@ void main() {
       intent.requestJump();
     }
 
-    for (var i = 0; i < 60 * 120 && !dawn.isComplete; i++) {
+    for (var i = 0; i < 60 * 900 && !dawn.isComplete; i++) {
       final double x = player.body.position.x;
       final double feet = player.body.position.y + GameConfig.playerHeight / 2;
       final bool grounded = player.isOnGround;
@@ -42,6 +43,7 @@ void main() {
         }
       }
       intent.setKeyboardState(axis: axis);
+      driveExtension(game);
       game.update(1 / 60);
       if (player.isDead) {
         fail(

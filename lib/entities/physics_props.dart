@@ -20,10 +20,13 @@ class PhysicsCrate extends BodyComponent {
   final Vector2 size;
 
   /// Puts it back where it started, at rest (after a death undid his work).
-  void resetToStart() {
+  void resetToStart() => restoreAt(_initialPosition);
+
+  /// A known resting pose for a solved checkpoint, without a physics snapshot.
+  void restoreAt(Vector2 position) {
     if (!isReady) return;
     body
-      ..setTransform(_initialPosition.clone(), Rot.fromAngle(0))
+      ..setTransform(position.clone(), Rot.fromAngle(0))
       ..linearVelocity = Vector2.zero()
       ..angularVelocity = 0;
   }

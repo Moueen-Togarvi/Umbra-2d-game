@@ -1,0 +1,242 @@
+[
+  {
+    "number": 1,
+    "id": "home",
+    "title": "Home",
+    "legacy": 1
+  },
+  {
+    "number": 2,
+    "id": "old_orchard",
+    "title": "Old Orchard",
+    "legacy": null
+  },
+  {
+    "number": 3,
+    "id": "hunters_road",
+    "title": "Hunters’ Road",
+    "legacy": null
+  },
+  {
+    "number": 4,
+    "id": "graveyard",
+    "title": "Graveyard",
+    "legacy": null
+  },
+  {
+    "number": 5,
+    "id": "forest",
+    "title": "The Night Forest",
+    "legacy": 2
+  },
+  {
+    "number": 6,
+    "id": "cage",
+    "title": "The Cage",
+    "legacy": 3
+  },
+  {
+    "number": 7,
+    "id": "chainworks",
+    "title": "Chainworks",
+    "legacy": null
+  },
+  {
+    "number": 8,
+    "id": "caves",
+    "title": "The Caves",
+    "legacy": 4
+  },
+  {
+    "number": 9,
+    "id": "sluice_tunnels",
+    "title": "Sluice Tunnels",
+    "legacy": null
+  },
+  {
+    "number": 10,
+    "id": "drowned_quarry",
+    "title": "Drowned Quarry",
+    "legacy": null
+  },
+  {
+    "number": 11,
+    "id": "crypt",
+    "title": "The Crypt",
+    "legacy": 5
+  },
+  {
+    "number": 12,
+    "id": "coffin_gallery",
+    "title": "Coffin Gallery",
+    "legacy": null
+  },
+  {
+    "number": 13,
+    "id": "bone_pit",
+    "title": "The Bone Pit",
+    "legacy": 6
+  },
+  {
+    "number": 14,
+    "id": "floodworks",
+    "title": "Floodworks",
+    "legacy": null
+  },
+  {
+    "number": 15,
+    "id": "lower_castle",
+    "title": "Lower Castle",
+    "legacy": null
+  },
+  {
+    "number": 16,
+    "id": "chase",
+    "title": "The Chase",
+    "legacy": 7
+  },
+  {
+    "number": 17,
+    "id": "servants_passage",
+    "title": "Servants’ Passage",
+    "legacy": null
+  },
+  {
+    "number": 18,
+    "id": "halls",
+    "title": "The Halls",
+    "legacy": 8
+  },
+  {
+    "number": 19,
+    "id": "shadow_gallery",
+    "title": "Shadow Gallery",
+    "legacy": null
+  },
+  {
+    "number": 20,
+    "id": "chandeliers",
+    "title": "The Chandeliers",
+    "legacy": 9
+  },
+  {
+    "number": 21,
+    "id": "organ_loft",
+    "title": "Organ Loft",
+    "legacy": null
+  },
+  {
+    "number": 22,
+    "id": "clock_tower",
+    "title": "The Clock Tower",
+    "legacy": 10
+  },
+  {
+    "number": 23,
+    "id": "bell_foundry",
+    "title": "Bell Foundry",
+    "legacy": null
+  },
+  {
+    "number": 24,
+    "id": "watchers_walk",
+    "title": "Watchers’ Walk",
+    "legacy": null
+  },
+  {
+    "number": 25,
+    "id": "children",
+    "title": "The Children",
+    "legacy": 11
+  },
+  {
+    "number": 26,
+    "id": "abandoned_ward",
+    "title": "Abandoned Ward",
+    "legacy": null
+  },
+  {
+    "number": 27,
+    "id": "drainways",
+    "title": "Drainways",
+    "legacy": null
+  },
+  {
+    "number": 28,
+    "id": "mill",
+    "title": "The Mill",
+    "legacy": 12
+  },
+  {
+    "number": 29,
+    "id": "broken_aqueduct",
+    "title": "Broken Aqueduct",
+    "legacy": null
+  },
+  {
+    "number": 30,
+    "id": "black_reservoir",
+    "title": "Black Reservoir",
+    "legacy": null
+  },
+  {
+    "number": 31,
+    "id": "furnace_passage",
+    "title": "Furnace Passage",
+    "legacy": null
+  },
+  {
+    "number": 32,
+    "id": "outer_ramparts",
+    "title": "Outer Ramparts",
+    "legacy": null
+  },
+  {
+    "number": 33,
+    "id": "great_gate",
+    "title": "The Great Gate",
+    "legacy": 13
+  },
+  {
+    "number": 34,
+    "id": "moat",
+    "title": "The Moat",
+    "legacy": null
+  },
+  {
+    "number": 35,
+    "id": "storm",
+    "title": "The Storm",
+    "legacy": 14
+  },
+  {
+    "number": 36,
+    "id": "shattered_coast",
+    "title": "Shattered Coast",
+    "legacy": null
+  },
+  {
+    "number": 37,
+    "id": "last_watch",
+    "title": "Last Watch",
+    "legacy": null
+  },
+  {
+    "number": 38,
+    "id": "eastern_woods",
+    "title": "Eastern Woods",
+    "legacy": null
+  },
+  {
+    "number": 39,
+    "id": "homeward_road",
+    "title": "Homeward Road",
+    "legacy": null
+  },
+  {
+    "number": 40,
+    "id": "dawn",
+    "title": "Dawn",
+    "legacy": 15
+  }
+]

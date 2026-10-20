@@ -88,6 +88,12 @@ class WaterBody extends Component {
 
   bool get isSettled => (level - _target).abs() < 0.005;
 
+  @override
+  void onRemove() {
+    player?.reportWaterDepth(this, 0);
+    super.onRemove();
+  }
+
   /// Sets the surface at once (water poured in or let out elsewhere).
   void setLevel(double y) {
     level = y.clamp(-1000.0, bottom);
@@ -358,7 +364,7 @@ class WaterBody extends Component {
     final double feet = at.y + GameConfig.playerHeight / 2;
     final bool over = at.x > left && at.x < right;
     playerDepth = over ? math.max(0, feet - surfaceAt(at.x)) : 0;
-    boy.waterDepth = playerDepth;
+    boy.reportWaterDepth(this, playerDepth);
     // His head: a little below the top of him.
     final double head = at.y - GameConfig.playerHeight * 0.3;
     if (over && head > surfaceAt(at.x) + 0.02) {

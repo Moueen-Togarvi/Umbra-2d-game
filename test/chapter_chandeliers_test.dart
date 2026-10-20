@@ -1,3 +1,4 @@
+import 'support/route_pilot.dart';
 import 'package:flame/components.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:umbra/chapters/chandeliers.dart';
@@ -12,7 +13,7 @@ void main() {
     tester,
   ) async {
     final game = await bootCampaign(tester);
-    final hall = await enterChapter<ChandeliersChapter>(tester, game, 8);
+    final hall = await enterChapter<ChandeliersChapter>(tester, game, 19);
     final player = hall.player;
     final intent = game.intent;
     final jumped = <String>{};
@@ -28,7 +29,7 @@ void main() {
 
     // The lips he jumps for each rope from.
     const lips = [16.0, 22.0, 28.0];
-    for (var i = 0; i < 60 * 200 && !hall.isComplete; i++) {
+    for (var i = 0; i < 60 * 900 && !hall.isComplete; i++) {
       final double x = player.body.position.x;
       final double feet = player.body.position.y + GameConfig.playerHeight / 2;
       final bool grounded = player.isOnGround;
@@ -115,6 +116,7 @@ void main() {
         if (gap < closest) closest = gap;
       }
       intent.setKeyboardState(axis: axis, down: down);
+      driveExtension(game);
       game.update(1 / 60);
       if (player.isDead) {
         fail(
@@ -154,7 +156,7 @@ void main() {
     tester,
   ) async {
     final game = await bootCampaign(tester);
-    final hall = await enterChapter<ChandeliersChapter>(tester, game, 8);
+    final hall = await enterChapter<ChandeliersChapter>(tester, game, 19);
     final player = hall.player;
     player.teleportTo(
       Vector2(
@@ -165,6 +167,7 @@ void main() {
     var died = false;
     for (var i = 0; i < 60 * 6 && !died; i++) {
       game.intent.setKeyboardState(axis: 1);
+      driveExtension(game);
       game.update(1 / 60);
       died = player.isDead;
     }

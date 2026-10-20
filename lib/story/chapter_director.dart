@@ -44,7 +44,16 @@ class ChapterDirector {
     ('A GAME BY', 'Moueen Togarvi'),
     ('MADE WITH', 'Flutter · Flame · Box2D'),
     ('SILHOUETTES', 'Generated with Wan, baked by hand'),
-    ('SOUND AND MUSIC', 'Synthesized for this game'),
+    ('SOUND', 'Kenney · rubberduck · and the OpenGameArt community, CC0'),
+    ('FOOTSTEPS', 'Generated with ElevenLabs'),
+    ('BACKGROUND PAINTINGS', 'Generated with OpenAI'),
+    ('MUSIC BY SCOTT BUCKLEY · CC-BY 4.0', 'Eyes In The Void · Decoherence'),
+    ('MUSIC BY SCOTT BUCKLEY · CC-BY 4.0', 'Descent · In Search Of Solitude'),
+    ('MUSIC BY SCOTT BUCKLEY · CC-BY 4.0', 'The Distant Sun'),
+    (
+      'MUSIC, CC0',
+      'HaelDB · cynicmusic · Juhani Junkala · kindland · cinameng',
+    ),
     ('IN THE SHADOW OF', 'LIMBO'),
     ('THANK YOU', 'for playing'),
   ];
@@ -93,6 +102,8 @@ class ChapterDirector {
     // The title is already the first scene: the card is laid over it
     // while the opening plays.
     _setCard(0, onBlack: false);
+    unawaited(progress.enter(0));
+    first.onCheckpoint = (id) => progress.saveCheckpoint(first.id, id);
     first.startStory();
     _playing = true;
     _then(_Wait(1.2));
@@ -102,15 +113,15 @@ class ChapterDirector {
   }
 
   /// "Continue", or a chapter picked from the list.
-  void playChapter(int i) {
+  void playChapter(int i, {bool resume = false}) {
     if (isBusy) return;
     _showTitle(false);
     _playing = false;
     _then(_Fade((v) => blackness = v, blackness, 1, 0.9));
-    _enter(i);
+    _enter(i, resume: resume);
   }
 
-  void _enter(int i) {
+  void _enter(int i, {bool resume = false}) {
     _then(
       _Call(() {
         index = i;
@@ -121,8 +132,16 @@ class ChapterDirector {
     _then(
       _Await(() async {
         await game.setStage(Chapters.all[i].build(game.intent));
-        await progress.reach(i);
-        chapter?.startStory();
+        await progress.enter(i, resume: resume);
+        final active = chapter;
+        if (active != null) {
+          active.onCheckpoint = (id) => progress.saveCheckpoint(active.id, id);
+          if (resume && progress.checkpoint != null) {
+            active.resumeAt(progress.checkpoint!);
+          } else {
+            active.startStory();
+          }
+        }
       }),
     );
     _then(_Wait(1.8));
@@ -165,6 +184,8 @@ class ChapterDirector {
   }
 
   /// The credits under the music; then, in the dark, a pair of eyes.
+  static const endingSeconds = 60.0;
+  static const endCardSeconds = 5.9;
   void _creditsAndAfter() {
     for (final (small, title) in credits) {
       _then(
@@ -175,7 +196,7 @@ class ChapterDirector {
         }),
       );
       _then(_Fade((v) => cardAlpha = v, 0, 1, 1.0));
-      _then(_Wait(2.4));
+      _then(_Wait((endingSeconds - endCardSeconds) / credits.length - 2));
       _then(_Fade((v) => cardAlpha = v, 1, 0, 1.0));
     }
     _then(_Call(() => game.music(null)));
@@ -213,7 +234,7 @@ class ChapterDirector {
       }
       if (!op.tick(dt)) break;
       _queue.removeAt(0);
-      dt = 0;
+      dt = op.unusedTime;
     }
     final Chapter? c = chapter;
     if (_playing && !isBusy && c != null && c.isComplete) _next();
@@ -240,6 +261,7 @@ class ChapterDirector {
 
 abstract class _Op {
   bool started = false;
+  double unusedTime = 0;
   void start() {}
 
   /// Advances by [dt]; true when done.
@@ -251,7 +273,11 @@ class _Wait extends _Op {
   final double seconds;
   double _t = 0;
   @override
-  bool tick(double dt) => (_t += dt) >= seconds;
+  bool tick(double dt) {
+    _t += dt;
+    unusedTime = (_t - seconds).clamp(0.0, dt);
+    return _t >= seconds;
+  }
 }
 
 class _Call extends _Op {
@@ -260,6 +286,7 @@ class _Call extends _Op {
   @override
   bool tick(double dt) {
     action();
+    unusedTime = dt;
     return true;
   }
 }
@@ -273,6 +300,7 @@ class _Fade extends _Op {
   @override
   bool tick(double dt) {
     _t += dt;
+    unusedTime = (_t - seconds).clamp(0.0, dt);
     final double p = seconds <= 0 ? 1 : (_t / seconds).clamp(0.0, 1.0);
     set(a + (b - a) * p * p * (3 - 2 * p));
     return p >= 1;

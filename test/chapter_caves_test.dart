@@ -1,3 +1,4 @@
+import 'support/route_pilot.dart';
 import 'package:flame/game.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:umbra/chapters/caves.dart';
@@ -9,9 +10,10 @@ import 'support/campaign.dart';
 void main() {
   testWidgets('he cannot swim: in deep water he drowns', (tester) async {
     final game = await bootCampaign(tester);
-    final caves = await enterChapter<CavesChapter>(tester, game, 3);
+    final caves = await enterChapter<CavesChapter>(tester, game, 7);
     caves.player.teleportTo(Vector2(25.5, 7.6));
     for (var i = 0; i < 60 * 4 && !caves.player.isDead; i++) {
+      driveExtension(game);
       game.update(1 / 60);
     }
     expect(caves.player.isDead, isTrue);
@@ -19,15 +21,17 @@ void main() {
 
   testWidgets('he wades the ford slowly but safely', (tester) async {
     final game = await bootCampaign(tester);
-    final caves = await enterChapter<CavesChapter>(tester, game, 3);
+    final caves = await enterChapter<CavesChapter>(tester, game, 7);
     final p = caves.player;
     p.teleportTo(Vector2(56, caves.groundAt(56) - 0.65));
     for (var i = 0; i < 30; i++) {
+      driveExtension(game);
       game.update(1 / 60);
     }
     double fastest = 0;
     for (var i = 0; i < 90; i++) {
       game.intent.setKeyboardState(axis: 1);
+      driveExtension(game);
       game.update(1 / 60);
       if (p.body.position.x < 59 && p.velocity.x > fastest) {
         fastest = p.velocity.x;
@@ -42,7 +46,7 @@ void main() {
   testWidgets('chapter four: across the pool on the crate, down the river '
       'on a log, up the cistern on the rising water', (tester) async {
     final game = await bootCampaign(tester);
-    final caves = await enterChapter<CavesChapter>(tester, game, 3);
+    final caves = await enterChapter<CavesChapter>(tester, game, 7);
     final player = caves.player;
     final intent = game.intent;
     final jumped = <String>{};
@@ -53,7 +57,7 @@ void main() {
       intent.requestJump();
     }
 
-    for (var i = 0; i < 60 * 240 && !caves.isComplete; i++) {
+    for (var i = 0; i < 60 * 900 && !caves.isComplete; i++) {
       final double x = player.body.position.x;
       final double feet = player.body.position.y + GameConfig.playerHeight / 2;
       final bool grounded = player.isOnGround;
@@ -192,6 +196,7 @@ void main() {
         }
       }
       intent.setKeyboardState(axis: axis);
+      driveExtension(game);
       game.update(1 / 60);
       if (player.isDead) {
         fail(
@@ -224,12 +229,13 @@ void main() {
     tester,
   ) async {
     final game = await bootCampaign(tester);
-    final caves = await enterChapter<CavesChapter>(tester, game, 3);
+    final caves = await enterChapter<CavesChapter>(tester, game, 7);
     // Float the crate in the middle of the pool, then stand him on it.
     caves.crate.body
       ..setTransform(Vector2(25.5, 7.3), caves.crate.body.rotation)
       ..linearVelocity = Vector2.zero();
     for (var i = 0; i < 240; i++) {
+      driveExtension(game);
       game.update(1 / 60);
     }
     final double empty = caves.crate.body.position.y;
@@ -237,6 +243,7 @@ void main() {
       Vector2(caves.crate.body.position.x, empty - 0.425 - 0.66),
     );
     for (var i = 0; i < 360; i++) {
+      driveExtension(game);
       game.update(1 / 60);
     }
     final double loaded = caves.crate.body.position.y;

@@ -1,7 +1,10 @@
 import 'dart:math' as math;
+import 'dart:async';
+import 'package:flutter/services.dart';
 import 'dart:ui';
 
 import 'package:flame/components.dart';
+import 'package:flame/flame.dart';
 import 'package:flame/input.dart';
 import 'package:flutter/widgets.dart'
     show EdgeInsets, TextPainter, TextSpan, TextStyle, VoidCallback;
@@ -11,8 +14,8 @@ import '../config/palette.dart';
 import '../config/game_settings.dart';
 import 'player_intent.dart';
 
-/// On-screen controls for phones, LIMBO's whole vocabulary: walk left and
-/// right under the left thumb, jump and the action hand under the right.
+/// On-screen controls for phones: walk left and right under the left thumb;
+/// jump, the action hand and sit under the right.
 ///
 /// This is the second input source in the game, and it was added without
 /// touching a single line of physics, entity or checkpoint code. That is
@@ -46,6 +49,10 @@ class TouchControls {
        _onRope = onRope ?? (() => false),
        _hidden = hidden ?? (() => false);
 
+  /// The icons the buttons draw, under `assets/images/`, to load before
+  /// they are built.
+  static List<String> get icons => _ControlFace._art.values.toSet().toList();
+
   final PlayerIntent _intent;
   final bool Function() _debugVisible;
   final bool Function() _onRope;
@@ -69,9 +76,9 @@ class TouchControls {
   bool _isHoldingRight = false;
   List<HudButtonComponent> _buttons = [];
 
-  /// The HUD components to add to `camera.viewport`: left, right, jump and
-  /// action first, then climb up and down, then the development buttons
-  /// when [debugTools] is set.
+  /// The HUD components to add to `camera.viewport`: left, right, jump,
+  /// action and sit first, then climb up and down, then pause, then the
+  /// development buttons when [debugTools] is set.
   List<HudButtonComponent> buildButtons() {
     final double diameter =
         GameConfig.controlButtonDiameterPx * settings.controlsScale;
@@ -117,6 +124,18 @@ class TouchControls {
         margin: EdgeInsets.only(right: edge + diameter + gap, bottom: edge),
         onPress: () => _intent.setTouchState(interact: true),
         onRelease: () => _intent.setTouchState(interact: false),
+      ),
+
+      // Sit — left of the hand. Held still he sits down; held with a walk
+      // button he crouches and creeps.
+      _controlButton(
+        glyph: _Glyph.sit,
+        margin: EdgeInsets.only(
+          right: edge + (diameter + gap) * 2,
+          bottom: edge,
+        ),
+        onPress: () => _intent.setTouchState(sit: true),
+        onRelease: () => _intent.setTouchState(sit: false),
       ),
 
       // Climb up and down a rope: only there while he holds one, above the
@@ -229,7 +248,12 @@ class TouchControls {
         size: size,
       ),
       margin: margin,
-      onPressed: onPress,
+      onPressed: () {
+        if (settings.vibration) {
+          unawaited(HapticFeedback.lightImpact().catchError((Object _) {}));
+        }
+        onPress();
+      },
       onReleased: onRelease,
       // A thumb that drifts off the edge of a button fires *cancel*, not
       // release. Without this the player would keep walking forever with
@@ -265,6 +289,7 @@ class TouchControls {
       interact: false,
       up: false,
       down: false,
+      sit: false,
     );
     for (final button in _buttons) {
       if (button.buttonDown?.parent == button) {
@@ -283,7 +308,7 @@ class TouchControls {
   }
 }
 
-enum _Glyph { left, right, jump, hand, up, down, pause }
+enum _Glyph { left, right, jump, hand, sit, up, down, pause }
 
 /// A hidden development action neither draws nor receives a stray tap.
 class _VisibilityButton extends HudButtonComponent {
@@ -307,11 +332,13 @@ class _VisibilityButton extends HudButtonComponent {
   }
 }
 
-/// The visual of a single control button: a faint ring with a glyph.
+/// The visual of a single control button: a bold white cut-paper icon
+/// (see `assets/images/ui`) with a soft shadow under it so it reads on
+/// bright fog as well as on black, and no disc behind it. The development
+/// buttons keep a small disc with a text label.
 ///
-/// Drawn directly rather than assembled from Flame's shape components, because
-/// it is a circle and a small shape, and doing it by hand is both shorter and
-/// easier to restyle than wiring nested components together.
+/// Until the icons are loaded (and in a bare test binding) the glyphs are
+/// drawn by hand instead.
 class _ControlFace extends PositionComponent {
   _ControlFace({
     this.glyph,
@@ -329,11 +356,30 @@ class _ControlFace extends PositionComponent {
   final bool isPressed;
   final double Function() opacity;
 
+  /// The icon drawn for each glyph that has one, under `assets/images/`.
+  static const Map<_Glyph, String> _art = {
+    _Glyph.left: 'ui/ui_arrow.png',
+    _Glyph.right: 'ui/ui_arrow.png',
+    _Glyph.jump: 'ui/ui_jump.png',
+    _Glyph.hand: 'ui/ui_hand.png',
+    _Glyph.sit: 'ui/ui_sit.png',
+    _Glyph.up: 'ui/ui_arrow.png',
+    _Glyph.down: 'ui/ui_arrow.png',
+    _Glyph.pause: 'ui/ui_pause.png',
+  };
+
+  /// How much of the button the icon fills.
+  static const double _iconFill = 0.86;
+
   static final Paint _fill = Paint();
   static final Paint _ring = Paint()
     ..color = Palette.controlRing
     ..style = PaintingStyle.stroke
     ..strokeWidth = 1.2;
+  final Paint _icon = Paint()..filterQuality = FilterQuality.medium;
+  final Paint _shade = Paint()
+    ..filterQuality = FilterQuality.medium
+    ..imageFilter = ImageFilter.blur(sigmaX: 2.5, sigmaY: 2.5);
   static final Paint _glyphPaint = Paint()..color = Palette.controlGlyph;
   static final Paint _strokeGlyph = Paint()
     ..color = Palette.controlGlyph
@@ -345,22 +391,15 @@ class _ControlFace extends PositionComponent {
   void render(Canvas canvas) {
     final radius = size.x / 2;
     final center = Offset(radius, radius);
-    _fill.color = isPressed ? Palette.controlPressed : Palette.control;
     final alpha = isPressed ? 1.0 : opacity();
-    _fill.color = _fill.color.withValues(alpha: _fill.color.a * alpha);
-    _ring.color = Palette.controlRing.withValues(
-      alpha: Palette.controlRing.a * alpha,
-    );
-    _glyphPaint.color = Palette.controlGlyph.withValues(
-      alpha: Palette.controlGlyph.a * alpha,
-    );
-    _strokeGlyph.color = _glyphPaint.color;
-    canvas.drawCircle(center, radius, _fill);
-    // A thin ring, so the button is findable against a black floor without
-    // becoming a bright disc that competes with the scene.
-    canvas.drawCircle(center, radius - 1, _ring);
-
     if (label != null) {
+      _fill.color = isPressed ? Palette.controlPressed : Palette.control;
+      _fill.color = _fill.color.withValues(alpha: _fill.color.a * alpha);
+      _ring.color = Palette.controlRing.withValues(
+        alpha: Palette.controlRing.a * alpha,
+      );
+      canvas.drawCircle(center, radius, _fill);
+      canvas.drawCircle(center, radius - 1, _ring);
       final painter = _labelPainter ??= TextPainter(
         text: TextSpan(
           text: label,
@@ -378,6 +417,92 @@ class _ControlFace extends PositionComponent {
       );
       return;
     }
+    // Held, the icon sinks a little under the thumb.
+    canvas.save();
+    if (isPressed) {
+      canvas
+        ..translate(center.dx, center.dy)
+        ..scale(0.9)
+        ..translate(-center.dx, -center.dy);
+    }
+    final String? name = _art[glyph];
+    if (name != null && Flame.images.containsKey(name)) {
+      _drawIcon(canvas, Flame.images.fromCache(name), center, radius, alpha);
+    } else {
+      // The shadow first: the same shape, dark and a little below.
+      _glyphPaint
+        ..color = Palette.controlShadow.withValues(alpha: 0.5 * alpha)
+        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 2.5);
+      _strokeGlyph
+        ..color = _glyphPaint.color
+        ..maskFilter = _glyphPaint.maskFilter;
+      _drawGlyph(canvas, center + const Offset(1.5, 2.5), radius);
+      _glyphPaint
+        ..color = Palette.controlGlyph.withValues(alpha: alpha)
+        ..maskFilter = null;
+      _strokeGlyph
+        ..color = _glyphPaint.color
+        ..maskFilter = null;
+      _drawGlyph(canvas, center, radius);
+    }
+    canvas.restore();
+  }
+
+  /// [image], fitted into the button, white, with its shadow under it;
+  /// mirrored for the left arrow.
+  void _drawIcon(
+    Canvas canvas,
+    Image image,
+    Offset center,
+    double radius,
+    double alpha,
+  ) {
+    final double box = radius * 2 * _iconFill;
+    final double scale = math.min(box / image.width, box / image.height);
+    final Rect source = Rect.fromLTWH(
+      0,
+      0,
+      image.width.toDouble(),
+      image.height.toDouble(),
+    );
+    final Rect target = Rect.fromCenter(
+      center: center,
+      width: image.width * scale,
+      height: image.height * scale,
+    );
+    canvas.save();
+    if (glyph == _Glyph.up || glyph == _Glyph.down) {
+      canvas.translate(center.dx, center.dy);
+      canvas.rotate(glyph == _Glyph.up ? -math.pi / 2 : math.pi / 2);
+      canvas.translate(-center.dx, -center.dy);
+    }
+    if (glyph == _Glyph.left) {
+      canvas
+        ..translate(center.dx, 0)
+        ..scale(-1, 1)
+        ..translate(-center.dx, 0);
+    }
+    _shade.colorFilter = ColorFilter.mode(
+      Palette.controlShadow.withValues(alpha: 0.5 * alpha),
+      BlendMode.srcIn,
+    );
+    canvas.drawImageRect(
+      image,
+      source,
+      target.shift(const Offset(1.5, 2.5)),
+      _shade,
+    );
+    _icon.colorFilter = ColorFilter.mode(
+      Palette.controlGlyph.withValues(alpha: alpha),
+      BlendMode.srcIn,
+    );
+    canvas.drawImageRect(image, source, target, _icon);
+    canvas.restore();
+  }
+
+  /// The hand-drawn glyphs: the climb chevrons and pause always, and the
+  /// rest until their icons are loaded.
+  void _drawGlyph(Canvas canvas, Offset center, double radius) {
     final double r = radius * GameConfig.controlGlyphScale;
     switch (glyph!) {
       case _Glyph.left:
@@ -386,6 +511,8 @@ class _ControlFace extends PositionComponent {
         _triangle(canvas, center, r, 0);
       case _Glyph.jump:
         _triangle(canvas, center, r, -math.pi / 2);
+      case _Glyph.sit:
+        _triangle(canvas, center, r, math.pi / 2);
       case _Glyph.hand:
         _hand(canvas, center, r);
       case _Glyph.up:

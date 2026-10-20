@@ -172,6 +172,20 @@ class HangingCage extends Component with OffScreenCulling {
   /// Whether the door has burst open.
   bool get isOpen => _latch == null && door != null;
 
+  /// Restore the authored open pose after the escape checkpoint.
+  void restoreOpen() {
+    if (!_built || !body.isValid || door == null) return;
+    _latch?.destroy();
+    _latch = null;
+    door!
+      ..setTransform(
+        body.worldPoint(Vector2(_hw - bar + _hh - .06, _hh - .06)),
+        Rot.fromAngle(body.angle + math.pi / 2),
+      )
+      ..linearVelocity = Vector2.zero()
+      ..angularVelocity = 0;
+  }
+
   /// The fastest blow it has taken.
   double hardestHit = 0;
 
@@ -466,6 +480,17 @@ class WinchCage extends BodyComponent with OffScreenCulling {
   final double startTop, endTop, width, height;
   bool lowering = false;
   bool get isDown => _top >= endTop - 0.005;
+
+  void restoreLowered() {
+    if (!isLoaded || !body.isValid) return;
+    lowering = true;
+    _top = endTop;
+    _speed = 0;
+    body
+      ..setTransform(Vector2(anchor.x, endTop + height / 2), Rot.fromAngle(0))
+      ..linearVelocity = Vector2.zero();
+  }
+
   double _top = 0;
   double _speed = 0;
 
@@ -570,7 +595,24 @@ class FootPedal extends BodyComponent with OffScreenCulling {
   bool pressed = false;
 
   /// Ready to be pressed again.
-  void reset() => pressed = false;
+  void reset() {
+    pressed = false;
+    if (!_ready || !body.isValid) return;
+    // Reset the authored resting pose as well as the latch. Otherwise an
+    // immediate restart leaves the beam down and fires it again next tick.
+    body
+      ..setTransform(
+        hinge +
+            Vector2(
+              -length / 2 * math.cos(raised),
+              -length / 2 * math.sin(raised),
+            ),
+        Rot.fromAngle(raised),
+      )
+      ..linearVelocity = Vector2.zero()
+      ..angularVelocity = 0;
+  }
+
   late Body _base;
   bool _ready = false;
 

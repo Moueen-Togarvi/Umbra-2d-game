@@ -53,6 +53,8 @@ class CharacterPose {
     this.teeterTime = 0,
     this.swingKick = 0,
     this.climb = 0,
+    this.crouch = 0,
+    this.sit = 0,
   });
 
   /// +1 facing right, -1 facing left; in between while turning round,
@@ -118,6 +120,13 @@ class CharacterPose {
   /// How far through climbing up onto a ledge, 0 to 1: the body bends
   /// forward over the edge in the middle of it.
   final double climb;
+
+  /// 1 crouched low, creeping: knees deep, back bent over them.
+  final double crouch;
+
+  /// 1 sitting on the ground: seat down, knees up, arms round the shins.
+  /// The controller puts the feet out in front.
+  final double sit;
 
   /// 1 while hanging from a ledge or rope.
   final double hanging;
@@ -344,6 +353,10 @@ class CharacterRig {
   /// A child at rest stands on softly bent knees, never locked straight.
   static const double _standingHipY = 0.195;
 
+  /// How far the hips come down crouched, and sitting (the seat on the
+  /// ground), as fractions of height.
+  static const double crouchDrop = 0.20, sitDrop = 0.27;
+
   /// Where the shoulder line (top of the torso) is for a given lean.
   static Vector2 _rotate(Vector2 v, double angle) {
     final double c = math.cos(angle), s = math.sin(angle);
@@ -397,6 +410,8 @@ class CharacterRig {
         pose.push * (0.025 + 0.035 * pose.effort) +
         pose.slide * 0.045 +
         pose.teeter * 0.012 +
+        pose.crouch * crouchDrop +
+        pose.sit * sitDrop +
         breath * 0.0018 * idle;
     final double sway = idle * 0.011 * math.sin(pose.clock * 1.55);
     double floor = double.negativeInfinity;
@@ -463,7 +478,9 @@ class CharacterRig {
     // at toe-off (see [hipHeights]). Moving the root with every target
     // would fight the controller.
     hipY = math.max(hipY, pose.hipFloor ?? footFloor);
-    hipY = math.min(hipY, 0.36);
+    // Standing, the knees never fold past this; crouched or sitting, the
+    // seat comes right down.
+    hipY = math.min(hipY, 0.36 + math.max(pose.crouch * 0.07, pose.sit * 0.11));
 
     // Forward lean, in radians: into the run, into a push, over bent knees
     // on landing, and back against a skid (a negative bodyLean).
@@ -485,7 +502,10 @@ class CharacterRig {
         // Balancing at an edge: peering over, rocking back and forth.
         pose.teeter * (0.03 + 0.07 * _rock(pose.teeterTime)) +
         // Climbing onto a ledge: over the edge, then upright to stand.
-        0.32 * math.sin(math.pi * pose.climb.clamp(0.0, 1.0));
+        0.32 * math.sin(math.pi * pose.climb.clamp(0.0, 1.0)) +
+        // Hunched over the knees, crouched or sitting.
+        pose.crouch * 0.45 +
+        pose.sit * 0.10;
 
     // Hands on a crate or rope must not be dragged away by the lean. Find
     // the lean nearest the desired one that keeps both shoulders within
@@ -545,7 +565,8 @@ class CharacterRig {
         pose.lookUp * 0.42 +
         pose.headTurn * 0.06 +
         pose.teeter * 0.22 +
-        pose.hardLanding * 0.2;
+        pose.hardLanding * 0.2 +
+        pose.sit * 0.05;
     points[RigJoint.head] = neck + _rotate(Vector2(0.026, -0.14), headTilt);
 
     for (final front in const [false, true]) {
@@ -657,6 +678,9 @@ class CharacterRig {
       // Hanging with nothing to hold: reach straight up.
       angle = _mix(angle, math.pi - 0.12, pose.hanging);
       bend = _mix(bend, 0.08, pose.hanging);
+      // Crouched: the arms hang forward, low, by the knees.
+      angle = _mix(angle, 0.30, pose.crouch * (1 - armAir));
+      bend = _mix(bend, 0.70, pose.crouch * (1 - armAir));
 
       final elbow =
           shoulder + Vector2(math.sin(angle), math.cos(angle)) * upperArm;
@@ -666,6 +690,12 @@ class CharacterRig {
       final Offset? handTarget = front ? pose.frontHand : pose.backHand;
       if (handTarget != null) {
         hand += (Vector2(handTarget.dx, handTarget.dy) - hand) * weight;
+      } else if (pose.sit > 0) {
+        // Sitting: the arms round the shins, hands just below the knee.
+        final Vector2 shin = legSolution.end - legSolution.joint;
+        final Vector2 hold =
+            legSolution.joint + shin * 0.35 + Vector2(front ? 0.03 : 0.015, 0);
+        hand += (hold - hand) * pose.sit.clamp(0.0, 1.0);
       }
       final arm = solveTwoBone(
         shoulder,

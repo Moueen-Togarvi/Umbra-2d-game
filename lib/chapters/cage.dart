@@ -34,13 +34,26 @@ class CageChapter extends Chapter {
   CageChapter({required super.intent});
 
   @override
-  String? get ambience => 'dungeon';
+  void restoreWorld(double x) {
+    if (x >= 7) cell.restoreOpen();
+    if (x >= 63) {
+      bridge.restoreLowered();
+      lever.pressed = true;
+    }
+  }
+
   @override
-  int get number => 3;
+  String? get ambience => 'cave';
+  @override
+  String get footing => 'gravel';
+  @override
+  double get windLevel => 0.4;
+  @override
+  int get number => 6;
   @override
   String get title => 'The Cage';
   @override
-  double get width => 124;
+  double get coreWidth => 124;
   @override
   MoodTrack get moods => const MoodTrack(Mood.cave);
 
@@ -50,7 +63,7 @@ class CageChapter extends Chapter {
   static const double nicheLeft = 85.0, nicheRight = 86.6;
 
   @override
-  List<List<double>> get profile => const [
+  List<List<double>> get baseProfile => const [
     [0, ledgeY, 1.6, ledgeY],
     [
       ledgeX, ledgeY, 10, 5.0, 13, 4.9, 16, 5.1, 19, 5.5, 22, 6.1, //
@@ -64,13 +77,13 @@ class CageChapter extends Chapter {
   ];
 
   @override
-  List<double> get checkpointXs => const [7.0, 30, 49.6, 63, 100];
+  List<double> get coreCheckpointXs => const [7.0, 30, 49.6, 63, 100];
 
   @override
   Vector2 get spawn => Vector2(4.15, 4.35);
 
   @override
-  double get exitX => 118;
+  double get coreExitX => 118;
 
   @override
   List<String> get art => const [
@@ -335,7 +348,8 @@ class CageChapter extends Chapter {
   /// tunnel it cannot see him.
   bool get hidden {
     final double x = player.body.position.x;
-    return x > nicheLeft + 0.25 &&
+    return player.isLow &&
+        x > nicheLeft + 0.25 &&
         x < nicheRight - 0.25 &&
         player.velocity.x.abs() < 0.4 &&
         player.isOnGround;

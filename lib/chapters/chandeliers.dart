@@ -36,13 +36,30 @@ class ChandeliersChapter extends Chapter with KeeperChase {
   ChandeliersChapter({required super.intent});
 
   @override
-  int get number => 9;
+  void restoreWorld(double x) {
+    if (x >= 62) {
+      great.release();
+      for (final v in guards) {
+        v.gone = true;
+      }
+    }
+    if (x >= 62 && x < gapLeft) chasing = true;
+    if (x >= gapLeft) {
+      last.release();
+      endChase();
+    }
+  }
+
+  @override
+  int get number => 20;
   @override
   String get title => 'The Chandeliers';
   @override
-  double get width => 130;
+  double get coreWidth => 130;
   @override
   MoodTrack get moods => const MoodTrack(Mood.castle);
+  @override
+  String? get ambience => 'dungeon';
   @override
   List<FogLayerSpec>? get backdropSpecs => FogBackdrop.hallSpecs;
   @override
@@ -56,7 +73,7 @@ class ChandeliersChapter extends Chapter with KeeperChase {
   static const double galleryRight = 49;
 
   @override
-  List<List<double>> get profile => const [
+  List<List<double>> get baseProfile => const [
     [0, floor, 8, floor, 16, floor],
     [19.4, floor, 22.0, floor],
     [25.4, floor, 28.0, floor],
@@ -70,13 +87,13 @@ class ChandeliersChapter extends Chapter with KeeperChase {
   ];
 
   @override
-  List<double> get checkpointXs => const [12, 32.5, 47, 62, 82, 94];
+  List<double> get coreCheckpointXs => const [12, 32.5, 47, 62, 82, 94];
 
   @override
   Vector2 get spawn => Vector2(3, floor - GameConfig.playerHeight / 2);
 
   @override
-  double get exitX => 124;
+  double get coreExitX => 124;
 
   @override
   List<String> get art => const [

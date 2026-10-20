@@ -55,6 +55,10 @@ class FootPlacement {
   /// Whether each foot is currently planted rather than swinging.
   List<bool> get planted => [for (final foot in _feet) foot.wasStance];
 
+  /// What each foot stands on (null for the ground found by a probe, or a
+  /// foot in the air).
+  List<Body?> get supports => [for (final foot in _feet) foot.support];
+
   /// The ground normal under each foot, world space, pointing up.
   List<Vector2> get normals => [for (final foot in _feet) foot.normal.clone()];
 

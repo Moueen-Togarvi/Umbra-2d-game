@@ -1,4 +1,5 @@
 import 'dart:math' as math;
+import 'dart:typed_data';
 import 'dart:ui';
 
 import 'package:flame/components.dart';
@@ -6,6 +7,7 @@ import 'package:flame/game.dart' show FlameGame;
 
 import '../config/palette.dart';
 import '../render/mood.dart';
+import '../render/npc_atlas.dart';
 import '../render/scenery.dart';
 import '../world/stage.dart';
 import 'figures.dart';
@@ -43,10 +45,9 @@ enum VampireMode {
   sink,
 }
 
-/// One of the vampires: a gaunt figure over two metres tall, hunched, with
-/// a high collar, long arms ending in claws, red eyes, and a cape that is
-/// real cloth: strips of points pinned along the shoulders, swinging behind
-/// him as he moves and lifting as he falls.
+/// A hovering vampire with an articulated upper body and a coat dissolving
+/// into smoke. Ground-relative AI coordinates remain the gameplay authority;
+/// the visual body drifts above them and leaves a small local pool of mist.
 ///
 /// He can stand in the play plane (to patrol or to seize the boy) or far
 /// off in the fog at a [depth], where he is drawn smaller, paler and
@@ -63,7 +64,7 @@ class Vampire extends Component implements BackdropDrawable {
     super.priority = 1,
   }) : fog = fog ?? SceneryProp.defaultFog(depth);
 
-  /// Feet, world metres at depth 1.
+  /// Ground reference, world metres at depth 1.
   double x, groundY;
 
   /// Height above the ground (falling).
@@ -80,10 +81,13 @@ class Vampire extends Component implements BackdropDrawable {
   double _pause = 0;
 
   static const double height = 2.2;
+  static const double hoverClearance = .35;
 
   double _speed = 0;
-  double _gait = 0;
+  double? _soundX;
+  double _soundDistance = 0;
   double _time = 0;
+  late final double _driftPhase = x * .37;
   double _fallSpeed = 0;
   bool landed = false;
   final Calm _crouch = Calm(0, hertz: 1.4);
@@ -118,6 +122,65 @@ class Vampire extends Component implements BackdropDrawable {
   final math.Random _random = math.Random(7);
 
   late final _Cape _cape = _Cape();
+  NpcAtlas? _art;
+  bool get hasArtwork => _art != null;
+  final Paint _sprite = Paint()..filterQuality = FilterQuality.medium;
+  final Paint _joint = Paint()..color = const Color(0xFF0B0C0E);
+  final Paint _mist = Paint()
+    ..shader = Gradient.radial(
+      Offset.zero,
+      1,
+      const [Color(0x45979B98), Color(0x22898F8B), Color(0x00898F8B)],
+      const [0, .4, 1],
+    );
+  final Paint _trail = Paint()..style = PaintingStyle.stroke;
+  final Path _smokePath = Path();
+  ImageShader? _coatTexture;
+  final Paint _coatPaint = Paint()..filterQuality = FilterQuality.medium;
+  static final Float64List _textureMatrix = Float64List.fromList([
+    1,
+    0,
+    0,
+    0,
+    0,
+    1,
+    0,
+    0,
+    0,
+    0,
+    1,
+    0,
+    0,
+    0,
+    0,
+    1,
+  ]);
+  // Remove the atlas's painted eye colour; the live eye below obeys eyes,
+  // distance fog and burning, rather than remaining red after extinguishing.
+  final Paint _headSprite = Paint()
+    ..filterQuality = FilterQuality.medium
+    ..colorFilter = const ColorFilter.matrix([
+      .1807,
+      .6079,
+      .0614,
+      0,
+      0,
+      .1807,
+      .6079,
+      .0614,
+      0,
+      0,
+      .1807,
+      .6079,
+      .0614,
+      0,
+      0,
+      0,
+      0,
+      0,
+      1,
+      0,
+    ]);
   Stage? _stage;
   CameraComponent? _camera;
 
@@ -234,6 +297,7 @@ class Vampire extends Component implements BackdropDrawable {
 
   @override
   Future<void> onLoad() async {
+    _art = await NpcAtlas.load('vampire');
     final game = findGame();
     if (game is FlameGame) _camera = game.camera;
     _stage = ancestors().whereType<Stage>().firstOrNull;
@@ -243,6 +307,8 @@ class Vampire extends Component implements BackdropDrawable {
 
   @override
   void onRemove() {
+    _coatTexture?.dispose();
+    _coatTexture = null;
     _stage?.backdropProps.remove(this);
     super.onRemove();
   }
@@ -256,6 +322,33 @@ class Vampire extends Component implements BackdropDrawable {
   @override
   void update(double dt) {
     if (dt <= 0) return;
+    final previousX = _soundX;
+    _soundX = x;
+    if (!gone &&
+        depth >= .99 &&
+        lift < .1 &&
+        mode != VampireMode.burn &&
+        mode != VampireMode.sink &&
+        mode != VampireMode.drop &&
+        mode != VampireMode.rise) {
+      final stage = _stage;
+      if (stage != null &&
+          stage.player.isMounted &&
+          !stage.player.isDead &&
+          (stage.player.body.position.x - x).abs() < 12 &&
+          (stage.player.body.position.y - (groundY - .65)).abs() < 2) {
+        stage.reportThreat(ThreatLevel.tension);
+      }
+      final moved = previousX == null ? 0.0 : (x - previousX).abs();
+      if (moved < 1) _soundDistance += moved;
+      if (_soundDistance >= .9) {
+        _soundDistance %= .9;
+        cue('vampire_step', weight: .7, at: Vector2(x, groundY));
+        cue('vampire_cloth', weight: .3, at: Vector2(x, groundY - 1));
+      }
+    } else {
+      _soundDistance = 0;
+    }
     _time += dt;
     double target = 0;
     switch (mode) {
@@ -285,7 +378,7 @@ class Vampire extends Component implements BackdropDrawable {
           if (lift <= 0) {
             lift = 0;
             landed = true;
-            cue('land', at: _chest, shake: 0.35);
+            cue('rumble', weight: .18, at: _chest, shake: .1);
           }
         } else {
           sinceLanding += dt;
@@ -317,7 +410,6 @@ class Vampire extends Component implements BackdropDrawable {
       x += _speed * dt;
     }
     _updateMotes(dt);
-    _gait += _speed.abs() * dt / 0.95 * math.pi;
     _turn.step(facing, dt);
     final bool crouching =
         (mode == VampireMode.drop && landed && sinceLanding < 0.7) ||
@@ -345,10 +437,6 @@ class Vampire extends Component implements BackdropDrawable {
   }
 
   final Paint _body = Paint();
-  final Paint _limb = Paint()
-    ..style = PaintingStyle.stroke
-    ..strokeCap = StrokeCap.round
-    ..strokeJoin = StrokeJoin.round;
   final Paint _glow = Paint();
   @override
   void paint(Canvas canvas, Vector2 cam, Mood mood) {
@@ -370,7 +458,6 @@ class Vampire extends Component implements BackdropDrawable {
       ash * ash,
     )!;
     _body.color = tone;
-    _limb.color = tone;
     final Rect? view = _camera?.visibleWorldRect;
     if (view != null &&
         !view
@@ -381,244 +468,271 @@ class Vampire extends Component implements BackdropDrawable {
       canvas.restore();
       return;
     }
-    canvas.translate(0, -lift);
+    _paintGroundMist(canvas, ash);
+    final hover = math.sin(_time * 1.65 + _driftPhase) * .035;
+    canvas.translate(0, -lift + hover);
     if (ash > 0) {
       // Folding down into a heap as he crumbles.
       canvas.scale(1 + ash * 0.15, 1 - ash * 0.75);
     }
-    final double f = _turn.value.clamp(-1.0, 1.0);
-    final double dir = f.abs() < 0.1 ? facing : f.sign;
-    final double crouch = _crouch.value;
-    final double reach = _reach.value;
-    final double moving = (_speed.abs() / walkSpeed).clamp(0.0, 1.0);
-    final double shield = _shield.value.clamp(0.0, 1.0);
-    final double bob = -math.sin(_gait * 2).abs() * 0.03 * moving;
-    final double breathe = math.sin(_time * 1.3) * 0.008;
-    final double hipY = -1.0 + crouch * 0.42 + bob;
-    final Offset hip = Offset(-dir * 0.04, hipY);
-    // Hunched: the back bows forward, more in the crouch, less reaching.
-    final double hunch =
-        0.42 +
-        crouch * 0.45 -
-        reach * 0.25 +
-        shield * 0.25 +
-        (mode == VampireMode.driven ? moving * 0.18 : 0);
-    final Offset neck =
-        hip +
-        Offset(dir * math.sin(hunch) * 0.72, -math.cos(hunch) * 0.72 + breathe);
-    final Offset head = neck + Offset(dir * 0.13, -0.08);
-
-    // The cape behind everything else, in world metres.
-    canvas.save();
-    canvas.translate(-x, -(groundY - lift));
-    canvas.drawPath(_cape.outline(), _body);
-    canvas.restore();
-
-    // Legs: long and thin, stepping in a slow, high-kneed gait.
-    _limb.strokeWidth = 0.075;
-    for (var i = 0; i < 2; i++) {
-      final double phase = _gait + i * math.pi;
-      final double fx =
-          dir * (math.cos(phase) * 0.36 * moving) + (i - 0.5) * 0.08;
-      final double fy = -math.max(0, math.sin(phase)) * 0.16 * moving;
-      final Offset foot = Offset(
-        fx + dir * crouch * (i == 0 ? 0.3 : -0.25),
-        fy,
-      );
-      final Offset knee = solveLimb(hip, foot, 0.53, 0.52, -dir);
-      canvas.drawPath(
-        Path()
-          ..moveTo(hip.dx, hip.dy)
-          ..lineTo(knee.dx, knee.dy)
-          ..lineTo(foot.dx, foot.dy),
-        _limb,
-      );
-      // Long pointed shoes.
-      canvas.drawPath(
-        Path()
-          ..moveTo(foot.dx - dir * 0.06, foot.dy - 0.05)
-          ..quadraticBezierTo(
-            foot.dx + dir * 0.12,
-            foot.dy - 0.05,
-            foot.dx + dir * 0.24,
-            foot.dy - 0.01,
+    final art = _art;
+    if (art == null) {
+      canvas.restore();
+      return;
+    }
+    final f = _turn.value.clamp(-1.0, 1.0);
+    final facingSign = f.abs() < .1 ? facing : f.sign;
+    canvas.scale(facingSign * math.max(.35, f.abs()), 1);
+    const dir = 1.0;
+    final crouch = _crouch.value;
+    final reach = _reach.value;
+    final moving = (_speed.abs() / walkSpeed).clamp(0.0, 1.0);
+    final shield = _shield.value.clamp(0.0, 1.0);
+    final breathe = math.sin(_time * 1.3) * .006;
+    final hip = Offset(-.04, -1.02 + crouch * .12);
+    final hunch = .17 + crouch * .4 + moving * .15 + shield * .2 - reach * .07;
+    final neck =
+        hip + Offset(math.sin(hunch) * .77, -math.cos(hunch) * .77 + breathe);
+    final head = neck + const Offset(.045, -.16);
+    final tintAmount = math.max(fog, ash * .85).clamp(0.0, .9);
+    _sprite.colorFilter = tintAmount > .01
+        ? ColorFilter.mode(
+            tone.withValues(alpha: tintAmount),
+            BlendMode.srcATop,
           )
-          ..lineTo(foot.dx - dir * 0.07, foot.dy)
-          ..close(),
-        _body,
+        : null;
+    _joint.colorFilter = _sprite.colorFilter;
+
+    const torso = Rect.fromLTWH(-.24, -.19, .46, .99);
+    Offset torsoPoint(Offset uv) {
+      final local = Offset(
+        torso.left + uv.dx * torso.width,
+        torso.top + uv.dy * torso.height,
+      );
+      return neck +
+          Offset(
+            local.dx * math.cos(hunch) - local.dy * math.sin(hunch),
+            local.dx * math.sin(hunch) + local.dy * math.cos(hunch),
+          );
+    }
+
+    void arm(int side) {
+      final bool rear = side == 0;
+      // The visible armhole is at UV (.20, .34) in the torso artwork.
+      // Derive its world position from the exact same torso transform.
+      final shoulder = torsoPoint(
+        rear ? const Offset(.31, .34) : const Offset(.20, .34),
+      );
+      final phase = _time * 1.65 + _driftPhase + side * math.pi;
+      final swing = math.sin(phase) * .025 * moving * (1 - reach);
+      final hang =
+          hip +
+          Offset((rear ? .19 : .36) + swing, -.10 - math.cos(phase) * .008);
+      final out = neck + Offset(rear ? .58 : .55, rear ? .14 : .10);
+      var wrist = Offset.lerp(hang, out, reach)!;
+      if (!rear && shield > 0) {
+        wrist = Offset.lerp(wrist, head + const Offset(.19, .04), shield)!;
+      }
+      final delta = wrist - shoulder;
+      wrist =
+          shoulder + delta * math.min(1, .709 / math.max(.001, delta.distance));
+      // Mirroring the whole figure already changes its handedness. Both
+      // elbows must bend anatomically the same way in this local side view.
+      final elbow = solveLimb(shoulder, wrist, .36, .35, 1);
+      // Underlays live beneath the textured sleeves. They cover transparent
+      // fringes without replacing the existing clothing artwork.
+      canvas.drawCircle(shoulder, .072, _joint);
+      canvas.drawCircle(elbow, .045, _joint);
+      canvas.drawCircle(wrist, .028, _joint);
+      art.bone(
+        canvas,
+        3,
+        shoulder,
+        elbow,
+        .16,
+        _sprite,
+        startAnchor: const Offset(.57, .12),
+        endAnchor: const Offset(.44, .94),
+      );
+      art.bone(
+        canvas,
+        4,
+        elbow,
+        wrist,
+        .115,
+        _sprite,
+        startAnchor: const Offset(.27, .08),
+        endAnchor: const Offset(.52, .86),
+      );
+      final forearm = wrist - elbow;
+      final angle = math.atan2(forearm.dy, forearm.dx);
+      final restingAngle = rear ? .30 : .18;
+      final reachingAngle = rear ? .14 : .08;
+      final handAngle = restingAngle + (reachingAngle - restingAngle) * reach;
+      final curl = (handAngle - angle) * (1 - shield);
+      art.hand(
+        canvas,
+        5,
+        wrist,
+        elbow,
+        .14,
+        .18,
+        _sprite,
+        curl: curl,
+        wristAnchor: const Offset(.31, .065),
+        fingerAnchor: const Offset(.68, .80),
       );
     }
 
-    // The coat: narrow at the shoulders, falling in a long curve to a
-    // flared, ragged hem below the knees.
-    final Offset back = neck + Offset(-dir * 0.15, 0.06);
-    final Offset chest = neck + Offset(dir * 0.09, 0.12);
-    final double hem = hip.dy + 0.55 - crouch * 0.1;
-    final double sway = math.sin(_gait) * 0.04 * moving;
-    canvas.drawPath(
-      Path()
-        ..moveTo(back.dx, back.dy)
-        ..cubicTo(
-          hip.dx - dir * 0.34,
-          hip.dy - 0.35,
-          hip.dx - dir * 0.36,
-          hip.dy + 0.1,
-          hip.dx - dir * 0.34 + sway,
-          hem,
-        )
-        // Ragged points along the hem.
-        ..lineTo(hip.dx - dir * 0.24 + sway, hem - 0.08)
-        ..lineTo(hip.dx - dir * 0.16 + sway, hem + 0.03)
-        ..lineTo(hip.dx - dir * 0.05 + sway, hem - 0.07)
-        ..lineTo(hip.dx + dir * 0.06 + sway, hem + 0.02)
-        ..lineTo(hip.dx + dir * 0.16 + sway, hem - 0.09)
-        ..lineTo(hip.dx + dir * 0.24 + sway, hem - 0.02)
-        ..cubicTo(
-          hip.dx + dir * 0.2,
-          hip.dy - 0.1,
-          hip.dx + dir * 0.18,
-          hip.dy - 0.3,
-          chest.dx,
-          chest.dy,
-        )
-        ..close(),
-      _body,
+    arm(0);
+    _paintSmokeVeil(canvas, hip, moving, ash);
+    _paintFloatingCoat(canvas, art, hip, moving, facingSign);
+    canvas.save();
+    canvas.translate(neck.dx, neck.dy);
+    canvas.rotate(hunch);
+    art.draw(canvas, 1, torso, _sprite);
+    canvas.restore();
+    art.draw(
+      canvas,
+      0,
+      Rect.fromCenter(center: head, width: .46, height: .43),
+      _headSprite,
     );
+    arm(1);
 
-    // The high collar, two spikes rising behind the head.
-    canvas.drawPath(
-      Path()
-        ..moveTo(neck.dx - dir * 0.2, neck.dy + 0.06)
-        ..lineTo(neck.dx - dir * 0.24, neck.dy - 0.3)
-        ..lineTo(neck.dx - dir * 0.08, neck.dy - 0.08)
-        ..lineTo(neck.dx + dir * 0.02, neck.dy - 0.26)
-        ..lineTo(neck.dx + dir * 0.08, neck.dy + 0.04)
-        ..close(),
-      _body,
-    );
-
-    // Narrow hooked face, pointed ear and swept-back hair.
-    canvas.drawPath(
-      Path()
-        ..moveTo(head.dx - dir * 0.08, head.dy + 0.09)
-        ..quadraticBezierTo(
-          head.dx - dir * 0.11,
-          head.dy - 0.14,
-          head.dx + dir * 0.02,
-          head.dy - 0.13,
-        )
-        ..quadraticBezierTo(
-          head.dx + dir * 0.1,
-          head.dy - 0.1,
-          head.dx + dir * 0.1,
-          head.dy - 0.02,
-        )
-        ..lineTo(head.dx + dir * 0.17, head.dy + 0.03)
-        ..lineTo(head.dx + dir * 0.09, head.dy + 0.05)
-        ..quadraticBezierTo(
-          head.dx + dir * 0.08,
-          head.dy + 0.12,
-          head.dx + dir * 0.03,
-          head.dy + 0.14,
-        )
-        ..close(),
-      _body,
-    );
-    canvas.drawPath(
-      Path()
-        ..moveTo(head.dx - dir * 0.05, head.dy - 0.03)
-        ..lineTo(head.dx - dir * 0.13, head.dy - 0.16)
-        ..lineTo(head.dx - dir * 0.02, head.dy - 0.06)
-        ..close(),
-      _body,
-    );
-    canvas.drawPath(
-      Path()
-        ..moveTo(head.dx + dir * 0.07, head.dy - 0.1)
-        ..quadraticBezierTo(
-          head.dx - dir * 0.07,
-          head.dy - 0.27,
-          head.dx - dir * 0.25,
-          head.dy - 0.22,
-        )
-        ..lineTo(head.dx - dir * 0.18, head.dy - 0.16)
-        ..lineTo(head.dx - dir * 0.32, head.dy - 0.15)
-        ..lineTo(head.dx - dir * 0.13, head.dy - 0.08)
-        ..close(),
-      _body,
-    );
-
-    // Arms: hanging and swinging a little as he walks, or reaching out with
-    // the claws open.
-    _limb.strokeWidth = 0.06;
-    for (var i = 0; i < 2; i++) {
-      final Offset shoulder =
-          neck + Offset(dir * (i == 0 ? 0.04 : -0.06), 0.12);
-      final double swing = math.sin(_gait + i * math.pi) * 0.22 * moving;
-      final Offset hang =
-          shoulder + Offset(dir * (0.12 + swing), 0.78 - crouch * 0.1);
-      final Offset out =
-          shoulder + Offset(dir * (0.78 - i * 0.08), -0.05 - i * 0.12);
-      Offset hand = Offset.lerp(hang, out, reach)!;
-      if (i == 0 && shield > 0) {
-        // The near arm up across his face against the light.
-        hand = Offset.lerp(hand, head + Offset(dir * 0.16, 0.02), shield)!;
-      }
-      final Offset elbow = solveLimb(shoulder, hand, 0.43, 0.42, dir);
-      canvas.drawPath(
-        Path()
-          ..moveTo(shoulder.dx, shoulder.dy)
-          ..lineTo(elbow.dx, elbow.dy)
-          ..lineTo(hand.dx, hand.dy),
-        _limb,
-      );
-      // Four long curved claws.
-      final Offset along = hand - elbow;
-      final double a0 = math.atan2(along.dy, along.dx);
-      final double open = 0.15 + reach * 0.35;
-      for (var c = 0; c < 4; c++) {
-        final double a = a0 + (c - 1.5) * open * 0.5;
-        final Offset tip = hand + Offset(math.cos(a), math.sin(a)) * 0.15;
-        final Offset bend = hand + Offset(math.cos(a), math.sin(a)) * 0.08;
-        canvas.drawPath(
-          Path()
-            ..moveTo(hand.dx, hand.dy)
-            ..quadraticBezierTo(
-              bend.dx + dir * 0.0,
-              bend.dy - 0.01,
-              tip.dx,
-              tip.dy + 0.03,
-            ),
-          _limb..strokeWidth = 0.018,
-        );
-      }
-      _limb.strokeWidth = 0.06;
-    }
-
-    // The eyes: red, the only colour on him.
+    // Keep the eye saturated and readable at gameplay scale, including fog.
     if (eyes > 0.01 && ash < 0.8) {
-      final Offset eye = head + Offset(dir * 0.06, -0.035);
+      final Offset eye = head + Offset(dir * 0.15, -0.015);
       final double a = eyes * (1 - fog * 0.6) * (1 - ash / 0.8);
+      const red = Color(0xFFFF2028);
       // Opaque: a shader paints at the paint colour's opacity.
       _glow.color = const Color(0xFFFFFFFF);
-      _glow.shader = Gradient.radial(eye, 0.06, [
-        Palette.vampireRed.withValues(alpha: 0.4 * a),
-        Palette.vampireRed.withValues(alpha: 0),
-      ]);
-      canvas.drawCircle(eye, 0.06, _glow);
+      _glow.shader = Gradient.radial(
+        eye,
+        .095,
+        [
+          red.withValues(alpha: .65 * a),
+          red.withValues(alpha: .22 * a),
+          red.withValues(alpha: 0),
+        ],
+        [0, .35, 1],
+      );
+      canvas.drawCircle(eye, .095, _glow);
       _glow
         ..shader = null
-        ..color = Color.lerp(
-          Palette.vampireRed,
-          const Color(0xFFFFB0A0),
-          0.35,
-        )!.withValues(alpha: a);
+        ..color = red.withValues(alpha: a);
       canvas.drawOval(
-        Rect.fromCenter(center: eye, width: 0.032, height: 0.014),
+        Rect.fromCenter(center: eye, width: .050, height: .024),
         _glow,
       );
     }
     canvas.restore();
+  }
+
+  void _paintGroundMist(Canvas canvas, double ash) {
+    final opacity =
+        (1 - lift.abs() / .9).clamp(0.0, 1.0) * (1 - ash) * (1 - fog * .65);
+    if (opacity < .01) return;
+    canvas.save();
+    canvas.clipRect(const Rect.fromLTRB(-1.5, -.48, 1.5, .015));
+    for (var i = 0; i < 7; i++) {
+      final phase = _time * .55 + i * 1.7 + _driftPhase;
+      final px = (i - 3) * .20 + math.sin(phase) * .12 - _speed * .045;
+      final py = -.045 - (i % 3) * .035 + math.cos(phase * .7) * .018;
+      _mist.color = Color.fromRGBO(255, 255, 255, opacity * .48);
+      canvas.save();
+      canvas.translate(px, py);
+      canvas.scale(.40 + (i % 2) * .10, .10 + (i % 3) * .018);
+      canvas.drawCircle(Offset.zero, 1, _mist);
+      canvas.restore();
+    }
+    canvas.restore();
+  }
+
+  void _paintSmokeVeil(Canvas canvas, Offset hip, double moving, double ash) {
+    final opacity = (1 - fog * .65) * (1 - ash);
+    for (var i = 0; i < 5; i++) {
+      final t = _time * .8 + _driftPhase + i * 1.8;
+      final sx = hip.dx - .25 + i * .09;
+      final sy = hip.dy + .35 + i * .035;
+      final drift = -.10 - moving * .12 + math.sin(t) * .055;
+      _trail
+        ..strokeWidth = .035 - (i % 3) * .006
+        ..shader = Gradient.linear(
+          Offset(sx, sy),
+          Offset(sx + drift, -.06),
+          [
+            const Color(0xFF111416).withValues(alpha: opacity * .55),
+            const Color(0xFF707774).withValues(alpha: opacity * .12),
+            const Color(0x00707774),
+          ],
+          const [0, .65, 1],
+        );
+      _smokePath
+        ..reset()
+        ..moveTo(sx, sy)
+        ..cubicTo(
+          sx + .10 * math.cos(t),
+          sy + .16,
+          sx + drift - .08,
+          -.25,
+          sx + drift,
+          -.06,
+        );
+      canvas.drawPath(_smokePath, _trail);
+    }
+  }
+
+  void _paintFloatingCoat(
+    Canvas canvas,
+    NpcAtlas art,
+    Offset hip,
+    double moving,
+    double facingSign,
+  ) {
+    const strips = 12;
+    const top = -.17;
+    final hem = -hoverClearance - hip.dy;
+    final length = hem - top;
+    final lag = -.08 - moving * .16 - facingSign * _cape.sway * .08;
+    final positions = <Offset>[];
+    final texture = <Offset>[];
+    final colors = <Color>[];
+    final source = art.parts[2];
+    for (var i = 0; i <= strips; i++) {
+      final v = i / strips;
+      final fade = ((v - .45) / .55).clamp(0.0, 1.0);
+      final alpha = 1 - fade * fade * (3 - 2 * fade);
+      final offset = lag * v * v + math.sin(_time * 1.6 - v * 5) * .025 * v;
+      positions.addAll([
+        Offset(hip.dx - .44 + offset, hip.dy + top + v * length),
+        Offset(hip.dx + .22 + offset, hip.dy + top + v * length),
+      ]);
+      texture.addAll([
+        Offset(source.left, source.top + v * source.height),
+        Offset(source.right, source.top + v * source.height),
+      ]);
+      final color = Color.fromRGBO(255, 255, 255, alpha);
+      colors.addAll([color, color]);
+    }
+    _coatTexture ??= ImageShader(
+      art.image,
+      TileMode.clamp,
+      TileMode.clamp,
+      _textureMatrix,
+      filterQuality: FilterQuality.medium,
+    );
+    _coatPaint
+      ..shader = _coatTexture
+      ..colorFilter = _sprite.colorFilter;
+    final mesh = Vertices(
+      VertexMode.triangleStrip,
+      positions,
+      textureCoordinates: texture,
+      colors: colors,
+    );
+    canvas.drawVertices(mesh, BlendMode.modulate, _coatPaint);
+    mesh.dispose();
   }
 }
 
@@ -815,23 +929,10 @@ class _Cape {
     }
   }
 
-  Path outline() {
-    final path = Path();
-    if (_p.isEmpty) return path;
-    path.moveTo(_at(0, 0).x, _at(0, 0).y);
-    for (var r = 1; r < rows; r++) {
-      path.lineTo(_at(r, 0).x, _at(r, 0).y);
-    }
-    // A tattered hem: points cut in between the columns.
-    for (var c = 1; c < cols; c++) {
-      final a = _at(rows - 1, c - 1), b = _at(rows - 1, c);
-      path
-        ..lineTo((a.x + b.x) / 2, (a.y + b.y) / 2 - 0.12 - (c % 2) * 0.06)
-        ..lineTo(b.x, b.y);
-    }
-    for (var r = rows - 2; r >= 0; r--) {
-      path.lineTo(_at(r, cols - 1).x, _at(r, cols - 1).y);
-    }
-    return path..close();
-  }
+  double get sway => _p.isEmpty
+      ? 0
+      : ((_at(rows - 1, cols ~/ 2).x - _at(0, cols ~/ 2).x) / length).clamp(
+          -1.0,
+          1.0,
+        );
 }

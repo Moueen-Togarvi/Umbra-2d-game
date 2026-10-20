@@ -172,6 +172,7 @@ class StoneWall extends BodyComponent with OffScreenCulling {
     required this.right,
     required this.top,
     required this.bottom,
+    required this.groundY,
   }) : super(
          renderBody: false,
          bodyDef: BodyDef(
@@ -180,7 +181,7 @@ class StoneWall extends BodyComponent with OffScreenCulling {
          ),
        );
 
-  final double left, right, top, bottom;
+  final double left, right, top, bottom, groundY;
   late final Path _stones = _build();
   static final Paint _fill = Paint()..color = _black;
   static final Paint _joint = Paint()
@@ -239,35 +240,19 @@ class StoneWall extends BodyComponent with OffScreenCulling {
     return path;
   }
 
-  /// Ivy on the top and grass at the foot, drawn over the stones.
+  /// Grass rooted at the visible surface, above the buried foundation.
   late final Path _growth = _buildGrowth();
   Path _buildGrowth() {
     final random = math.Random((right * 77).round());
-    final double hw = (right - left) / 2, hh = (bottom - top) / 2;
+    final double hw = (right - left) / 2;
+    final double foot = groundY - (top + bottom) / 2 + .025;
     final path = Path();
-    // Ivy hanging from the top over one face.
-    for (var i = 0; i < 9; i++) {
-      final double x = -hw + random.nextDouble() * (hw * 1.2);
-      final double len = 0.2 + random.nextDouble() * 0.9;
-      for (double v = 0; v < len; v += 0.07) {
-        final double cx = x + math.sin(v * 9 + i) * 0.03;
-        final double cy = -hh + v;
-        path.addOval(
-          Rect.fromCenter(
-            center: Offset(cx + (random.nextDouble() - 0.5) * 0.05, cy),
-            width: 0.07,
-            height: 0.05,
-          ),
-        );
-      }
-    }
-    // Tufts at the foot.
     for (double x = -hw - 0.1; x < hw + 0.1; x += 0.12) {
       final double h = 0.08 + random.nextDouble() * 0.16;
       path
-        ..moveTo(x - 0.03, hh)
-        ..lineTo(x + (random.nextDouble() - 0.5) * 0.08, hh - h)
-        ..lineTo(x + 0.03, hh)
+        ..moveTo(x - 0.03, foot)
+        ..lineTo(x + (random.nextDouble() - 0.5) * 0.08, foot - h)
+        ..lineTo(x + 0.03, foot)
         ..close();
     }
     return path;
@@ -317,28 +302,25 @@ class StoneWall extends BodyComponent with OffScreenCulling {
     return path;
   }
 
-  static final List<Paint> _behind = [
-    for (var i = 1; i <= 4; i++)
-      Paint()..color = Color.fromARGB(255, 8 + 14 * i, 8 + 13 * i, 8 + 12 * i),
-  ];
-
   @override
   void render(Canvas canvas) {
-    if (!isOnScreen(Rect.fromLTRB(left - 1.5, top - 1, right, bottom))) {
+    if (!isOnScreen(Rect.fromLTRB(left, top, right, bottom))) {
       return;
     }
-    // The wall runs away from us into the field: the further courses, a
-    // step back and up each time, paler in the fog.
-    for (var i = 4; i >= 1; i--) {
-      canvas.save();
-      canvas.translate(-0.3 * i, -0.18 * i);
-      canvas.scale(math.pow(0.95, i).toDouble());
-      canvas.drawPath(_outline, _behind[i - 1]);
-      canvas.restore();
-    }
+    final double hw = (right - left) / 2;
+    canvas.save();
+    canvas.clipRect(
+      Rect.fromLTRB(
+        -hw - .15,
+        -(bottom - top) / 2 - .05,
+        hw + .15,
+        groundY - (top + bottom) / 2 + .025,
+      ),
+    );
     canvas.drawPath(_outline, _fill);
     canvas.drawPath(_stones, _joint);
     canvas.drawPath(_growth, _fill);
+    canvas.restore();
   }
 }
 
@@ -477,9 +459,8 @@ class Seesaw extends BodyComponent with OffScreenCulling {
   }
 }
 
-/// A fence running away from the camera across his path: the nearest
-/// post and rail are solid and must be hopped; the rest recede into the
-/// fog behind it.
+/// A short garden fence. The end post crosses the path and must be hopped;
+/// the decorative bay behind it shares the terrain baseline.
 class LowFence extends BodyComponent with OffScreenCulling {
   LowFence({required this.x, required this.groundY, this.height = 0.72})
     : super(
@@ -491,7 +472,8 @@ class LowFence extends BodyComponent with OffScreenCulling {
       );
 
   final double x, groundY, height;
-  static final Paint _paint = Paint();
+  static final Paint _paint = Paint()..color = _black;
+  late final Path _timber = _buildTimber();
 
   @override
   Body createBody() {
@@ -508,48 +490,41 @@ class LowFence extends BodyComponent with OffScreenCulling {
     return b;
   }
 
+  Path _buildTimber() {
+    final path = Path();
+    final double hh = height / 2;
+    for (var i = 0; i < 3; i++) {
+      final double dx = -.48 * i;
+      final double w = .12, h = height * (1 - .025 * i);
+      final double lean = ((i * 7) % 5 - 2) * 0.012;
+      path
+        ..moveTo(dx - w / 2, hh + .04)
+        ..lineTo(dx - w / 2 + lean, hh - h + w * .6)
+        ..lineTo(dx + lean, hh - h)
+        ..lineTo(dx + w / 2 + lean, hh - h + w * .6)
+        ..lineTo(dx + w / 2, hh + .04)
+        ..close();
+    }
+    for (final f in [.30, .72]) {
+      final y = hh - height * f;
+      path
+        ..moveTo(-1, y + .025)
+        ..lineTo(.03, y)
+        ..lineTo(.03, y + .045)
+        ..lineTo(-1, y + .07)
+        ..close();
+    }
+    return path;
+  }
+
   @override
   void render(Canvas canvas) {
-    if (!isOnScreen(Rect.fromLTRB(x - 2, groundY - 2, x + 1, groundY + 1))) {
+    if (!isOnScreen(
+      Rect.fromLTRB(x - 1.1, groundY - height, x + .1, groundY),
+    )) {
       return;
     }
-    // Furthest first: each picket a step back and up into the fog.
-    const int count = 7;
-    final double hh = height / 2;
-    for (var i = count - 1; i >= 0; i--) {
-      final double k = math.pow(0.9, i).toDouble();
-      final double dx = -0.2 * i, dy = -0.12 * i;
-      final int fog = (i * 13).clamp(0, 90);
-      _paint.color = Color.fromARGB(255, 5 + fog, 5 + fog, 5 + fog);
-      final double w = 0.12 * k, h = height * k;
-      final double lean = ((i * 7) % 5 - 2) * 0.012;
-      canvas.drawPath(
-        Path()
-          ..moveTo(dx - w / 2, hh + dy)
-          ..lineTo(dx - w / 2 + lean, hh + dy - h + w * 0.6)
-          ..lineTo(dx + lean, hh + dy - h)
-          ..lineTo(dx + w / 2 + lean, hh + dy - h + w * 0.6)
-          ..lineTo(dx + w / 2, hh + dy)
-          ..close(),
-        _paint,
-      );
-      if (i > 0) {
-        // Two rails back to the next picket.
-        final double pdx = -0.2 * (i - 1), pdy = -0.12 * (i - 1);
-        final double pk = math.pow(0.9, i - 1).toDouble();
-        for (final f in [0.3, 0.72]) {
-          canvas.drawPath(
-            Path()
-              ..moveTo(dx, hh + dy - h * f)
-              ..lineTo(pdx, hh + pdy - height * pk * f)
-              ..lineTo(pdx, hh + pdy - height * pk * f + 0.045 * pk)
-              ..lineTo(dx, hh + dy - h * f + 0.045 * k)
-              ..close(),
-            _paint,
-          );
-        }
-      }
-    }
+    canvas.drawPath(_timber, _paint);
   }
 }
 

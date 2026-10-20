@@ -1,3 +1,4 @@
+import 'support/route_pilot.dart';
 import 'package:flame/game.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:umbra/chapters/bone_pit.dart';
@@ -9,9 +10,10 @@ import 'support/campaign.dart';
 void main() {
   testWidgets('a barrel floats, dips and tips under him', (tester) async {
     final game = await bootCampaign(tester);
-    final pit = await enterChapter<BonePitChapter>(tester, game, 5);
+    final pit = await enterChapter<BonePitChapter>(tester, game, 12);
     final barrel = pit.barrels[2];
     for (var i = 0; i < 120; i++) {
+      driveExtension(game);
       game.update(1 / 60);
     }
     final Vector2 start = barrel.body.position.clone();
@@ -20,6 +22,7 @@ void main() {
     pit.player.teleportTo(Vector2(start.x + 0.5, start.y - 0.45 - 0.66));
     double leaned = 0;
     for (var i = 0; i < 90; i++) {
+      driveExtension(game);
       game.update(1 / 60);
       if (barrel.body.angle.abs() > leaned) leaned = barrel.body.angle.abs();
     }
@@ -31,7 +34,7 @@ void main() {
   testWidgets('chapter six: over the barrels, through the drained chamber, '
       'and up the shaft ahead of the water', (tester) async {
     final game = await bootCampaign(tester);
-    final pit = await enterChapter<BonePitChapter>(tester, game, 5);
+    final pit = await enterChapter<BonePitChapter>(tester, game, 12);
     final player = pit.player;
     final intent = game.intent;
     final jumped = <String>{};
@@ -47,7 +50,7 @@ void main() {
       intent.requestJump();
     }
 
-    for (var i = 0; i < 60 * 200 && !pit.isComplete; i++) {
+    for (var i = 0; i < 60 * 900 && !pit.isComplete; i++) {
       final double x = player.body.position.x;
       final double feet = player.body.position.y + GameConfig.playerHeight / 2;
       final bool grounded = player.isOnGround;
@@ -140,6 +143,7 @@ void main() {
         }
       }
       intent.setKeyboardState(axis: axis);
+      driveExtension(game);
       game.update(1 / 60);
       if (player.isDead) {
         fail(

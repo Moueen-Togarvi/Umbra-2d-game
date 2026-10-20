@@ -8,6 +8,7 @@ import 'dart:io';
 import 'dart:convert';
 import 'dart:ui' as ui;
 
+import 'package:flame/components.dart';
 import 'package:flame/game.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
@@ -16,6 +17,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:umbra/chapters/cage.dart';
 import 'package:umbra/chapters/chandeliers.dart';
 import 'package:umbra/chapters/chapter.dart';
+import 'package:umbra/chapters/campaign_catalog.dart';
 import 'package:umbra/chapters/dawn.dart';
 import 'package:umbra/chapters/chase.dart';
 import 'package:umbra/chapters/forest.dart';
@@ -29,6 +31,8 @@ import 'package:umbra/story/figures.dart';
 import 'package:umbra/story/vampire.dart';
 import 'package:umbra/render/mood.dart';
 import 'package:umbra/render/chapter_backdrop.dart';
+import 'package:umbra/render/scenery.dart';
+import 'package:umbra/render/white_blossom_tree.dart';
 import 'package:umbra/ui/title_screen.dart';
 import 'package:umbra/ui/pause_screen.dart';
 
@@ -300,7 +304,7 @@ void main() {
   testWidgets('forest tour', (tester) async {
     final game = await boot(tester);
     step(game, 3);
-    game.director!.playChapter(1);
+    game.director!.playChapter(4);
     for (var i = 0; i < 400 && !game.director!.isPlaying; i++) {
       game.update(1 / 60);
       await tester.runAsync(
@@ -349,7 +353,7 @@ void main() {
 
   testWidgets('review corridor gameplay', (tester) async {
     final game = await boot(tester);
-    await enterChapter(tester, game, 7);
+    await enterChapter(tester, game, 17);
     final halls = game.stage! as HallsChapter;
     for (var i = 0; i < 60 * 120 && halls.player.body.position.x < 32; i++) {
       game.intent.setKeyboardState(axis: 1);
@@ -363,7 +367,7 @@ void main() {
 
   // Frozen review frames at real terrain locations. Positioning here is
   // capture tooling only; normal gameplay continues to use Box2D movement.
-  for (var index = 0; index < 15; index++) {
+  for (var index = 0; index < 40; index++) {
     testWidgets('background review ${index + 1}', (tester) async {
       final game = await boot(tester);
       await enterChapter(tester, game, index);
@@ -449,8 +453,9 @@ void main() {
     final mother = Mother()
       ..presence = 1
       ..reach = .25;
+    await tester.runAsync(mother.load);
     final enemy = Vampire(x: 0, groundY: 0, facing: 1)..reachGoal = .2;
-    await enemy.onLoad();
+    await tester.runAsync(enemy.onLoad);
     for (var i = 0; i < 360; i++) {
       mother.update(1 / 120);
       enemy.update(1 / 120);
@@ -507,9 +512,326 @@ void main() {
     File('${dir.path}/figures.png').writeAsBytesSync(bytes!);
   });
 
+  testWidgets('white blossom trees campaign review', (tester) async {
+    final game = await boot(tester);
+    for (var index = 0; index < 40; index++) {
+      await enterChapter(tester, game, index);
+      final chapter = game.stage! as Chapter;
+      final trees = chapter.children.whereType<WhiteBlossomTree>().toList();
+      expect(trees, hasLength(3));
+      chapter.cutscene?.stop();
+      chapter.cutscene = null;
+      chapter.player.hidden = false;
+      final tree = trees[1];
+      final x = tree.position.x;
+      chapter.player.teleportTo(
+        Vector2(
+          x - 2.6,
+          chapter.groundAt(x - 2.6) - GameConfig.playerHeight / 2,
+        ),
+      );
+      chapter.cameraFocus = Vector2(x, chapter.groundAt(x) - 2.1);
+      chapter.blackness = 0;
+      game.director!
+        ..blackness = 0
+        ..cardAlpha = 0;
+      game.camera.viewfinder.visibleGameSize = Vector2(16, 7.2);
+      step(game, 1.2);
+      chapter.blackness = 0;
+      game.director!
+        ..blackness = 0
+        ..cardAlpha = 0;
+      await shot(
+        tester,
+        game,
+        'white-trees/campaign',
+        'chapter_${(index + 1).toString().padLeft(2, '0')}',
+      );
+    }
+  });
+
+  testWidgets('white blossom falling petals video frames', (tester) async {
+    final game = await boot(tester);
+    await enterChapter(tester, game, 0);
+    final chapter = game.stage! as Chapter;
+    chapter.cutscene?.stop();
+    chapter.cutscene = null;
+    chapter.player.hidden = false;
+    chapter.blackness = 0;
+    game.director!
+      ..blackness = 0
+      ..cardAlpha = 0;
+    game.camera.viewfinder.visibleGameSize = Vector2(16, 7.2);
+    var frame = 0;
+    for (final tree in chapter.children.whereType<WhiteBlossomTree>()) {
+      final x = tree.position.x;
+      chapter.player.teleportTo(
+        Vector2(
+          x - 2.5,
+          chapter.groundAt(x - 2.5) - GameConfig.playerHeight / 2,
+        ),
+      );
+      chapter.cameraFocus = Vector2(x, chapter.groundAt(x) - 2.1);
+      step(game, 1.2);
+      for (var local = 0; local < 45; local++) {
+        game.update(1 / 15);
+        await shot(
+          tester,
+          game,
+          'white-trees/motion',
+          (frame++).toString().padLeft(4, '0'),
+        );
+      }
+    }
+    expect(frame, 135);
+  });
+
+  // Asset review only: place each generated cutout in the live world at
+  // terrain depth. No campaign art, collision or completion rule is replaced.
+  // The fifteen samples are for the original chapters; `index` is the
+  // original chapter number less one, mapped to its campaign position.
+  const originalPositions = [
+    0,
+    4,
+    5,
+    7,
+    10,
+    12,
+    15,
+    17,
+    19,
+    21,
+    24,
+    27,
+    32,
+    34,
+    39,
+  ];
+  for (var index = 0; index < originalPositions.length; index++) {
+    testWidgets('exit asset on surface ${index + 1}', (tester) async {
+      final game = await boot(tester);
+      await enterChapter(tester, game, originalPositions[index]);
+      final chapter = game.stage! as Chapter;
+      final manifest =
+          jsonDecode(
+                File(
+                  'assets/design/chapter_exits/prompts.json',
+                ).readAsStringSync(),
+              )
+              as Map<String, dynamic>;
+      final entry = (manifest['assets'] as List)[index] as Map<String, dynamic>;
+      final file = File('assets/images/chapter_exits/${entry['file']}');
+      final image = (await tester.runAsync(() async {
+        final codec = await ui.instantiateImageCodec(await file.readAsBytes());
+        final image = (await codec.getNextFrame()).image;
+        codec.dispose();
+        return image;
+      }))!;
+      addTearDown(image.dispose);
+      final rgba = (await tester.runAsync(
+        () => image.toByteData(format: ui.ImageByteFormat.rawRgba),
+      ))!;
+      var left = image.width, top = image.height, right = 0, bottom = 0;
+      var transparent = 0;
+      for (var y = 0; y < image.height; y++) {
+        for (var x = 0; x < image.width; x++) {
+          final a = rgba.getUint8((y * image.width + x) * 4 + 3);
+          if (a == 0) transparent++;
+          if (a <= 32) continue;
+          if (x < left) left = x;
+          if (y < top) top = y;
+          if (x >= right) right = x + 1;
+          if (y >= bottom) bottom = y + 1;
+        }
+      }
+      expect(transparent / (image.width * image.height), greaterThan(.30));
+      expect(right, greaterThan(left));
+      expect(bottom, greaterThan(top));
+      double surfaceAt(double x) {
+        var floor = chapter.groundAt(x);
+        game.world.physicsWorld.castRay(
+          Vector2(x, -.95),
+          Vector2(0, floor + 2),
+          (hit) {
+            if (hit.shape.body == chapter.player.body ||
+                hit.shape.isSensor ||
+                hit.normal.y > -.5 ||
+                hit.point.y < chapter.groundAt(x) - 4) {
+              return -1;
+            }
+            if (hit.point.y < floor) floor = hit.point.y;
+            return 1;
+          },
+        );
+        return floor;
+      }
+
+      // The Children sample stands on the final stair landing.
+      final x = index == 10 ? 104.0 : (entry['x'] as num).toDouble();
+      var height = (entry['height'] as num).toDouble();
+      final ground = surfaceAt(x);
+      game.world.physicsWorld.castRay(
+        Vector2(x, ground - .15),
+        Vector2(0, -height - 1),
+        (hit) {
+          if (hit.shape.body == chapter.player.body ||
+              hit.shape.isSensor ||
+              hit.normal.y < .5) {
+            return -1;
+          }
+          final clearance = ground - hit.point.y - .2;
+          if (clearance < height) height = clearance;
+          return 1;
+        },
+      );
+      expect(height, greaterThan(1.8), reason: 'Exit needs a usable opening');
+      final width = height * (right - left) / (bottom - top);
+      // Bury the uphill foundation slightly rather than float the downhill
+      // one. The PNG itself contains no strip of ground.
+      var base = ground;
+      for (final footX in [x - width * .36, x + width * .36]) {
+        final y = surfaceAt(footX);
+        if (y > base) base = y;
+      }
+      final prop = SpriteComponent(
+        sprite: Sprite(
+          image,
+          srcPosition: Vector2(left.toDouble(), top.toDouble()),
+          srcSize: Vector2(
+            (right - left).toDouble(),
+            (bottom - top).toDouble(),
+          ),
+        ),
+        position: Vector2(x, base + .035),
+        size: Vector2(width, height),
+        anchor: Anchor.bottomCenter,
+        priority: -3,
+      );
+      // Replace overlapping old exit illustrations in this paused fixture;
+      // the campaign itself retains all its current scenery.
+      for (final old in chapter.children.whereType<SceneryProp>().toList()) {
+        if ((index == 2 && old.image == 'part1/ch3_tunnel_mouth.png') ||
+            (index == 4 && old.image == 'part2/ch5_crypt_gate.png')) {
+          old.removeFromParent();
+        }
+      }
+      await chapter.add(prop);
+      await tester.runAsync(game.ready);
+      expect(prop.isMounted, isTrue);
+      final heroX = x - width / 2 - 1.15;
+      chapter.player.teleportTo(
+        Vector2(heroX, surfaceAt(heroX) - GameConfig.playerHeight / 2),
+      );
+      chapter.cameraFocus = null;
+      chapter.blackness = 0;
+      game.director!.blackness = 0;
+      game.camera.viewfinder.visibleGameSize = Vector2(14.4, 6.48);
+      game.camera.viewfinder.position = Vector2(
+        (x - 1).clamp(7.2, chapter.width - 7.2),
+        ground - 1.9,
+      );
+      for (final backdrop
+          in game.camera.backdrop.children.whereType<ChapterBackdrop>()) {
+        backdrop.update(10);
+      }
+      await shot(
+        tester,
+        game,
+        'chapter-exit-assets',
+        'ch${entry['id']}_surface',
+      );
+      File(
+        '${out.path}/chapter-exit-assets/ch${entry['id']}_placement.json',
+      ).writeAsStringSync(
+        jsonEncode({
+          'chapter': chapter.number,
+          'asset': entry['file'],
+          'source': [left, top, right, bottom],
+          'x': x,
+          'baseY': prop.position.y,
+          'height': height,
+          'width': width,
+          'reviewOnly': true,
+        }),
+      );
+      expect(prop.position.y, closeTo(base + .035, .0001));
+      expect(tester.takeException(), isNull);
+    });
+  }
+
+  testWidgets('home obstacle alignment review', (tester) async {
+    final game = await boot(tester);
+    step(game, 3);
+    game.director!.begin();
+    for (var i = 0; i < 1200 && game.intent.isScripted; i++) {
+      game.update(1 / 60);
+    }
+    final home = game.stage! as HomeChapter;
+    home.player.teleportTo(Vector2(27.5, home.groundAt(27.5) - .65));
+    step(game, .3);
+    const pass = String.fromEnvironment(
+      'HOME_PROPS_PASS',
+      defaultValue: 'after',
+    );
+    game.camera.viewfinder.visibleGameSize = Vector2(15, 6.75);
+    game.camera.viewfinder.position = Vector2(31.6, 5.5);
+    await shot(tester, game, 'home-props', '${pass}_overview');
+    game.camera.viewfinder.visibleGameSize = Vector2(7.5, 3.375);
+    game.camera.viewfinder.position = Vector2(28.2, 6.2);
+    await shot(tester, game, 'home-props', '${pass}_fence');
+    game.camera.viewfinder.position = Vector2(34.5, 5.6);
+    await shot(tester, game, 'home-props', '${pass}_wall');
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('reference characters in game', (tester) async {
+    final game = await boot(tester);
+    step(game, 3);
+    game.director!.begin();
+    step(game, 9);
+    final home = game.stage! as HomeChapter;
+    expect(home.cottage.mother.hasArtwork, isTrue);
+    await shot(tester, game, 'characters', 'mother_scene');
+    game.camera.viewfinder.visibleGameSize = Vector2(6.8, 3.06);
+    game.camera.viewfinder.position = Vector2(
+      home.cottage.door.center.dx + .65,
+      home.cottage.door.bottom - 1.1,
+    );
+    await shot(tester, game, 'characters', 'mother_doorway');
+    step(game, 5);
+    expect(home.cottage.mother.gestureComplete, isTrue);
+    expect(home.cottage.mother.reachProgress, 0);
+    game.camera.viewfinder.position = Vector2(
+      home.cottage.door.center.dx + .65,
+      home.cottage.door.bottom - 1.1,
+    );
+    await shot(tester, game, 'characters', 'mother_rested');
+    await enterChapter(tester, game, 17);
+    final halls = game.stage! as HallsChapter;
+    halls.player.teleportTo(Vector2(34, HallsChapter.floor - .65));
+    halls.keeper
+      ..x = 37
+      ..groundY = HallsChapter.floor
+      ..facing = -1
+      ..reachGoal = .15;
+    for (var i = 0; i < 120; i++) {
+      halls.keeper.update(1 / 120);
+    }
+    expect(halls.keeper.hasArtwork, isTrue);
+    game.camera.viewfinder.visibleGameSize = Vector2(10.2, 4.59);
+    game.camera.viewfinder.position = Vector2(35.8, 5.65);
+    await shot(tester, game, 'characters', 'vampire_scene');
+    // One-enemy inspection frame: the same game renderer and world, with
+    // neighbouring actors hidden only in this paused capture fixture.
+    halls.corridor.gone = true;
+    halls.visitor.gone = true;
+    await shot(tester, game, 'characters', 'vampire_hover_scene');
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('taken', (tester) async {
     final game = await boot(tester);
-    await enterChapter(tester, game, 1);
+    await enterChapter(tester, game, 4);
     final forest = game.stage! as ForestChapter;
     forest.player.teleportTo(Vector2(184, forest.groundAt(184) - 0.65));
     step(game, 1);
@@ -533,7 +855,7 @@ void main() {
   for (final viewport in [const Size(1600, 720), const Size(800, 360)]) {
     testWidgets('review settings ${viewport.width.toInt()}', (tester) async {
       final game = await boot(tester, viewport: viewport);
-      await enterChapter(tester, game, 1);
+      await enterChapter(tester, game, 4);
       step(game, 2);
       game.pauseGameplay();
       await tester.pump(const Duration(milliseconds: 100));
@@ -569,7 +891,7 @@ void main() {
 
   testWidgets('cage play', (tester) async {
     final game = await boot(tester);
-    await enterChapter(tester, game, 2);
+    await enterChapter(tester, game, 5);
     final cage = game.stage! as CageChapter;
     final player = cage.player;
     final intent = game.intent;
@@ -656,7 +978,7 @@ void main() {
 
   testWidgets('caves tour', (tester) async {
     final game = await boot(tester);
-    await enterChapter(tester, game, 3);
+    await enterChapter(tester, game, 7);
     final chapter = game.stage! as Chapter;
     await shot(tester, game, 'caves', 'start');
     for (final x in [
@@ -684,7 +1006,11 @@ void main() {
     double Function(double x)? ground,
   }) async {
     final game = await boot(tester);
-    await enterChapter(tester, game, chapterIndex);
+    await enterChapter(
+      tester,
+      game,
+      CampaignCatalog.migrateIndex(chapterIndex),
+    );
     final chapter = game.stage! as Chapter;
     for (final x in xs) {
       final double g = ground?.call(x) ?? chapter.groundAt(x);
@@ -736,6 +1062,16 @@ void main() {
       106,
       120,
       140,
+      152,
+      160,
+      176,
+      202,
+      216,
+      226,
+      250,
+      266,
+      278,
+      304,
     ]);
   });
 
@@ -786,7 +1122,7 @@ void main() {
   testWidgets('castle moments', (tester) async {
     // The bookcase going over, and lying across its gap.
     var game = await boot(tester);
-    await enterChapter(tester, game, 6);
+    await enterChapter(tester, game, 15);
     final chase = game.stage! as ChaseChapter;
     chase.player.teleportTo(Vector2(67.5, ChaseChapter.stepTop - 0.65));
     // (The keeper's scene plays first, far behind him.)
@@ -801,7 +1137,7 @@ void main() {
 
     // One of them burning in the moonlight.
     game = await boot(tester);
-    await enterChapter(tester, game, 7);
+    await enterChapter(tester, game, 17);
     final halls = game.stage! as HallsChapter;
     // The rule is shown first, under the open window.
     halls.player.teleportTo(Vector2(10, HallsChapter.floor - 0.65));
@@ -820,7 +1156,7 @@ void main() {
 
     // The great chandelier coming down on the two in the pit.
     game = await boot(tester);
-    await enterChapter(tester, game, 8);
+    await enterChapter(tester, game, 19);
     final hall = game.stage! as ChandeliersChapter;
     hall.player.teleportTo(Vector2(47.6, ChandeliersChapter.gallery - 0.65));
     step(game, 1);
@@ -908,7 +1244,7 @@ void main() {
 
   testWidgets('finale', (tester) async {
     final game = await boot(tester);
-    await enterChapter(tester, game, 14);
+    await enterChapter(tester, game, 39);
     final dawn = game.stage! as DawnChapter;
     dawn.player.teleportTo(
       Vector2(
@@ -927,7 +1263,7 @@ void main() {
 
   testWidgets('ending', (tester) async {
     final game = await boot(tester);
-    await enterChapter(tester, game, 14);
+    await enterChapter(tester, game, 39);
     (game.stage! as DawnChapter).complete();
     for (var k = 0; k < 28; k++) {
       step(game, 1.6);
@@ -935,3 +1271,4 @@ void main() {
     }
   });
 }
+

@@ -74,8 +74,12 @@ class FloatingLog extends PhysicsCrate {
 /// An old wooden coffin. Pushed like a crate on stone; in the water it
 /// floats low, and sinks under him if he stands on it too long.
 class Coffin extends PhysicsCrate {
-  Coffin({required super.position, super.massKg = 40, this.chainedTo})
-    : super(size: Vector2(2.0, 0.62), friction: 0.5);
+  Coffin({
+    required super.position,
+    super.massKg = 40,
+    this.chainedTo,
+    double height = .62,
+  }) : super(size: Vector2(2.0, height), friction: 0.5);
 
   /// Where a chain from its foot is fixed in the floor, if it is chained:
   /// it may float up as far as the chain lets it, but not drift away.

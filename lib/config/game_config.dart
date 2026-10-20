@@ -121,6 +121,17 @@ abstract final class GameConfig {
 
   static const double maximumSlopeRadians = math.pi * 0.30;
 
+  /// Crouched, he creeps at this speed, metres a second.
+  static const double crouchSpeedMetersPerSecond = 0.85;
+
+  /// Crouched or sitting, the capsule is this much of his full height,
+  /// shortened from the top so his feet stay where they are: low enough to
+  /// get under a low beam, tall enough to hold the drawn head.
+  static const double lowHeightRatio = 0.72;
+
+  /// Held still this long while low, he sits down.
+  static const double sitAfterSeconds = 0.15;
+
   /// LIMBO's jump leaves the ground almost at once: a single frame of bent
   /// knees, not a wind-up.
   static const double jumpAnticipationSeconds = 0.017;

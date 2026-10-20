@@ -1,0 +1,227 @@
+[
+  {
+    "chapter": 1,
+    "asset": "ch01_home_exit.png",
+    "source": [
+      55,
+      51,
+      1231,
+      1206
+    ],
+    "x": 117.5,
+    "baseY": 6.13124418258667,
+    "height": 3.3,
+    "width": 3.36,
+    "reviewOnly": true
+  },
+  {
+    "chapter": 2,
+    "asset": "ch02_night_forest_exit.png",
+    "source": [
+      57,
+      16,
+      1229,
+      1213
+    ],
+    "x": 186,
+    "baseY": 7.0321784019470215,
+    "height": 3.5,
+    "width": 3.426900584795322,
+    "reviewOnly": true
+  },
+  {
+    "chapter": 3,
+    "asset": "ch03_cage_exit.png",
+    "source": [
+      45,
+      11,
+      1198,
+      1204
+    ],
+    "x": 116.5,
+    "baseY": 6.554370403289795,
+    "height": 3.2,
+    "width": 3.0927074601844096,
+    "reviewOnly": true
+  },
+  {
+    "chapter": 4,
+    "asset": "ch04_caves_exit.png",
+    "source": [
+      48,
+      49,
+      1222,
+      1205
+    ],
+    "x": 194.5,
+    "baseY": 7.034999847412109,
+    "height": 3.4,
+    "width": 3.452941176470588,
+    "reviewOnly": true
+  },
+  {
+    "chapter": 5,
+    "asset": "ch05_crypt_exit.png",
+    "source": [
+      93,
+      13,
+      1184,
+      1235
+    ],
+    "x": 174.5,
+    "baseY": 7.034999847412109,
+    "height": 3.7,
+    "width": 3.3033551554828153,
+    "reviewOnly": true
+  },
+  {
+    "chapter": 6,
+    "asset": "ch06_bone_pit_exit.png",
+    "source": [
+      24,
+      29,
+      1229,
+      1216
+    ],
+    "x": 144.5,
+    "baseY": 5.026895523071289,
+    "height": 3.4,
+    "width": 3.451558550968829,
+    "reviewOnly": true
+  },
+  {
+    "chapter": 7,
+    "asset": "ch07_chase_exit.png",
+    "source": [
+      13,
+      9,
+      1241,
+      1242
+    ],
+    "x": 130.5,
+    "baseY": 4.635000228881836,
+    "height": 2.300000238418579,
+    "width": 2.2906733923584874,
+    "reviewOnly": true
+  },
+  {
+    "chapter": 8,
+    "asset": "ch08_halls_exit.png",
+    "source": [
+      121,
+      17,
+      1133,
+      1234
+    ],
+    "x": 94.5,
+    "baseY": 3.634999990463257,
+    "height": 3.7,
+    "width": 3.076746096959737,
+    "reviewOnly": true
+  },
+  {
+    "chapter": 9,
+    "asset": "ch09_chandeliers_exit.png",
+    "source": [
+      140,
+      18,
+      1114,
+      1230
+    ],
+    "x": 122.5,
+    "baseY": 7.034999847412109,
+    "height": 3.8,
+    "width": 3.0537953795379535,
+    "reviewOnly": true
+  },
+  {
+    "chapter": 10,
+    "asset": "ch10_clock_tower_exit.png",
+    "source": [
+      16,
+      14,
+      1238,
+      1224
+    ],
+    "x": 90.5,
+    "baseY": 3.43500018119812,
+    "height": 3.6,
+    "width": 3.6357024793388426,
+    "reviewOnly": true
+  },
+  {
+    "chapter": 11,
+    "asset": "ch11_children_exit.png",
+    "source": [
+      34,
+      50,
+      1223,
+      1183
+    ],
+    "x": 104,
+    "baseY": 4.634999752044678,
+    "height": 2.899999904632568,
+    "width": 3.043336175294019,
+    "reviewOnly": true
+  },
+  {
+    "chapter": 12,
+    "asset": "ch12_mill_exit.png",
+    "source": [
+      23,
+      76,
+      1244,
+      1178
+    ],
+    "x": 110.5,
+    "baseY": 4.034999847412109,
+    "height": 3.2000000953674315,
+    "width": 3.5455536446856932,
+    "reviewOnly": true
+  },
+  {
+    "chapter": 13,
+    "asset": "ch13_great_gate_exit.png",
+    "source": [
+      24,
+      4,
+      1230,
+      1221
+    ],
+    "x": 72.5,
+    "baseY": 6.719262599945068,
+    "height": 4,
+    "width": 3.9638455217748563,
+    "reviewOnly": true
+  },
+  {
+    "chapter": 14,
+    "asset": "ch14_storm_exit.png",
+    "source": [
+      51,
+      50,
+      1235,
+      1222
+    ],
+    "x": 84.5,
+    "baseY": 5.034999847412109,
+    "height": 3.4,
+    "width": 3.4348122866894197,
+    "reviewOnly": true
+  },
+  {
+    "chapter": 15,
+    "asset": "ch15_dawn_exit.png",
+    "source": [
+      24,
+      4,
+      1237,
+      1231
+    ],
+    "x": 131,
+    "baseY": 7.034999847412109,
+    "height": 3.2,
+    "width": 3.1634881825590875,
+    "reviewOnly": true
+  }
+]

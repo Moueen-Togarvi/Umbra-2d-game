@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Umbra — vampire before / after</title>
+<style>
+  :root{color-scheme:dark;font:15px system-ui,sans-serif;background:#111415;color:#e2e5e4}
+  *{box-sizing:border-box}body{margin:0 auto;max-width:1600px;padding:36px 30px 70px}
+  a{color:inherit;text-underline-offset:4px}header{max-width:900px;margin-bottom:26px}
+  small,.muted{color:#a7b0ae}header small{font-size:11px;letter-spacing:3px}h1{font:42px Georgia,serif;margin:16px 0}
+  p{line-height:1.7;color:#b8c1be}h2{font-size:20px;font-weight:500;margin:38px 0 16px}
+  .player{background:#1a1e1e;border:1px solid #39403e;padding:12px}video{display:block;width:100%;height:auto;background:#383d3c}
+  .actions{display:flex;flex-wrap:wrap;gap:12px;align-items:center;margin:16px 0}.actions a,button,select{background:#1c2221;color:#e1e8e5;border:1px solid #46514d;padding:10px 14px;font:inherit;border-radius:3px}
+  button{cursor:pointer}button[aria-pressed=true]{background:#d8dfda;color:#17201b}.actions span{font-size:13px;color:#aebbb5}
+  .notes{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-top:24px}.notes article{border-top:1px solid #46514d;padding-top:14px}.notes b{font-weight:500}.notes p{margin:8px 0;font-size:14px}
+  .filters{position:sticky;top:0;z-index:1;background:#111415f5;display:flex;gap:8px;align-items:center;padding:14px 0;flex-wrap:wrap}
+  section.pair{margin:20px 0 34px;padding-top:10px;border-top:1px solid #34403b}section.pair[hidden]{display:none}section.pair h2{margin:10px 0 16px;text-transform:capitalize}
+  .images{display:grid;grid-template-columns:1fr 1fr;gap:18px}figure{margin:0;min-width:0}figcaption{display:flex;justify-content:space-between;gap:10px;padding:11px 0;color:#bbc6c1;font-size:13px}img{width:100%;height:auto;display:block;border:1px solid #39443e}
+  footer{margin-top:40px;padding-top:20px;border-top:1px solid #39443e;font-size:13px;color:#aab6b0;line-height:1.8}
+  @media(max-width:800px){body{padding:24px 16px}.notes,.images{grid-template-columns:1fr}h1{font-size:34px}.filters{position:static}}
+</style>
+<header><small>UMBRA / CHARACTER REVIEW</small><h1>Vampire — before & after</h1>
+<p>Left aur right facing, full body aur hands ke close-ups. Dono versions mein same artwork, pose, scale aur animation timing use hui hai.</p></header>
+<div class="actions"><a href="../../vampire-preview/" target="_blank">Play updated web build ↗</a><span>Waist-height hands / connected shoulders</span></div>
+<div class="player"><video id="comparison" controls playsinline preload="metadata" poster="idle-comparison.png"><source src="comparison.mp4" type="video/mp4"></video></div>
+<div class="actions"><button id="slow">0.5× slow motion</button><button id="normal">1× normal speed</button><a href="comparison.mp4">Open comparison video ↗</a><a href="before.mp4">Before video</a><a href="after.mp4">After video</a><span>20 s · 20 fps · silent renderer capture</span></div>
+<div class="notes">
+  <article><b>Shoulder → elbow</b><p>Sleeves attach to the painted shoulder sockets, with joint overlap beneath the textured clothing.</p></article>
+  <article><b>Elbow → wrist</b><p>Sprite attachment points match the sleeve artwork, including the angled cuff opening.</p></article>
+  <article><b>Wrist → claws</b><p>Resting hands sit near the waist with bent elbows. Reaching claws face forward with a controlled wrist angle.</p></article>
+</div>
+<h2>12 matching views</h2>
+<div class="filters" aria-label="Screenshot filters"><button data-pose="all" aria-pressed="true">All</button><button data-pose="idle" aria-pressed="false">Idle</button><button data-pose="walk" aria-pressed="false">Walk</button><button data-pose="chase" aria-pressed="false">Fast chase</button><button data-pose="reach" aria-pressed="false">Reach</button><button data-pose="shield" aria-pressed="false">Shield</button><button data-pose="crouch" aria-pressed="false">Crouch</button><select id="direction" aria-label="Facing direction"><option value="all">Both directions</option><option value="right">Facing right</option><option value="left">Facing left</option></select></div>
+<main id="stills"></main>
+<h2>Actual game scene</h2><a href="gameplay.png" target="_blank"><img src="gameplay.png" width="1600" height="720" alt="Refined vampires in the Halls beside the hero"></a>
+<footer>Captured from the production Flutter vampire renderer before and after the edit, using identical scripted inputs. These are diagnostic animation captures, with full-body and enlarged hand views. This is a 2D character: left/right views and a turn transition are shown. Gameplay physics are not being measured by this review.<br>
+<a href="before/vampire.dart">Before renderer source</a> · <a href="after/vampire.dart">After renderer source</a> · <a href="before/npc_atlas.dart">Before sprite placement</a> · <a href="after/npc_atlas.dart">After sprite placement</a> · <a href="after/manifest.json">Capture settings</a></footer>
+<script>
+  const root = document.getElementById('stills');
+  for (const pose of ['idle','walk','chase','reach','shield','crouch']) {
+    for (const direction of ['right','left']) {
+      const section = document.createElement('section');
+      section.className='pair'; section.dataset.pose=pose; section.dataset.direction=direction;
+      section.innerHTML=`<h2>${pose} / ${direction}</h2><div class="images">${['before','after'].map(version=>`<figure><figcaption><b>${version==='before'?'Before':'After'}</b><span>Full body + hand detail</span></figcaption><a href="${version}/${pose}-${direction}.png" target="_blank"><img src="${version}/${pose}-${direction}.png" width="960" height="640" alt="${version}: ${pose}, facing ${direction}" loading="lazy"></a></figure>`).join('')}</div>`;
+      root.append(section);
+    }
+  }
+  let selected='all';
+  function filter() { for(const section of root.children) section.hidden=(selected!=='all' && selected!==section.dataset.pose) || (direction.value!=='all' && direction.value!==section.dataset.direction); }
+  const direction=document.getElementById('direction');
+  for(const button of document.querySelectorAll('button[data-pose]')) button.onclick=()=>{selected=button.dataset.pose;for(const other of document.querySelectorAll('button[data-pose]'))other.setAttribute('aria-pressed',String(other===button));filter();};
+  direction.onchange=filter;
+  const video=document.getElementById('comparison');
+  document.getElementById('slow').onclick=()=>{video.playbackRate=.5;video.play();};
+  document.getElementById('normal').onclick=()=>{video.playbackRate=1;video.play();};
+</script>
+</html>

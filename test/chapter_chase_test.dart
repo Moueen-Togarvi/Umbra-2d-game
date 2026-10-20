@@ -1,3 +1,4 @@
+import 'support/route_pilot.dart';
 import 'package:flame/components.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:umbra/chapters/chase.dart';
@@ -12,7 +13,7 @@ void main() {
     tester,
   ) async {
     final game = await bootCampaign(tester);
-    final chase = await enterChapter<ChaseChapter>(tester, game, 6);
+    final chase = await enterChapter<ChaseChapter>(tester, game, 15);
     final player = chase.player;
     final intent = game.intent;
     final jumped = <String>{};
@@ -25,7 +26,7 @@ void main() {
       intent.requestJump();
     }
 
-    for (var i = 0; i < 60 * 150 && !chase.isComplete; i++) {
+    for (var i = 0; i < 60 * 900 && !chase.isComplete; i++) {
       final double x = player.body.position.x;
       final double feet = player.body.position.y + GameConfig.playerHeight / 2;
       final bool grounded = player.isOnGround;
@@ -95,6 +96,7 @@ void main() {
       }
       shutOut |= chase.latchedGate.isShut && chase.pursuer.blocked;
       intent.setKeyboardState(axis: axis);
+      driveExtension(game);
       game.update(1 / 60);
       if (player.isDead) {
         fail(
@@ -130,13 +132,14 @@ void main() {
   testWidgets('stopping in the chase gets him caught; from the checkpoint '
       'the keeper comes again, a little way behind', (tester) async {
     final game = await bootCampaign(tester);
-    final chase = await enterChapter<ChaseChapter>(tester, game, 6);
+    final chase = await enterChapter<ChaseChapter>(tester, game, 15);
     final player = chase.player;
     // In the cellar, as if he had come through the gate.
     player.teleportTo(Vector2(37, ChaseChapter.floor - 0.65));
     var died = false;
     for (var i = 0; i < 60 * 12 && !died; i++) {
       game.intent.setKeyboardState(axis: i < 40 ? 1 : 0);
+      driveExtension(game);
       game.update(1 / 60);
       died = player.isDead;
     }
@@ -144,10 +147,12 @@ void main() {
     expect(chase.pursuer.caught, isTrue);
     // Back at the checkpoint, and it comes again.
     for (var i = 0; i < 60 * 6 && player.isDead; i++) {
+      driveExtension(game);
       game.update(1 / 60);
     }
     expect(player.isDead, isFalse);
     for (var i = 0; i < 60 * 2; i++) {
+      driveExtension(game);
       game.update(1 / 60);
     }
     expect(chase.chasing, isTrue);

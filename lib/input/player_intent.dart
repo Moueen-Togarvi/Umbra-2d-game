@@ -1,9 +1,10 @@
 /// Held controls and one-shot actions, independent of keys and physics bodies.
 /// Sources stay separate so releasing a key cannot cancel a held touch button.
 ///
-/// The vocabulary is deliberately the one LIMBO has: move, jump and a single
-/// action. The boy always runs; there is no run button and no crouch. "Up"
-/// and "down" climb a rope; down also lets go of a ledge.
+/// The vocabulary is close to LIMBO's: move, jump and a single action, and
+/// one more: sit. The boy always runs; held still, sit sits him down on the
+/// ground, and held while moving he crouches and creeps. "Up" and "down"
+/// climb a rope; down also lets go of a ledge.
 ///
 /// A cutscene takes the controls with [beginScript]: from then until
 /// [endScript] the player reads only what the script sets, and presses on
@@ -14,10 +15,11 @@ class PlayerIntent {
   bool _keyboardInteract = false, _touchInteract = false;
   bool _keyboardDown = false, _touchDown = false;
   bool _keyboardUp = false, _touchUp = false;
+  bool _keyboardSit = false, _touchSit = false;
   bool _scripted = false;
   double _scriptAxis = 0;
   bool _scriptJump = false, _scriptInteract = false;
-  bool _scriptDown = false, _scriptUp = false;
+  bool _scriptDown = false, _scriptUp = false, _scriptSit = false;
 
   /// Whether a cutscene has the controls.
   bool get isScripted => _scripted;
@@ -29,6 +31,7 @@ class PlayerIntent {
       _scripted ? _scriptInteract : _keyboardInteract || _touchInteract;
   bool get isDownHeld => _scripted ? _scriptDown : _keyboardDown || _touchDown;
   bool get isUpHeld => _scripted ? _scriptUp : _keyboardUp || _touchUp;
+  bool get isSitHeld => _scripted ? _scriptSit : _keyboardSit || _touchSit;
   bool _jumpRequested = false;
   bool _jumpFromUp = false;
 
@@ -46,6 +49,7 @@ class PlayerIntent {
     bool? interact,
     bool? down,
     bool? up,
+    bool? sit,
   }) {
     final wasInteracting = isInteractHeld;
     if (axis != null) _keyboardAxis = axis;
@@ -53,6 +57,7 @@ class PlayerIntent {
     if (interact != null) _keyboardInteract = interact;
     if (down != null) _keyboardDown = down;
     if (up != null) _keyboardUp = up;
+    if (sit != null) _keyboardSit = sit;
     if (!_scripted) _interactionEdge(wasInteracting);
   }
 
@@ -62,6 +67,7 @@ class PlayerIntent {
     bool? interact,
     bool? down,
     bool? up,
+    bool? sit,
   }) {
     final wasInteracting = isInteractHeld;
     if (axis != null) _touchAxis = axis;
@@ -69,6 +75,7 @@ class PlayerIntent {
     if (interact != null) _touchInteract = interact;
     if (down != null) _touchDown = down;
     if (up != null) _touchUp = up;
+    if (sit != null) _touchSit = sit;
     if (!_scripted) _interactionEdge(wasInteracting);
   }
 
@@ -79,6 +86,7 @@ class PlayerIntent {
     _scripted = true;
     _scriptAxis = 0;
     _scriptJump = _scriptInteract = _scriptDown = _scriptUp = false;
+    _scriptSit = false;
     _jumpRequested = _interactRequested = false;
     _interactionEdge(wasInteracting);
   }
@@ -100,6 +108,7 @@ class PlayerIntent {
     bool? interact,
     bool? down,
     bool? up,
+    bool? sit,
   }) {
     if (!_scripted) return;
     final wasInteracting = isInteractHeld;
@@ -108,6 +117,7 @@ class PlayerIntent {
     if (interact != null) _scriptInteract = interact;
     if (down != null) _scriptDown = down;
     if (up != null) _scriptUp = up;
+    if (sit != null) _scriptSit = sit;
     _interactionEdge(wasInteracting);
   }
 
@@ -185,6 +195,7 @@ class PlayerIntent {
     _keyboardInteract = _touchInteract = false;
     _keyboardDown = _touchDown = false;
     _keyboardUp = _touchUp = false;
+    _keyboardSit = _touchSit = false;
     _jumpRequested = _interactRequested = false;
     _jumpFromUp = false;
     _resetRequested = _debugRequested = _knockdownRequested = false;

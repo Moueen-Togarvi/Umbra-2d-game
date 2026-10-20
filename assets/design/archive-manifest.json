@@ -1,0 +1,375 @@
+{
+  "archive": "/home/moueen-togarvi/code/Umbra-source-archive/campaign40-2026-10-19",
+  "files": [
+    {
+      "path": "assets/design/audio/vampires_piano_cc0.wav",
+      "bytes": 15797472,
+      "sha256": "9317c1dc40359347056441367351a0f0acec6c4355f0a3026815369119f4fead"
+    },
+    {
+      "path": "assets/design/background-samples/01-forest-premium.png",
+      "bytes": 2233718,
+      "sha256": "1c7021e84868116502c29e316f142463f7992ef248d42ed79f2873012c5a7594"
+    },
+    {
+      "path": "assets/design/background-samples/02-cage-premium.png",
+      "bytes": 2319115,
+      "sha256": "14e5f2d382277d6d61b1bcc2434e7641f18949c53f937a9f49fb1a0479e8e2ea"
+    },
+    {
+      "path": "assets/design/background-samples/03-caves-premium.png",
+      "bytes": 2194736,
+      "sha256": "8077433aa2317b08915583b8dde8f3ca1120f26b6fdb33509008e31eed6ae76e"
+    },
+    {
+      "path": "assets/design/background-samples/04-crypt-premium.png",
+      "bytes": 2083424,
+      "sha256": "80a503a8a0281029e8448fb1d03b92417239b17e7c22b9a74bff4b6c73015006"
+    },
+    {
+      "path": "assets/design/background-samples/05-halls-premium.png",
+      "bytes": 2131737,
+      "sha256": "6a4a0d498d86f4fc7d6468418c3ce79c4e814d733d86c33ae21a1caa6fc9b1ee"
+    },
+    {
+      "path": "assets/design/campaign40/abandoned_ward.png",
+      "bytes": 1949538,
+      "sha256": "ee1de885da9ca00e62c3812988677203c0195aa57d0509ba7de8acb60021bf69"
+    },
+    {
+      "path": "assets/design/campaign40/bell_foundry.png",
+      "bytes": 2023311,
+      "sha256": "488b1427c54089041c96b6f03a273de4e508ab1bdeddb3559f15ab84e5e5ab8e"
+    },
+    {
+      "path": "assets/design/campaign40/black_reservoir.png",
+      "bytes": 2023518,
+      "sha256": "7215c26f6ccc5df17c135f110b56fe0e7b6a9a081470f7a5d742fa532bdf39f1"
+    },
+    {
+      "path": "assets/design/campaign40/bone_pit.png",
+      "bytes": 1987673,
+      "sha256": "2a4310df6954aee574f0a4b08bf4605dc9fa2a6711285659e9da310601cf23a5"
+    },
+    {
+      "path": "assets/design/campaign40/broken_aqueduct.png",
+      "bytes": 2058568,
+      "sha256": "eab84753656f23e0a929599a387bd8b147161352b211b2b4c8afab5fee51644f"
+    },
+    {
+      "path": "assets/design/campaign40/cage.png",
+      "bytes": 1973785,
+      "sha256": "acc959bc934538dd646058515ea7fffbc3f6241e10abe496b1451b9e4c504551"
+    },
+    {
+      "path": "assets/design/campaign40/caves.png",
+      "bytes": 2051192,
+      "sha256": "c410651677f445bb2d9eddbee84d4b7e89ccb11460d73aa3398cfc38fe5e5451"
+    },
+    {
+      "path": "assets/design/campaign40/chainworks.png",
+      "bytes": 2089385,
+      "sha256": "19741150c740599c85ae28e0807b17e8297de149752f8e3f7145bb8d9439a797"
+    },
+    {
+      "path": "assets/design/campaign40/chandeliers.png",
+      "bytes": 2063099,
+      "sha256": "efed7f645f69952354b0a0a1fdeebe87f87896d94442534d588ac1a0b8f79a03"
+    },
+    {
+      "path": "assets/design/campaign40/chase.png",
+      "bytes": 1936667,
+      "sha256": "e1c5c4fcb27959b3e2768e03a3ad4b9e313a9727eb08e0aa0be6f636eb11c790"
+    },
+    {
+      "path": "assets/design/campaign40/children.png",
+      "bytes": 2015204,
+      "sha256": "38e2fea9032837e14506c5e75f932958f5c6209eacdca1909b0e0bc40f3bc666"
+    },
+    {
+      "path": "assets/design/campaign40/clock_tower.png",
+      "bytes": 2015258,
+      "sha256": "83737b4e8547d02aff919f4264e3b5dd61f909d584e9422763d4b0b9755514d7"
+    },
+    {
+      "path": "assets/design/campaign40/coffin_gallery.png",
+      "bytes": 1978442,
+      "sha256": "2b33fa2720629cfac348ffe5251b142d3cbea5c1584ee992bc0cba55a33c9031"
+    },
+    {
+      "path": "assets/design/campaign40/crypt.png",
+      "bytes": 1867368,
+      "sha256": "734f8b6785f0e132afbba3ffff88d35be143f7944b42141183af854585af8b47"
+    },
+    {
+      "path": "assets/design/campaign40/dawn.png",
+      "bytes": 2243619,
+      "sha256": "8d7fa07ab461cd39206ae9c5663aca4609a0a0c0663ccf413be844a497ee11b7"
+    },
+    {
+      "path": "assets/design/campaign40/drainways.png",
+      "bytes": 2007376,
+      "sha256": "b63cf9a7a8a96c6c8d29710b9c6c8c56a9e0c7fe62db647296b01f3ef3ad8223"
+    },
+    {
+      "path": "assets/design/campaign40/drowned_quarry.png",
+      "bytes": 1948434,
+      "sha256": "34bd8b10df5486709be6d561e8d4f795bd083d5bd04e2be0356433fbd816086b"
+    },
+    {
+      "path": "assets/design/campaign40/eastern_woods.png",
+      "bytes": 2288634,
+      "sha256": "159b2b33c84806be025457b4f28513913372b734b9bc47ff3dd8c4765a76f7d7"
+    },
+    {
+      "path": "assets/design/campaign40/floodworks.png",
+      "bytes": 1939008,
+      "sha256": "7c73efea7da2ff5c2b1bbd51b9b320e02032034287f3b7f4ccab6e916ab616ba"
+    },
+    {
+      "path": "assets/design/campaign40/forest.png",
+      "bytes": 2217610,
+      "sha256": "5952ceb57be8e0ce8da0b8066ee8939d09578f99693e028ac9167826d8ee5c25"
+    },
+    {
+      "path": "assets/design/campaign40/furnace_passage.png",
+      "bytes": 2108085,
+      "sha256": "c05f644bfc940ff6f199c4acdfcc1f7cdd1e208ea5ed189725b2d016bed686d1"
+    },
+    {
+      "path": "assets/design/campaign40/graveyard.png",
+      "bytes": 2171292,
+      "sha256": "dc01d207073681edb4bab45e3bcf61fcb734dbdf55143cceee1dcb49e98aad49"
+    },
+    {
+      "path": "assets/design/campaign40/great_gate.png",
+      "bytes": 2079437,
+      "sha256": "9abab150bb48fa1415baef6fff2638ffeb738b48a2b1eac3d9bcd6ef1fab4c39"
+    },
+    {
+      "path": "assets/design/campaign40/halls.png",
+      "bytes": 1905054,
+      "sha256": "2f22da4add1f8eade7d414ba582c19d2c48e513a75cf3afe3cd9771e3463db0f"
+    },
+    {
+      "path": "assets/design/campaign40/home.png",
+      "bytes": 2305977,
+      "sha256": "fc44630faa16c27e9ccaab90959148f7959d82afee106c0079909c069602924a"
+    },
+    {
+      "path": "assets/design/campaign40/homeward_road.png",
+      "bytes": 2341289,
+      "sha256": "b4bfaa50acd6765f44904a45448db0d6a200309b0b5c1366cb10d6b7af357a18"
+    },
+    {
+      "path": "assets/design/campaign40/hunters_road.png",
+      "bytes": 2268181,
+      "sha256": "a2423d5046b6f0f2fa9173fa0ec3efa14d3360d98957ed734c1876379ba4e2da"
+    },
+    {
+      "path": "assets/design/campaign40/last_watch.png",
+      "bytes": 1996543,
+      "sha256": "87793d6daa6b9eeab78b343434d01faf071ae3461e44f90012d9d071663c6815"
+    },
+    {
+      "path": "assets/design/campaign40/lower_castle.png",
+      "bytes": 1950035,
+      "sha256": "05a851a5e12682e0afaa301c2e227efac418c1955b6ccfd187fcdf9d92189a5a"
+    },
+    {
+      "path": "assets/design/campaign40/mill.png",
+      "bytes": 2078471,
+      "sha256": "9189080f8f7350edc9bb41f0dc4cb2b502deb103cdf809713cbd333d32087c4d"
+    },
+    {
+      "path": "assets/design/campaign40/moat.png",
+      "bytes": 2072132,
+      "sha256": "25705daf8b97972318a3d191930f66822b5bf757d024df6b4d5b9e630dd17845"
+    },
+    {
+      "path": "assets/design/campaign40/old_orchard.png",
+      "bytes": 2136597,
+      "sha256": "ab5c4a7f300498634d3b3360fb191f140e8e7b1664d94885ab73a5387845f83c"
+    },
+    {
+      "path": "assets/design/campaign40/organ_loft.png",
+      "bytes": 1911265,
+      "sha256": "21ddf46a8fb312fb4e1e59d8e596304ef101ce436f2ef45e3097b6be4402a83c"
+    },
+    {
+      "path": "assets/design/campaign40/outer_ramparts.png",
+      "bytes": 2086501,
+      "sha256": "3d125e1d1458fa1c16d94364148e66eb86bcea10832e9ea33a6ab06cc7aa3dcc"
+    },
+    {
+      "path": "assets/design/campaign40/servants_passage.png",
+      "bytes": 1881388,
+      "sha256": "5a67058a9befc0c01b059b7dcaf228094bba821b2f53a491fdac646d63656d0a"
+    },
+    {
+      "path": "assets/design/campaign40/shadow_gallery.png",
+      "bytes": 1976210,
+      "sha256": "71bc1b0a05bb480ca038e7e4c4a0173e4f46a3cd80483f68a974b0d4bfeefe5b"
+    },
+    {
+      "path": "assets/design/campaign40/shattered_coast.png",
+      "bytes": 2078880,
+      "sha256": "e6705b5d9303691aff0399ca288168d4a225a9d5d60ab3ef56874178fc78fb79"
+    },
+    {
+      "path": "assets/design/campaign40/sluice_tunnels.png",
+      "bytes": 1857442,
+      "sha256": "6dd3c2a3ce44ddb876d80f3819115fb5a01a643561a90a4505b754caf01512af"
+    },
+    {
+      "path": "assets/design/campaign40/storm.png",
+      "bytes": 2136848,
+      "sha256": "b9a7fd135922647eea6a2001431906065898b5103bdabfc4431c31b5b47a8ed0"
+    },
+    {
+      "path": "assets/design/campaign40/watchers_walk.png",
+      "bytes": 2016870,
+      "sha256": "00fc1d2fd555b04f827e808bcae1968ecb4b19a8a9a239267132f109bc3d24c7"
+    },
+    {
+      "path": "assets/design/enemy-concept.png",
+      "bytes": 1517947,
+      "sha256": "2484f68c1c51fdb205daba0367852a609aa03db052055372be107d2fd411b7c3"
+    },
+    {
+      "path": "assets/design/mother-concept.png",
+      "bytes": 1707984,
+      "sha256": "b9e85befdd02888cdaae0e2041f3766f85cb4ac2457ec66a30f4ef92b6139bfb"
+    },
+    {
+      "path": "assets/design/retired-plates/area_01.png",
+      "bytes": 2070475,
+      "sha256": "2488713a05d6288404af8de7c1b68dbf339a724b54101ba524c2c22fae8bff21"
+    },
+    {
+      "path": "assets/design/retired-plates/area_02.png",
+      "bytes": 1861631,
+      "sha256": "924b1fba689bcf967169011d5f0ec05ae534afbf0162b13e93f443e5c60dfa32"
+    },
+    {
+      "path": "assets/design/retired-plates/area_03.png",
+      "bytes": 1891833,
+      "sha256": "65745961963d1a55a68655c36dd86fd446b6f5d8daf5ae7bc48f331d5ef60a2f"
+    },
+    {
+      "path": "assets/design/retired-plates/area_04.png",
+      "bytes": 2072707,
+      "sha256": "d9f69813cdf512893f871c1274b8008498c39c4dd66180152cfbace602f57524"
+    },
+    {
+      "path": "assets/design/retired-plates/area_05.png",
+      "bytes": 2309713,
+      "sha256": "63d047afe9fc28ef9af3b98b73d4a8843c019cc1fe20d6e55c006f27e576e27e"
+    },
+    {
+      "path": "assets/design/retired-plates/area_06.png",
+      "bytes": 1938993,
+      "sha256": "ca05409de21a7e9e07872e25dcee4cb3f6ba20e730241d7a8e4d140f841771db"
+    },
+    {
+      "path": "assets/images/backgrounds/chapter_01.png",
+      "bytes": 1921616,
+      "sha256": "832965ac808a13044efc85c113c6fa323925b3030a2fc25a20aa0a84f58902a1"
+    },
+    {
+      "path": "assets/images/backgrounds/chapter_02.png",
+      "bytes": 1783602,
+      "sha256": "1a465afa42a2f6cf0497f685e31cea42cb486d20fdac3d76d0bd9e07471b84c3"
+    },
+    {
+      "path": "assets/images/backgrounds/chapter_03.png",
+      "bytes": 1587676,
+      "sha256": "4db6ab1cdf0dc877ed31f67ee70e03c539034841a4f5db8e86abdacd0869d9e1"
+    },
+    {
+      "path": "assets/images/backgrounds/chapter_04.png",
+      "bytes": 1644984,
+      "sha256": "c8dfdc98244e8d9ef64b969895e10a2396d2b14e9f647c8307f185966ecc677f"
+    },
+    {
+      "path": "assets/images/backgrounds/chapter_05.png",
+      "bytes": 1549327,
+      "sha256": "ceee046781e129fff1fdf9e7c5d39821cef0200f5085e804c85d07982e140374"
+    },
+    {
+      "path": "assets/images/backgrounds/chapter_06.png",
+      "bytes": 1776965,
+      "sha256": "0eeef8a928c69aced4f9db9478048dd3fac39e537bb0ddd6132c07c7b9ac2aca"
+    },
+    {
+      "path": "assets/images/backgrounds/chapter_07.png",
+      "bytes": 1556628,
+      "sha256": "87b7ed49612ef25c26ff837b9f105b6ab9870fca0ec520b63d1db85e91306954"
+    },
+    {
+      "path": "assets/images/backgrounds/chapter_08.png",
+      "bytes": 1615301,
+      "sha256": "6f7ba5fb5ef201df87a0ba36406d5f7b95a39b37bab9c6c206c905e84797300b"
+    },
+    {
+      "path": "assets/images/backgrounds/chapter_09.png",
+      "bytes": 1624932,
+      "sha256": "7c3730abc38d7fdd34c3f4b825b2d9b2afc878963cb1e33000a6203cd92680a1"
+    },
+    {
+      "path": "assets/images/backgrounds/chapter_10.png",
+      "bytes": 1657859,
+      "sha256": "8215633d25cc387a74f3f85ff9e92c58b23ffb132c7066d5b1b14442f3e012fb"
+    },
+    {
+      "path": "assets/images/backgrounds/chapter_11.png",
+      "bytes": 1646716,
+      "sha256": "673f6b32ef3d18b4e41373a5bda69889d7cf69dc6de2a9c176f4ba667a048967"
+    },
+    {
+      "path": "assets/images/backgrounds/chapter_12.png",
+      "bytes": 1679765,
+      "sha256": "b3feaa604ec5476e392cda91df4b8221aee2857c7becf36fbb3e223c1e784806"
+    },
+    {
+      "path": "assets/images/backgrounds/chapter_13.png",
+      "bytes": 1664697,
+      "sha256": "035cc41d950293d74aea24ee5cf5690fe3521964ff0820a90d14ddc99522456d"
+    },
+    {
+      "path": "assets/images/backgrounds/chapter_14.png",
+      "bytes": 1735977,
+      "sha256": "3eb7b159aadb17a8b9c8665b69ffff9dce5c9d65939b1a90165821b3bb8dde62"
+    },
+    {
+      "path": "assets/images/backgrounds/chapter_15.png",
+      "bytes": 2012114,
+      "sha256": "9d94003234d77399b76630b327429036b6bfee4ea51c57fa3acec4f3b85c2913"
+    },
+    {
+      "path": "assets/images/white_trees/white_tree_01_moonblossom.png",
+      "bytes": 2614966,
+      "sha256": "d659af7367a5c5b7beffc66b7254b8e67b49f6499ac203224f6ff3e35a30e024"
+    },
+    {
+      "path": "assets/images/white_trees/white_tree_02_wind_swept.png",
+      "bytes": 2289326,
+      "sha256": "fd56aeef8886c98ae039180d11b00e3f775c326b70f5680664870931bcd34e3c"
+    },
+    {
+      "path": "assets/images/white_trees/white_tree_03_weeping_white.png",
+      "bytes": 2244005,
+      "sha256": "027a432c09175f41519caf4b9ebf18007200bd2858d0c44b021c5b4fc1a700e3"
+    },
+    {
+      "path": "assets/images/white_trees/white_tree_04_silver_fan.png",
+      "bytes": 2174447,
+      "sha256": "53230fc140d5629208710bafb4e0ef1c7467001827bb782c0c085e11a9fa9c96"
+    },
+    {
+      "path": "assets/images/white_trees/white_tree_05_ancient_blossom.png",
+      "bytes": 1969897,
+      "sha256": "cf80d34dc2dd4d9e6b8631c32f1cd399d329ca9a2b8eb4d143efbcb9a84fc2ef"
+    }
+  ]
+}

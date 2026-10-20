@@ -127,6 +127,16 @@ abstract class Hoisted extends BodyComponent with OffScreenCulling {
     body.isAwake = true;
   }
 
+  /// Authored checkpoint pose, held so a restored mechanism cannot collapse.
+  void restoreTravel(double offset) {
+    if (!isReady) return;
+    final t = offset.clamp(-rise, drop);
+    body
+      ..setTransform(start + Vector2(0, t), const Rot.identity())
+      ..linearVelocity = Vector2.zero();
+    guide.setLimits(lower: t, upper: t);
+  }
+
   /// Back where it started, at rest.
   void resetToStart() {
     if (!isReady) return;
@@ -1332,7 +1342,7 @@ class HungChandelier extends BodyComponent
   Future<void> onLoad() async {
     await super.onLoad();
     try {
-      _art = Flame.images.fromCache('part3/ch9_far_chandelier.png');
+      _art = await Flame.images.load('part3/ch9_far_chandelier.png');
     } catch (_) {
       // A bare test binding has no images.
     }
@@ -1612,7 +1622,7 @@ class ChandelierRope extends SwingRope with StageLight implements GlowingLight {
   Future<void> onLoad() async {
     await super.onLoad();
     try {
-      _art = Flame.images.fromCache('part3/ch9_far_chandelier.png');
+      _art = await Flame.images.load('part3/ch9_far_chandelier.png');
     } catch (_) {
       // A bare test binding has no images.
     }

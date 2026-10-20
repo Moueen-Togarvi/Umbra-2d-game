@@ -1,0 +1,26 @@
+{
+ "ui_arrow": {
+  "source": "ui_arrow_d",
+  "max_h": 256,
+  "keep_inner_white": 0.0008,
+  "despeckle": 3
+ },
+ "ui_jump": {
+  "source": "ui_jump_c",
+  "max_h": 256,
+  "keep_inner_white": 0.0008,
+  "despeckle": 3
+ },
+ "ui_sit": {
+  "source": "ui_sit_a",
+  "max_h": 256,
+  "keep_inner_white": 0.0008,
+  "despeckle": 3
+ },
+ "ui_hand": {
+  "source": "ui_hand_a",
+  "max_h": 256,
+  "keep_inner_white": 0.0008,
+  "despeckle": 3
+ }
+}

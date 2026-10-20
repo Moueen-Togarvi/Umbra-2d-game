@@ -1,3 +1,4 @@
+import 'support/route_pilot.dart';
 import 'package:flame/game.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:umbra/chapters/cage.dart';
@@ -31,6 +32,7 @@ void main() {
     int frames = 900,
   }) async {
     for (var i = 0; i < frames && !done(); i++) {
+      driveExtension(game);
       game.update(1 / 60);
       if (i % 4 == 0) {
         await tester.runAsync(
@@ -43,9 +45,10 @@ void main() {
 
   Future<CageChapter> enter(WidgetTester tester, UmbraGame game) async {
     for (var i = 0; i < 180; i++) {
+      driveExtension(game);
       game.update(1 / 60);
     }
-    game.director!.playChapter(2);
+    game.director!.playChapter(5);
     await until(
       tester,
       game,
@@ -61,6 +64,7 @@ void main() {
     final cage = await enter(tester, game);
     // Standing still, nothing swings it.
     for (var i = 0; i < 60 * 4; i++) {
+      driveExtension(game);
       game.update(1 / 60);
     }
     // Getting up shifts his weight and rocks it a little; nothing like
@@ -88,7 +92,7 @@ void main() {
       intent.requestJump();
     }
 
-    for (var i = 0; i < 60 * 220 && !cage.isComplete; i++) {
+    for (var i = 0; i < 60 * 900 && !cage.isComplete; i++) {
       final double x = player.body.position.x;
       final double feet = player.body.position.y + 0.65;
       final bool grounded = player.isOnGround;
@@ -159,7 +163,8 @@ void main() {
           }
         }
       }
-      intent.setKeyboardState(axis: axis);
+      intent.setKeyboardState(axis: axis, sit: x > 85.3 && x < 86.7 && axis == 0);
+      driveExtension(game);
       game.update(1 / 60);
       expect(
         player.isDead,
@@ -196,6 +201,7 @@ void main() {
       ..patrol(77, 97);
     for (var i = 0; i < 60 * 6 && !cage.player.isDead; i++) {
       game.intent.setKeyboardState(axis: 1);
+      driveExtension(game);
       game.update(1 / 60);
     }
     expect(cage.player.isDead, isTrue);

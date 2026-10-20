@@ -34,14 +34,29 @@ class DawnChapter extends Chapter {
 
   /// The birds start once the sun is up.
   @override
+  void restoreWorld(double x) {
+    if (x >= 40) {
+      sun.rising = true;
+      for (final v in last) {
+        v.gone = true;
+      }
+    } else if (x >= 14) {
+      for (final h in _hunt) {
+        h.vampire.gone = false;
+        h.start();
+      }
+    }
+  }
+
+  @override
   String? get ambience => isLoaded && sun.rising ? 'birds' : null;
 
   @override
-  int get number => 15;
+  int get number => 40;
   @override
   String get title => 'Dawn';
   @override
-  double get width => 150;
+  double get coreWidth => 150;
   @override
   MoodTrack get moods => const MoodTrack(Mood.night, Mood.dawn, 30, 100);
   @override
@@ -50,19 +65,19 @@ class DawnChapter extends Chapter {
   static const double ditchLeft = 58, ditchRight = 59.3;
 
   @override
-  List<List<double>> get profile => const [
+  List<List<double>> get baseProfile => const [
     [0, 6.6, 12, 6.8, 24, 7.0, 36, 7.1, 48, 7.0, ditchLeft, 7.0],
     [ditchRight, 7.0, 70, 6.9, 84, 7.0, 100, 7.1, 120, 7.0, 150, 7.0],
   ];
 
   @override
-  List<double> get checkpointXs => const [8, 30, 62, 100];
+  List<double> get coreCheckpointXs => const [8, 30, 62, 100];
 
   @override
   Vector2 get spawn => Vector2(3, 6.6 - GameConfig.playerHeight / 2);
 
   @override
-  double get exitX => 149;
+  double get coreExitX => 149;
 
   @override
   List<String> get art => const [
@@ -80,7 +95,11 @@ class DawnChapter extends Chapter {
   ];
 
   late final Sunrise sun;
-  late final Cottage cottage = Cottage(centreX: 141, groundY: 7.0, height: 8.0);
+  late final Cottage cottage = Cottage(
+    centreX: 141 + extensionLength,
+    groundY: 7.0,
+    height: 8.0,
+  );
   final List<Vampire> last = [
     Vampire(x: 6, groundY: 6.7, facing: 1),
     Vampire(x: 3.5, groundY: 6.6, facing: 1),
