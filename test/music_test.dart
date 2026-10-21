@@ -41,17 +41,18 @@ void main() {
     expect(settings.soundOn, isFalse);
   });
 
-  testWidgets('the menu has its music, play has the one picked, '
-      'and a chase its own', (tester) async {
+  testWidgets('the menu and play have the one picked, carrying on '
+      'unbroken, and a chase its own', (tester) async {
     final game = await bootCampaign(tester);
     expect(game.director!.showingTitle, isTrue);
-    expect(game.musicNow, SoundBank.menu);
+    expect(game.musicNow, game.settings.background);
     // Trying one out on the menu plays it there.
     game.previewBackground = 'bg_descent';
     expect(game.musicNow, 'bg_descent');
     game.previewBackground = null;
 
     game.settings.setBackground('bg_tomb');
+    expect(game.musicNow, 'bg_tomb', reason: 'the menu plays it too');
     final chase = await enterChapter<ChaseChapter>(tester, game, 15);
     expect(game.musicNow, 'bg_tomb');
     chase.startChase();

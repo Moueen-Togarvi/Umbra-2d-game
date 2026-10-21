@@ -74,6 +74,27 @@ void main() {
     );
   });
 
+  testWidgets('a long walk never falls silent', (tester) async {
+    final (game, player) = await boot(tester);
+    for (final speed in [1.0, 0.5]) {
+      game.intent.setKeyboardState(axis: speed);
+      run(game, player, 0.6);
+      var quiet = 0.0, longest = 0.0;
+      for (var i = 0; i < 6 * 120; i++) {
+        final int before = player.footContacts;
+        game.update(1 / 120);
+        final bool walking =
+            player.isOnGround && player.velocity.x.abs() > 0.5;
+        quiet = player.footContacts > before || !walking ? 0 : quiet + 1 / 120;
+        if (quiet > longest) longest = quiet;
+      }
+      expect(longest, lessThan(0.6), reason: 'at $speed: no step goes unheard');
+      game.intent.setKeyboardState(axis: -speed);
+      run(game, player, 6.6);
+    }
+    game.intent.setKeyboardState(axis: 0);
+  });
+
   testWidgets('nothing in the air', (tester) async {
     final (game, player) = await boot(tester);
     game.intent.setKeyboardState(axis: 1);

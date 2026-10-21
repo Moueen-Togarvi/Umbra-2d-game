@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:math' as math;
 import 'dart:ui';
 
@@ -5,7 +6,7 @@ import 'package:flame/flame.dart';
 import 'package:flame/components.dart' show Component;
 import 'package:flame/input.dart' show HasKeyboardHandlerComponents;
 import 'package:flame_forge2d/flame_forge2d.dart';
-import 'package:flutter/foundation.dart' show visibleForTesting;
+import 'package:flutter/foundation.dart' show kIsWeb, visibleForTesting;
 
 import '../config/game_config.dart';
 import '../config/game_settings.dart';
@@ -231,6 +232,9 @@ class UmbraGame extends Forge2DGame with HasKeyboardHandlerComponents {
     // If the assets are missing — which is the case in a bare test binding —
     // the scenery simply does not draw. The physics does not depend on it.
     await _loadArt();
+    // Only a browser needs a tap before it plays anything: on a phone the
+    // menu's music starts as the game opens.
+    if (!kIsWeb) unawaited(_audio.unlock());
     _controlScale = settings.controlsScale;
     settings.addListener(_settingsChanged);
 
@@ -552,25 +556,21 @@ class UmbraGame extends Forge2DGame with HasKeyboardHandlerComponents {
 
   double _zoom = 1;
 
-  /// Plays a piece of music once through (null stops it).
-  /// A background the music menu is trying out, played over the menu's
-  /// own music while the menu is open; null otherwise.
+  /// A background the music menu is trying out, played while the menu
+  /// is open; null otherwise.
   String? previewBackground;
 
-  /// The music for now: the menu's on the title (or the one being tried
-  /// out there), the chase's while a keeper is after him, and otherwise
-  /// the one the player picked.
+  /// The music for now: one piece from the menu into play (the one the
+  /// player picked, or the one being tried out), carrying on unbroken when
+  /// the game starts; only a keeper's chase has its own.
   @visibleForTesting
   String get musicNow => _scoreNow(_stage);
 
   String _scoreNow(Stage? place) {
-    if (director?.showingTitle ?? false) {
-      return previewBackground ?? SoundBank.menu;
-    }
-    if (place?.threat == ThreatLevel.chase) {
+    final bool title = director?.showingTitle ?? false;
+    if (!title && place?.threat == ThreatLevel.chase) {
       return SoundBank.chase;
     }
-    if (place?.threat == ThreatLevel.tension) return 'bg_tomb';
     final String picked = previewBackground ?? settings.background;
     return SoundBank.backgrounds.any((b) => b.$1 == picked)
         ? picked

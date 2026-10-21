@@ -51,13 +51,38 @@ class AmbientAudio {
     _loading = true;
     await _guard(() async {
       await AudioPlayer.global.ensureInitialized();
+      // Every player mixes with the others. By default each one asks Android
+      // for the audio focus when it starts, and the one that loses it is
+      // paused for good: every footstep silenced the music, the wind and the
+      // footstep before it.
+      await AudioPlayer.global.setAudioContext(
+        AudioContext(
+          android: const AudioContextAndroid(
+            audioFocus: AndroidAudioFocus.none,
+            usageType: AndroidUsageType.game,
+            contentType: AndroidContentType.sonification,
+          ),
+          iOS: AudioContextIOS(category: AVAudioSessionCategory.ambient),
+        ),
+      );
+      // The music and the loops first, so the menu's music starts at once;
+      // the effects load behind it.
+      for (final loop in _loops) {
+        await loop.player.setReleaseMode(ReleaseMode.loop);
+      }
+      final music = _music = AudioPlayer();
+      await music.setReleaseMode(ReleaseMode.stop);
+      _wind.want = 'wind';
+      _wasEnabled = enabled;
+      _ready = true;
+      await updateMix();
       // Short effects go through Android's low-latency pool, so a footstep
       // lands with the foot.
       final bool pool =
           !kIsWeb && defaultTargetPlatform == TargetPlatform.android;
       for (final MapEntry(key: name, value: count)
           in SoundBank.effects.entries) {
-        final List<AudioPlayer> takes = _takes[name] = [];
+        final List<AudioPlayer> takes = [];
         // In a browser every player opens its own audio context. Keep all
         // the outdoor footsteps, three of each other surface's (so a run
         // never falls into a two-step rhythm), and two of everything else.
@@ -74,17 +99,9 @@ class AmbientAudio {
           await voice.setSource(AssetSource(SoundBank.effect(name, i)));
           takes.add(voice);
         }
+        // Heard only once every take is ready.
+        _takes[name] = takes;
       }
-      if (_disposed) return;
-      for (final loop in _loops) {
-        await loop.player.setReleaseMode(ReleaseMode.loop);
-      }
-      final music = _music = AudioPlayer();
-      await music.setReleaseMode(ReleaseMode.stop);
-      _wind.want = 'wind';
-      _wasEnabled = enabled;
-      _ready = true;
-      await updateMix();
     });
     _loading = false;
   }
