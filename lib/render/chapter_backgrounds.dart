@@ -137,12 +137,17 @@ abstract final class ChapterBackgrounds {
 
   static final all = List<ChapterBackground>.generate(40, (i) {
     final old = CampaignCatalog.legacyPositions.indexOf(i + 1);
-    return ChapterBackground(i + 1, old >= 0 ? legacy[old].areas : [
-      const BackgroundArea(0, 'Arrival'),
-      BackgroundArea(40.0 * (i < 10 ? 1 : 2), 'Inner passage'),
-      BackgroundArea(80.0 * (i < 10 ? 1 : 2), 'Heart of the chapter'),
-      BackgroundArea(120.0 * (i < 10 ? 1 : 2), 'Far boundary'),
-    ]);
+    return ChapterBackground(
+      i + 1,
+      old >= 0
+          ? legacy[old].areas
+          : [
+              const BackgroundArea(0, 'Arrival'),
+              BackgroundArea(40.0 * (i < 10 ? 1 : 2), 'Inner passage'),
+              BackgroundArea(80.0 * (i < 10 ? 1 : 2), 'Heart of the chapter'),
+              BackgroundArea(120.0 * (i < 10 ? 1 : 2), 'Far boundary'),
+            ],
+    );
   });
   static ChapterBackground forChapter(int number) => all[number - 1];
 }

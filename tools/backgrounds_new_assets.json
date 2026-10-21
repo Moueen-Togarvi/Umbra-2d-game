@@ -1,0 +1,602 @@
+[
+ {
+  "name": "old_orchard_1",
+  "size": "1440*816",
+  "prompt": "an overgrown old apple orchard at dusk, gnarled fruit trees and a broken wooden fence. soft monochrome grayscale matte painting, a 2D side-scrolling game background, misty atmospheric depth: dark silhouetted foreground shapes at the edges fading into layers of pale grey fog towards a softly glowing light background, calm melancholic mood, painterly, no people, no animals, no characters, no text, wide landscape view.",
+  "negative": "text, letters, watermark, signature, people, person, child, character, animal, colour, color, saturated, frame, border, UI, logo"
+ },
+ {
+  "name": "old_orchard_2",
+  "size": "1440*816",
+  "prompt": "rows of twisted orchard trees with a fallen ladder and empty baskets. soft monochrome grayscale matte painting, a 2D side-scrolling game background, misty atmospheric depth: dark silhouetted foreground shapes at the edges fading into layers of pale grey fog towards a softly glowing light background, calm melancholic mood, painterly, no people, no animals, no characters, no text, wide landscape view.",
+  "negative": "text, letters, watermark, signature, people, person, child, character, animal, colour, color, saturated, frame, border, UI, logo"
+ },
+ {
+  "name": "old_orchard_3",
+  "size": "1440*816",
+  "prompt": "an orchard hollow with a stone well and tall wild grass. soft monochrome grayscale matte painting, a 2D side-scrolling game background, misty atmospheric depth: dark silhouetted foreground shapes at the edges fading into layers of pale grey fog towards a softly glowing light background, calm melancholic mood, painterly, no people, no animals, no characters, no text, wide landscape view.",
+  "negative": "text, letters, watermark, signature, people, person, child, character, animal, colour, color, saturated, frame, border, UI, logo"
+ },
+ {
+  "name": "old_orchard_4",
+  "size": "1440*816",
+  "prompt": "the far edge of the orchard where dark forest begins. soft monochrome grayscale matte painting, a 2D side-scrolling game background, misty atmospheric depth: dark silhouetted foreground shapes at the edges fading into layers of pale grey fog towards a softly glowing light background, calm melancholic mood, painterly, no people, no animals, no characters, no text, wide landscape view.",
+  "negative": "text, letters, watermark, signature, people, person, child, character, animal, colour, color, saturated, frame, border, UI, logo"
+ },
+ {
+  "name": "hunters_road_1",
+  "size": "1440*816",
+  "prompt": "a muddy forest road with deep cart ruts and leaning trees. soft monochrome grayscale matte painting, a 2D side-scrolling game background, misty atmospheric depth: dark silhouetted foreground shapes at the edges fading into layers of pale grey fog towards a softly glowing light background, calm melancholic mood, painterly, no people, no animals, no characters, no text, wide landscape view.",
+  "negative": "text, letters, watermark, signature, people, person, child, character, animal, colour, color, saturated, frame, border, UI, logo"
+ },
+ {
+  "name": "hunters_road_2",
+  "size": "1440*816",
+  "prompt": "a hunters' trail with animal traps and a wooden hunting stand. soft monochrome grayscale matte painting, a 2D side-scrolling game background, misty atmospheric depth: dark silhouetted foreground shapes at the edges fading into layers of pale grey fog towards a softly glowing light background, calm melancholic mood, painterly, no people, no animals, no characters, no text, wide landscape view.",
+  "negative": "text, letters, watermark, signature, people, person, child, character, animal, colour, color, saturated, frame, border, UI, logo"
+ },
+ {
+  "name": "hunters_road_3",
+  "size": "1440*816",
+  "prompt": "a roadside hunters' hut with hanging antlers silhouettes, smoke. soft monochrome grayscale matte painting, a 2D side-scrolling game background, misty atmospheric depth: dark silhouetted foreground shapes at the edges fading into layers of pale grey fog towards a softly glowing light background, calm melancholic mood, painterly, no people, no animals, no characters, no text, wide landscape view.",
+  "negative": "text, letters, watermark, signature, people, person, child, character, animal, colour, color, saturated, frame, border, UI, logo"
+ },
+ {
+  "name": "hunters_road_4",
+  "size": "1440*816",
+  "prompt": "the road dipping into a misty ravine with a rope fence. soft monochrome grayscale matte painting, a 2D side-scrolling game background, misty atmospheric depth: dark silhouetted foreground shapes at the edges fading into layers of pale grey fog towards a softly glowing light background, calm melancholic mood, painterly, no people, no animals, no characters, no text, wide landscape view.",
+  "negative": "text, letters, watermark, signature, people, person, child, character, animal, colour, color, saturated, frame, border, UI, logo"
+ },
+ {
+  "name": "graveyard_1",
+  "size": "1440*816",
+  "prompt": "an old village graveyard gate under bare trees. soft monochrome grayscale matte painting, a 2D side-scrolling game background, misty atmospheric depth: dark silhouetted foreground shapes at the edges fading into layers of pale grey fog towards a softly glowing light background, calm melancholic mood, painterly, no people, no animals, no characters, no text, wide landscape view.",
+  "negative": "text, letters, watermark, signature, people, person, child, character, animal, colour, color, saturated, frame, border, UI, logo"
+ },
+ {
+  "name": "graveyard_2",
+  "size": "1440*816",
+  "prompt": "crooked gravestones and stone crosses in fog. soft monochrome grayscale matte painting, a 2D side-scrolling game background, misty atmospheric depth: dark silhouetted foreground shapes at the edges fading into layers of pale grey fog towards a softly glowing light background, calm melancholic mood, painterly, no people, no animals, no characters, no text, wide landscape view.",
+  "negative": "text, letters, watermark, signature, people, person, child, character, animal, colour, color, saturated, frame, border, UI, logo"
+ },
+ {
+  "name": "graveyard_3",
+  "size": "1440*816",
+  "prompt": "a stone chapel ruin among graves with tall cypress trees. soft monochrome grayscale matte painting, a 2D side-scrolling game background, misty atmospheric depth: dark silhouetted foreground shapes at the edges fading into layers of pale grey fog towards a softly glowing light background, calm melancholic mood, painterly, no people, no animals, no characters, no text, wide landscape view.",
+  "negative": "text, letters, watermark, signature, people, person, child, character, animal, colour, color, saturated, frame, border, UI, logo"
+ },
+ {
+  "name": "graveyard_4",
+  "size": "1440*816",
+  "prompt": "the far graveyard wall with a crypt door and dead trees. soft monochrome grayscale matte painting, a 2D side-scrolling game background, misty atmospheric depth: dark silhouetted foreground shapes at the edges fading into layers of pale grey fog towards a softly glowing light background, calm melancholic mood, painterly, no people, no animals, no characters, no text, wide landscape view.",
+  "negative": "text, letters, watermark, signature, people, person, child, character, animal, colour, color, saturated, frame, border, UI, logo"
+ },
+ {
+  "name": "chainworks_1",
+  "size": "1440*816",
+  "prompt": "a dark cave workshop with huge hanging iron chains. soft monochrome grayscale matte painting, a 2D side-scrolling game background, misty atmospheric depth: dark silhouetted foreground shapes at the edges fading into layers of pale grey fog towards a softly glowing light background, calm melancholic mood, painterly, no people, no animals, no characters, no text, wide landscape view.",
+  "negative": "text, letters, watermark, signature, people, person, child, character, animal, colour, color, saturated, frame, border, UI, logo"
+ },
+ {
+  "name": "chainworks_2",
+  "size": "1440*816",
+  "prompt": "rusted winches and pulleys inside a rock cavern. soft monochrome grayscale matte painting, a 2D side-scrolling game background, misty atmospheric depth: dark silhouetted foreground shapes at the edges fading into layers of pale grey fog towards a softly glowing light background, calm melancholic mood, painterly, no people, no animals, no characters, no text, wide landscape view.",
+  "negative": "text, letters, watermark, signature, people, person, child, character, animal, colour, color, saturated, frame, border, UI, logo"
+ },
+ {
+  "name": "chainworks_3",
+  "size": "1440*816",
+  "prompt": "a chain bridge over a deep cave chasm. soft monochrome grayscale matte painting, a 2D side-scrolling game background, misty atmospheric depth: dark silhouetted foreground shapes at the edges fading into layers of pale grey fog towards a softly glowing light background, calm melancholic mood, painterly, no people, no animals, no characters, no text, wide landscape view.",
+  "negative": "text, letters, watermark, signature, people, person, child, character, animal, colour, color, saturated, frame, border, UI, logo"
+ },
+ {
+  "name": "chainworks_4",
+  "size": "1440*816",
+  "prompt": "a cave tunnel lined with chains and iron hooks. soft monochrome grayscale matte painting, a 2D side-scrolling game background, misty atmospheric depth: dark silhouetted foreground shapes at the edges fading into layers of pale grey fog towards a softly glowing light background, calm melancholic mood, painterly, no people, no animals, no characters, no text, wide landscape view.",
+  "negative": "text, letters, watermark, signature, people, person, child, character, animal, colour, color, saturated, frame, border, UI, logo"
+ },
+ {
+  "name": "sluice_tunnels_1",
+  "size": "1440*816",
+  "prompt": "an underground stone sluice tunnel with dripping water. soft monochrome grayscale matte painting, a 2D side-scrolling game background, misty atmospheric depth: dark silhouetted foreground shapes at the edges fading into layers of pale grey fog towards a softly glowing light background, calm melancholic mood, painterly, no people, no animals, no characters, no text, wide landscape view.",
+  "negative": "text, letters, watermark, signature, people, person, child, character, animal, colour, color, saturated, frame, border, UI, logo"
+ },
+ {
+  "name": "sluice_tunnels_2",
+  "size": "1440*816",
+  "prompt": "wooden sluice gates holding back dark water in a tunnel. soft monochrome grayscale matte painting, a 2D side-scrolling game background, misty atmospheric depth: dark silhouetted foreground shapes at the edges fading into layers of pale grey fog towards a softly glowing light background, calm melancholic mood, painterly, no people, no animals, no characters, no text, wide landscape view.",
+  "negative": "text, letters, watermark, signature, people, person, child, character, animal, colour, color, saturated, frame, border, UI, logo"
+ },
+ {
+  "name": "sluice_tunnels_3",
+  "size": "1440*816",
+  "prompt": "a vaulted brick water channel with low arches. soft monochrome grayscale matte painting, a 2D side-scrolling game background, misty atmospheric depth: dark silhouetted foreground shapes at the edges fading into layers of pale grey fog towards a softly glowing light background, calm melancholic mood, painterly, no people, no animals, no characters, no text, wide landscape view.",
+  "negative": "text, letters, watermark, signature, people, person, child, character, animal, colour, color, saturated, frame, border, UI, logo"
+ },
+ {
+  "name": "sluice_tunnels_4",
+  "size": "1440*816",
+  "prompt": "a tunnel opening onto a misty underground pool. soft monochrome grayscale matte painting, a 2D side-scrolling game background, misty atmospheric depth: dark silhouetted foreground shapes at the edges fading into layers of pale grey fog towards a softly glowing light background, calm melancholic mood, painterly, no people, no animals, no characters, no text, wide landscape view.",
+  "negative": "text, letters, watermark, signature, people, person, child, character, animal, colour, color, saturated, frame, border, UI, logo"
+ },
+ {
+  "name": "drowned_quarry_1",
+  "size": "1440*816",
+  "prompt": "a flooded stone quarry with sheer cut walls. soft monochrome grayscale matte painting, a 2D side-scrolling game background, misty atmospheric depth: dark silhouetted foreground shapes at the edges fading into layers of pale grey fog towards a softly glowing light background, calm melancholic mood, painterly, no people, no animals, no characters, no text, wide landscape view.",
+  "negative": "text, letters, watermark, signature, people, person, child, character, animal, colour, color, saturated, frame, border, UI, logo"
+ },
+ {
+  "name": "drowned_quarry_2",
+  "size": "1440*816",
+  "prompt": "broken quarry cranes standing in still water. soft monochrome grayscale matte painting, a 2D side-scrolling game background, misty atmospheric depth: dark silhouetted foreground shapes at the edges fading into layers of pale grey fog towards a softly glowing light background, calm melancholic mood, painterly, no people, no animals, no characters, no text, wide landscape view.",
+  "negative": "text, letters, watermark, signature, people, person, child, character, animal, colour, color, saturated, frame, border, UI, logo"
+ },
+ {
+  "name": "drowned_quarry_3",
+  "size": "1440*816",
+  "prompt": "stepped quarry ledges sinking into fog and water. soft monochrome grayscale matte painting, a 2D side-scrolling game background, misty atmospheric depth: dark silhouetted foreground shapes at the edges fading into layers of pale grey fog towards a softly glowing light background, calm melancholic mood, painterly, no people, no animals, no characters, no text, wide landscape view.",
+  "negative": "text, letters, watermark, signature, people, person, child, character, animal, colour, color, saturated, frame, border, UI, logo"
+ },
+ {
+  "name": "drowned_quarry_4",
+  "size": "1440*816",
+  "prompt": "a quarry cave mouth half under water. soft monochrome grayscale matte painting, a 2D side-scrolling game background, misty atmospheric depth: dark silhouetted foreground shapes at the edges fading into layers of pale grey fog towards a softly glowing light background, calm melancholic mood, painterly, no people, no animals, no characters, no text, wide landscape view.",
+  "negative": "text, letters, watermark, signature, people, person, child, character, animal, colour, color, saturated, frame, border, UI, logo"
+ },
+ {
+  "name": "coffin_gallery_1",
+  "size": "1440*816",
+  "prompt": "a long underground gallery of stacked stone coffins. soft monochrome grayscale matte painting, a 2D side-scrolling game background, misty atmospheric depth: dark silhouetted foreground shapes at the edges fading into layers of pale grey fog towards a softly glowing light background, calm melancholic mood, painterly, no people, no animals, no characters, no text, wide landscape view.",
+  "negative": "text, letters, watermark, signature, people, person, child, character, animal, colour, color, saturated, frame, border, UI, logo"
+ },
+ {
+  "name": "coffin_gallery_2",
+  "size": "1440*816",
+  "prompt": "burial niches in rough cave walls with candles. soft monochrome grayscale matte painting, a 2D side-scrolling game background, misty atmospheric depth: dark silhouetted foreground shapes at the edges fading into layers of pale grey fog towards a softly glowing light background, calm melancholic mood, painterly, no people, no animals, no characters, no text, wide landscape view.",
+  "negative": "text, letters, watermark, signature, people, person, child, character, animal, colour, color, saturated, frame, border, UI, logo"
+ },
+ {
+  "name": "coffin_gallery_3",
+  "size": "1440*816",
+  "prompt": "a vaulted crypt hall with coffins on stone shelves. soft monochrome grayscale matte painting, a 2D side-scrolling game background, misty atmospheric depth: dark silhouetted foreground shapes at the edges fading into layers of pale grey fog towards a softly glowing light background, calm melancholic mood, painterly, no people, no animals, no characters, no text, wide landscape view.",
+  "negative": "text, letters, watermark, signature, people, person, child, character, animal, colour, color, saturated, frame, border, UI, logo"
+ },
+ {
+  "name": "coffin_gallery_4",
+  "size": "1440*816",
+  "prompt": "a narrow crypt passage with iron gates. soft monochrome grayscale matte painting, a 2D side-scrolling game background, misty atmospheric depth: dark silhouetted foreground shapes at the edges fading into layers of pale grey fog towards a softly glowing light background, calm melancholic mood, painterly, no people, no animals, no characters, no text, wide landscape view.",
+  "negative": "text, letters, watermark, signature, people, person, child, character, animal, colour, color, saturated, frame, border, UI, logo"
+ },
+ {
+  "name": "floodworks_1",
+  "size": "1440*816",
+  "prompt": "an underground cistern with stone pillars and flood water. soft monochrome grayscale matte painting, a 2D side-scrolling game background, misty atmospheric depth: dark silhouetted foreground shapes at the edges fading into layers of pale grey fog towards a softly glowing light background, calm melancholic mood, painterly, no people, no animals, no characters, no text, wide landscape view.",
+  "negative": "text, letters, watermark, signature, people, person, child, character, animal, colour, color, saturated, frame, border, UI, logo"
+ },
+ {
+  "name": "floodworks_2",
+  "size": "1440*816",
+  "prompt": "old pumps and huge pipes in a dark flooded chamber. soft monochrome grayscale matte painting, a 2D side-scrolling game background, misty atmospheric depth: dark silhouetted foreground shapes at the edges fading into layers of pale grey fog towards a softly glowing light background, calm melancholic mood, painterly, no people, no animals, no characters, no text, wide landscape view.",
+  "negative": "text, letters, watermark, signature, people, person, child, character, animal, colour, color, saturated, frame, border, UI, logo"
+ },
+ {
+  "name": "floodworks_3",
+  "size": "1440*816",
+  "prompt": "a stone dam and spillway in a cavern. soft monochrome grayscale matte painting, a 2D side-scrolling game background, misty atmospheric depth: dark silhouetted foreground shapes at the edges fading into layers of pale grey fog towards a softly glowing light background, calm melancholic mood, painterly, no people, no animals, no characters, no text, wide landscape view.",
+  "negative": "text, letters, watermark, signature, people, person, child, character, animal, colour, color, saturated, frame, border, UI, logo"
+ },
+ {
+  "name": "floodworks_4",
+  "size": "1440*816",
+  "prompt": "a rising stair out of flooded tunnels toward faint light. soft monochrome grayscale matte painting, a 2D side-scrolling game background, misty atmospheric depth: dark silhouetted foreground shapes at the edges fading into layers of pale grey fog towards a softly glowing light background, calm melancholic mood, painterly, no people, no animals, no characters, no text, wide landscape view.",
+  "negative": "text, letters, watermark, signature, people, person, child, character, animal, colour, color, saturated, frame, border, UI, logo"
+ },
+ {
+  "name": "lower_castle_1",
+  "size": "1440*816",
+  "prompt": "the cellars beneath a gothic castle with wine barrels. soft monochrome grayscale matte painting, a 2D side-scrolling game background, misty atmospheric depth: dark silhouetted foreground shapes at the edges fading into layers of pale grey fog towards a softly glowing light background, calm melancholic mood, painterly, no people, no animals, no characters, no text, wide landscape view.",
+  "negative": "text, letters, watermark, signature, people, person, child, character, animal, colour, color, saturated, frame, border, UI, logo"
+ },
+ {
+  "name": "lower_castle_2",
+  "size": "1440*816",
+  "prompt": "stone storerooms with arches and cobwebs. soft monochrome grayscale matte painting, a 2D side-scrolling game background, misty atmospheric depth: dark silhouetted foreground shapes at the edges fading into layers of pale grey fog towards a softly glowing light background, calm melancholic mood, painterly, no people, no animals, no characters, no text, wide landscape view.",
+  "negative": "text, letters, watermark, signature, people, person, child, character, animal, colour, color, saturated, frame, border, UI, logo"
+ },
+ {
+  "name": "lower_castle_3",
+  "size": "1440*816",
+  "prompt": "a castle kitchen at night with a cold hearth and hanging pots. soft monochrome grayscale matte painting, a 2D side-scrolling game background, misty atmospheric depth: dark silhouetted foreground shapes at the edges fading into layers of pale grey fog towards a softly glowing light background, calm melancholic mood, painterly, no people, no animals, no characters, no text, wide landscape view.",
+  "negative": "text, letters, watermark, signature, people, person, child, character, animal, colour, color, saturated, frame, border, UI, logo"
+ },
+ {
+  "name": "lower_castle_4",
+  "size": "1440*816",
+  "prompt": "a spiral stair rising out of the castle cellars. soft monochrome grayscale matte painting, a 2D side-scrolling game background, misty atmospheric depth: dark silhouetted foreground shapes at the edges fading into layers of pale grey fog towards a softly glowing light background, calm melancholic mood, painterly, no people, no animals, no characters, no text, wide landscape view.",
+  "negative": "text, letters, watermark, signature, people, person, child, character, animal, colour, color, saturated, frame, border, UI, logo"
+ },
+ {
+  "name": "servants_passage_1",
+  "size": "1440*816",
+  "prompt": "a narrow castle servants' corridor with plain doors. soft monochrome grayscale matte painting, a 2D side-scrolling game background, misty atmospheric depth: dark silhouetted foreground shapes at the edges fading into layers of pale grey fog towards a softly glowing light background, calm melancholic mood, painterly, no people, no animals, no characters, no text, wide landscape view.",
+  "negative": "text, letters, watermark, signature, people, person, child, character, animal, colour, color, saturated, frame, border, UI, logo"
+ },
+ {
+  "name": "servants_passage_2",
+  "size": "1440*816",
+  "prompt": "a back stair with hanging laundry and lanterns. soft monochrome grayscale matte painting, a 2D side-scrolling game background, misty atmospheric depth: dark silhouetted foreground shapes at the edges fading into layers of pale grey fog towards a softly glowing light background, calm melancholic mood, painterly, no people, no animals, no characters, no text, wide landscape view.",
+  "negative": "text, letters, watermark, signature, people, person, child, character, animal, colour, color, saturated, frame, border, UI, logo"
+ },
+ {
+  "name": "servants_passage_3",
+  "size": "1440*816",
+  "prompt": "a cramped passage with crates and sacks. soft monochrome grayscale matte painting, a 2D side-scrolling game background, misty atmospheric depth: dark silhouetted foreground shapes at the edges fading into layers of pale grey fog towards a softly glowing light background, calm melancholic mood, painterly, no people, no animals, no characters, no text, wide landscape view.",
+  "negative": "text, letters, watermark, signature, people, person, child, character, animal, colour, color, saturated, frame, border, UI, logo"
+ },
+ {
+  "name": "servants_passage_4",
+  "size": "1440*816",
+  "prompt": "a hidden door opening onto the great halls. soft monochrome grayscale matte painting, a 2D side-scrolling game background, misty atmospheric depth: dark silhouetted foreground shapes at the edges fading into layers of pale grey fog towards a softly glowing light background, calm melancholic mood, painterly, no people, no animals, no characters, no text, wide landscape view.",
+  "negative": "text, letters, watermark, signature, people, person, child, character, animal, colour, color, saturated, frame, border, UI, logo"
+ },
+ {
+  "name": "shadow_gallery_1",
+  "size": "1440*816",
+  "prompt": "a long castle portrait gallery in deep shadow. soft monochrome grayscale matte painting, a 2D side-scrolling game background, misty atmospheric depth: dark silhouetted foreground shapes at the edges fading into layers of pale grey fog towards a softly glowing light background, calm melancholic mood, painterly, no people, no animals, no characters, no text, wide landscape view.",
+  "negative": "text, letters, watermark, signature, people, person, child, character, animal, colour, color, saturated, frame, border, UI, logo"
+ },
+ {
+  "name": "shadow_gallery_2",
+  "size": "1440*816",
+  "prompt": "tall gothic windows throwing pale light across a gallery. soft monochrome grayscale matte painting, a 2D side-scrolling game background, misty atmospheric depth: dark silhouetted foreground shapes at the edges fading into layers of pale grey fog towards a softly glowing light background, calm melancholic mood, painterly, no people, no animals, no characters, no text, wide landscape view.",
+  "negative": "text, letters, watermark, signature, people, person, child, character, animal, colour, color, saturated, frame, border, UI, logo"
+ },
+ {
+  "name": "shadow_gallery_3",
+  "size": "1440*816",
+  "prompt": "rows of veiled statues in a dark hall. soft monochrome grayscale matte painting, a 2D side-scrolling game background, misty atmospheric depth: dark silhouetted foreground shapes at the edges fading into layers of pale grey fog towards a softly glowing light background, calm melancholic mood, painterly, no people, no animals, no characters, no text, wide landscape view.",
+  "negative": "text, letters, watermark, signature, people, person, child, character, animal, colour, color, saturated, frame, border, UI, logo"
+ },
+ {
+  "name": "shadow_gallery_4",
+  "size": "1440*816",
+  "prompt": "the end of the gallery with heavy curtains and a stair. soft monochrome grayscale matte painting, a 2D side-scrolling game background, misty atmospheric depth: dark silhouetted foreground shapes at the edges fading into layers of pale grey fog towards a softly glowing light background, calm melancholic mood, painterly, no people, no animals, no characters, no text, wide landscape view.",
+  "negative": "text, letters, watermark, signature, people, person, child, character, animal, colour, color, saturated, frame, border, UI, logo"
+ },
+ {
+  "name": "organ_loft_1",
+  "size": "1440*816",
+  "prompt": "a cathedral organ loft with towering pipes. soft monochrome grayscale matte painting, a 2D side-scrolling game background, misty atmospheric depth: dark silhouetted foreground shapes at the edges fading into layers of pale grey fog towards a softly glowing light background, calm melancholic mood, painterly, no people, no animals, no characters, no text, wide landscape view.",
+  "negative": "text, letters, watermark, signature, people, person, child, character, animal, colour, color, saturated, frame, border, UI, logo"
+ },
+ {
+  "name": "organ_loft_2",
+  "size": "1440*816",
+  "prompt": "a gallery railing overlooking a vast dark hall. soft monochrome grayscale matte painting, a 2D side-scrolling game background, misty atmospheric depth: dark silhouetted foreground shapes at the edges fading into layers of pale grey fog towards a softly glowing light background, calm melancholic mood, painterly, no people, no animals, no characters, no text, wide landscape view.",
+  "negative": "text, letters, watermark, signature, people, person, child, character, animal, colour, color, saturated, frame, border, UI, logo"
+ },
+ {
+  "name": "organ_loft_3",
+  "size": "1440*816",
+  "prompt": "wooden stairs and beams behind giant organ pipes. soft monochrome grayscale matte painting, a 2D side-scrolling game background, misty atmospheric depth: dark silhouetted foreground shapes at the edges fading into layers of pale grey fog towards a softly glowing light background, calm melancholic mood, painterly, no people, no animals, no characters, no text, wide landscape view.",
+  "negative": "text, letters, watermark, signature, people, person, child, character, animal, colour, color, saturated, frame, border, UI, logo"
+ },
+ {
+  "name": "organ_loft_4",
+  "size": "1440*816",
+  "prompt": "rose window glow behind the organ pipes. soft monochrome grayscale matte painting, a 2D side-scrolling game background, misty atmospheric depth: dark silhouetted foreground shapes at the edges fading into layers of pale grey fog towards a softly glowing light background, calm melancholic mood, painterly, no people, no animals, no characters, no text, wide landscape view.",
+  "negative": "text, letters, watermark, signature, people, person, child, character, animal, colour, color, saturated, frame, border, UI, logo"
+ },
+ {
+  "name": "bell_foundry_1",
+  "size": "1440*816",
+  "prompt": "a castle bell foundry with huge clay bell moulds. soft monochrome grayscale matte painting, a 2D side-scrolling game background, misty atmospheric depth: dark silhouetted foreground shapes at the edges fading into layers of pale grey fog towards a softly glowing light background, calm melancholic mood, painterly, no people, no animals, no characters, no text, wide landscape view.",
+  "negative": "text, letters, watermark, signature, people, person, child, character, animal, colour, color, saturated, frame, border, UI, logo"
+ },
+ {
+  "name": "bell_foundry_2",
+  "size": "1440*816",
+  "prompt": "furnaces and casting pits with chains overhead. soft monochrome grayscale matte painting, a 2D side-scrolling game background, misty atmospheric depth: dark silhouetted foreground shapes at the edges fading into layers of pale grey fog towards a softly glowing light background, calm melancholic mood, painterly, no people, no animals, no characters, no text, wide landscape view.",
+  "negative": "text, letters, watermark, signature, people, person, child, character, animal, colour, color, saturated, frame, border, UI, logo"
+ },
+ {
+  "name": "bell_foundry_3",
+  "size": "1440*816",
+  "prompt": "giant bronze bells hanging from wooden frames. soft monochrome grayscale matte painting, a 2D side-scrolling game background, misty atmospheric depth: dark silhouetted foreground shapes at the edges fading into layers of pale grey fog towards a softly glowing light background, calm melancholic mood, painterly, no people, no animals, no characters, no text, wide landscape view.",
+  "negative": "text, letters, watermark, signature, people, person, child, character, animal, colour, color, saturated, frame, border, UI, logo"
+ },
+ {
+  "name": "bell_foundry_4",
+  "size": "1440*816",
+  "prompt": "a high workshop window over the foundry floor. soft monochrome grayscale matte painting, a 2D side-scrolling game background, misty atmospheric depth: dark silhouetted foreground shapes at the edges fading into layers of pale grey fog towards a softly glowing light background, calm melancholic mood, painterly, no people, no animals, no characters, no text, wide landscape view.",
+  "negative": "text, letters, watermark, signature, people, person, child, character, animal, colour, color, saturated, frame, border, UI, logo"
+ },
+ {
+  "name": "watchers_walk_1",
+  "size": "1440*816",
+  "prompt": "a high castle walkway along battlements at night. soft monochrome grayscale matte painting, a 2D side-scrolling game background, misty atmospheric depth: dark silhouetted foreground shapes at the edges fading into layers of pale grey fog towards a softly glowing light background, calm melancholic mood, painterly, no people, no animals, no characters, no text, wide landscape view.",
+  "negative": "text, letters, watermark, signature, people, person, child, character, animal, colour, color, saturated, frame, border, UI, logo"
+ },
+ {
+  "name": "watchers_walk_2",
+  "size": "1440*816",
+  "prompt": "stone towers and arrow slits along a wall walk. soft monochrome grayscale matte painting, a 2D side-scrolling game background, misty atmospheric depth: dark silhouetted foreground shapes at the edges fading into layers of pale grey fog towards a softly glowing light background, calm melancholic mood, painterly, no people, no animals, no characters, no text, wide landscape view.",
+  "negative": "text, letters, watermark, signature, people, person, child, character, animal, colour, color, saturated, frame, border, UI, logo"
+ },
+ {
+  "name": "watchers_walk_3",
+  "size": "1440*816",
+  "prompt": "a covered bridge between two castle towers. soft monochrome grayscale matte painting, a 2D side-scrolling game background, misty atmospheric depth: dark silhouetted foreground shapes at the edges fading into layers of pale grey fog towards a softly glowing light background, calm melancholic mood, painterly, no people, no animals, no characters, no text, wide landscape view.",
+  "negative": "text, letters, watermark, signature, people, person, child, character, animal, colour, color, saturated, frame, border, UI, logo"
+ },
+ {
+  "name": "watchers_walk_4",
+  "size": "1440*816",
+  "prompt": "the walk ending at a lookout turret in fog. soft monochrome grayscale matte painting, a 2D side-scrolling game background, misty atmospheric depth: dark silhouetted foreground shapes at the edges fading into layers of pale grey fog towards a softly glowing light background, calm melancholic mood, painterly, no people, no animals, no characters, no text, wide landscape view.",
+  "negative": "text, letters, watermark, signature, people, person, child, character, animal, colour, color, saturated, frame, border, UI, logo"
+ },
+ {
+  "name": "abandoned_ward_1",
+  "size": "1440*816",
+  "prompt": "a deserted old ward with rows of iron beds. soft monochrome grayscale matte painting, a 2D side-scrolling game background, misty atmospheric depth: dark silhouetted foreground shapes at the edges fading into layers of pale grey fog towards a softly glowing light background, calm melancholic mood, painterly, no people, no animals, no characters, no text, wide landscape view.",
+  "negative": "text, letters, watermark, signature, people, person, child, character, animal, colour, color, saturated, frame, border, UI, logo"
+ },
+ {
+  "name": "abandoned_ward_2",
+  "size": "1440*816",
+  "prompt": "peeling walls and broken windows in a long room. soft monochrome grayscale matte painting, a 2D side-scrolling game background, misty atmospheric depth: dark silhouetted foreground shapes at the edges fading into layers of pale grey fog towards a softly glowing light background, calm melancholic mood, painterly, no people, no animals, no characters, no text, wide landscape view.",
+  "negative": "text, letters, watermark, signature, people, person, child, character, animal, colour, color, saturated, frame, border, UI, logo"
+ },
+ {
+  "name": "abandoned_ward_3",
+  "size": "1440*816",
+  "prompt": "an old nursery corridor with toys left behind. soft monochrome grayscale matte painting, a 2D side-scrolling game background, misty atmospheric depth: dark silhouetted foreground shapes at the edges fading into layers of pale grey fog towards a softly glowing light background, calm melancholic mood, painterly, no people, no animals, no characters, no text, wide landscape view.",
+  "negative": "text, letters, watermark, signature, people, person, child, character, animal, colour, color, saturated, frame, border, UI, logo"
+ },
+ {
+  "name": "abandoned_ward_4",
+  "size": "1440*816",
+  "prompt": "a cellar door at the end of the abandoned ward. soft monochrome grayscale matte painting, a 2D side-scrolling game background, misty atmospheric depth: dark silhouetted foreground shapes at the edges fading into layers of pale grey fog towards a softly glowing light background, calm melancholic mood, painterly, no people, no animals, no characters, no text, wide landscape view.",
+  "negative": "text, letters, watermark, signature, people, person, child, character, animal, colour, color, saturated, frame, border, UI, logo"
+ },
+ {
+  "name": "drainways_1",
+  "size": "1440*816",
+  "prompt": "castle storm drains with stone arches and trickling water. soft monochrome grayscale matte painting, a 2D side-scrolling game background, misty atmospheric depth: dark silhouetted foreground shapes at the edges fading into layers of pale grey fog towards a softly glowing light background, calm melancholic mood, painterly, no people, no animals, no characters, no text, wide landscape view.",
+  "negative": "text, letters, watermark, signature, people, person, child, character, animal, colour, color, saturated, frame, border, UI, logo"
+ },
+ {
+  "name": "drainways_2",
+  "size": "1440*816",
+  "prompt": "iron grates and ladders in a drain shaft. soft monochrome grayscale matte painting, a 2D side-scrolling game background, misty atmospheric depth: dark silhouetted foreground shapes at the edges fading into layers of pale grey fog towards a softly glowing light background, calm melancholic mood, painterly, no people, no animals, no characters, no text, wide landscape view.",
+  "negative": "text, letters, watermark, signature, people, person, child, character, animal, colour, color, saturated, frame, border, UI, logo"
+ },
+ {
+  "name": "drainways_3",
+  "size": "1440*816",
+  "prompt": "a wide drain junction with several tunnels. soft monochrome grayscale matte painting, a 2D side-scrolling game background, misty atmospheric depth: dark silhouetted foreground shapes at the edges fading into layers of pale grey fog towards a softly glowing light background, calm melancholic mood, painterly, no people, no animals, no characters, no text, wide landscape view.",
+  "negative": "text, letters, watermark, signature, people, person, child, character, animal, colour, color, saturated, frame, border, UI, logo"
+ },
+ {
+  "name": "drainways_4",
+  "size": "1440*816",
+  "prompt": "a drain outlet opening toward a misty river. soft monochrome grayscale matte painting, a 2D side-scrolling game background, misty atmospheric depth: dark silhouetted foreground shapes at the edges fading into layers of pale grey fog towards a softly glowing light background, calm melancholic mood, painterly, no people, no animals, no characters, no text, wide landscape view.",
+  "negative": "text, letters, watermark, signature, people, person, child, character, animal, colour, color, saturated, frame, border, UI, logo"
+ },
+ {
+  "name": "broken_aqueduct_1",
+  "size": "1440*816",
+  "prompt": "a ruined stone aqueduct crossing a misty valley. soft monochrome grayscale matte painting, a 2D side-scrolling game background, misty atmospheric depth: dark silhouetted foreground shapes at the edges fading into layers of pale grey fog towards a softly glowing light background, calm melancholic mood, painterly, no people, no animals, no characters, no text, wide landscape view.",
+  "negative": "text, letters, watermark, signature, people, person, child, character, animal, colour, color, saturated, frame, border, UI, logo"
+ },
+ {
+  "name": "broken_aqueduct_2",
+  "size": "1440*816",
+  "prompt": "broken aqueduct arches with water spilling down. soft monochrome grayscale matte painting, a 2D side-scrolling game background, misty atmospheric depth: dark silhouetted foreground shapes at the edges fading into layers of pale grey fog towards a softly glowing light background, calm melancholic mood, painterly, no people, no animals, no characters, no text, wide landscape view.",
+  "negative": "text, letters, watermark, signature, people, person, child, character, animal, colour, color, saturated, frame, border, UI, logo"
+ },
+ {
+  "name": "broken_aqueduct_3",
+  "size": "1440*816",
+  "prompt": "an aqueduct channel crumbling over a gorge. soft monochrome grayscale matte painting, a 2D side-scrolling game background, misty atmospheric depth: dark silhouetted foreground shapes at the edges fading into layers of pale grey fog towards a softly glowing light background, calm melancholic mood, painterly, no people, no animals, no characters, no text, wide landscape view.",
+  "negative": "text, letters, watermark, signature, people, person, child, character, animal, colour, color, saturated, frame, border, UI, logo"
+ },
+ {
+  "name": "broken_aqueduct_4",
+  "size": "1440*816",
+  "prompt": "the aqueduct leading toward a castle mill. soft monochrome grayscale matte painting, a 2D side-scrolling game background, misty atmospheric depth: dark silhouetted foreground shapes at the edges fading into layers of pale grey fog towards a softly glowing light background, calm melancholic mood, painterly, no people, no animals, no characters, no text, wide landscape view.",
+  "negative": "text, letters, watermark, signature, people, person, child, character, animal, colour, color, saturated, frame, border, UI, logo"
+ },
+ {
+  "name": "black_reservoir_1",
+  "size": "1440*816",
+  "prompt": "a vast dark reservoir in a cavern under the castle. soft monochrome grayscale matte painting, a 2D side-scrolling game background, misty atmospheric depth: dark silhouetted foreground shapes at the edges fading into layers of pale grey fog towards a softly glowing light background, calm melancholic mood, painterly, no people, no animals, no characters, no text, wide landscape view.",
+  "negative": "text, letters, watermark, signature, people, person, child, character, animal, colour, color, saturated, frame, border, UI, logo"
+ },
+ {
+  "name": "black_reservoir_2",
+  "size": "1440*816",
+  "prompt": "stone piers and chained boats on black water. soft monochrome grayscale matte painting, a 2D side-scrolling game background, misty atmospheric depth: dark silhouetted foreground shapes at the edges fading into layers of pale grey fog towards a softly glowing light background, calm melancholic mood, painterly, no people, no animals, no characters, no text, wide landscape view.",
+  "negative": "text, letters, watermark, signature, people, person, child, character, animal, colour, color, saturated, frame, border, UI, logo"
+ },
+ {
+  "name": "black_reservoir_3",
+  "size": "1440*816",
+  "prompt": "a sluice tower rising from the reservoir. soft monochrome grayscale matte painting, a 2D side-scrolling game background, misty atmospheric depth: dark silhouetted foreground shapes at the edges fading into layers of pale grey fog towards a softly glowing light background, calm melancholic mood, painterly, no people, no animals, no characters, no text, wide landscape view.",
+  "negative": "text, letters, watermark, signature, people, person, child, character, animal, colour, color, saturated, frame, border, UI, logo"
+ },
+ {
+  "name": "black_reservoir_4",
+  "size": "1440*816",
+  "prompt": "the reservoir edge with stairs going up. soft monochrome grayscale matte painting, a 2D side-scrolling game background, misty atmospheric depth: dark silhouetted foreground shapes at the edges fading into layers of pale grey fog towards a softly glowing light background, calm melancholic mood, painterly, no people, no animals, no characters, no text, wide landscape view.",
+  "negative": "text, letters, watermark, signature, people, person, child, character, animal, colour, color, saturated, frame, border, UI, logo"
+ },
+ {
+  "name": "furnace_passage_1",
+  "size": "1440*816",
+  "prompt": "a passage beside great iron furnaces with glowing vents. soft monochrome grayscale matte painting, a 2D side-scrolling game background, misty atmospheric depth: dark silhouetted foreground shapes at the edges fading into layers of pale grey fog towards a softly glowing light background, calm melancholic mood, painterly, no people, no animals, no characters, no text, wide landscape view.",
+  "negative": "text, letters, watermark, signature, people, person, child, character, animal, colour, color, saturated, frame, border, UI, logo"
+ },
+ {
+  "name": "furnace_passage_2",
+  "size": "1440*816",
+  "prompt": "coal heaps and rails in a dark castle forge. soft monochrome grayscale matte painting, a 2D side-scrolling game background, misty atmospheric depth: dark silhouetted foreground shapes at the edges fading into layers of pale grey fog towards a softly glowing light background, calm melancholic mood, painterly, no people, no animals, no characters, no text, wide landscape view.",
+  "negative": "text, letters, watermark, signature, people, person, child, character, animal, colour, color, saturated, frame, border, UI, logo"
+ },
+ {
+  "name": "furnace_passage_3",
+  "size": "1440*816",
+  "prompt": "huge bellows and pipes in a smoky hall. soft monochrome grayscale matte painting, a 2D side-scrolling game background, misty atmospheric depth: dark silhouetted foreground shapes at the edges fading into layers of pale grey fog towards a softly glowing light background, calm melancholic mood, painterly, no people, no animals, no characters, no text, wide landscape view.",
+  "negative": "text, letters, watermark, signature, people, person, child, character, animal, colour, color, saturated, frame, border, UI, logo"
+ },
+ {
+  "name": "furnace_passage_4",
+  "size": "1440*816",
+  "prompt": "a soot-black corridor leading to the castle gate. soft monochrome grayscale matte painting, a 2D side-scrolling game background, misty atmospheric depth: dark silhouetted foreground shapes at the edges fading into layers of pale grey fog towards a softly glowing light background, calm melancholic mood, painterly, no people, no animals, no characters, no text, wide landscape view.",
+  "negative": "text, letters, watermark, signature, people, person, child, character, animal, colour, color, saturated, frame, border, UI, logo"
+ },
+ {
+  "name": "outer_ramparts_1",
+  "size": "1440*816",
+  "prompt": "the outer ramparts of a castle with tall walls in fog. soft monochrome grayscale matte painting, a 2D side-scrolling game background, misty atmospheric depth: dark silhouetted foreground shapes at the edges fading into layers of pale grey fog towards a softly glowing light background, calm melancholic mood, painterly, no people, no animals, no characters, no text, wide landscape view.",
+  "negative": "text, letters, watermark, signature, people, person, child, character, animal, colour, color, saturated, frame, border, UI, logo"
+ },
+ {
+  "name": "outer_ramparts_2",
+  "size": "1440*816",
+  "prompt": "siege engines and ramps along the outer wall. soft monochrome grayscale matte painting, a 2D side-scrolling game background, misty atmospheric depth: dark silhouetted foreground shapes at the edges fading into layers of pale grey fog towards a softly glowing light background, calm melancholic mood, painterly, no people, no animals, no characters, no text, wide landscape view.",
+  "negative": "text, letters, watermark, signature, people, person, child, character, animal, colour, color, saturated, frame, border, UI, logo"
+ },
+ {
+  "name": "outer_ramparts_3",
+  "size": "1440*816",
+  "prompt": "a crumbling bastion with a deep ditch below. soft monochrome grayscale matte painting, a 2D side-scrolling game background, misty atmospheric depth: dark silhouetted foreground shapes at the edges fading into layers of pale grey fog towards a softly glowing light background, calm melancholic mood, painterly, no people, no animals, no characters, no text, wide landscape view.",
+  "negative": "text, letters, watermark, signature, people, person, child, character, animal, colour, color, saturated, frame, border, UI, logo"
+ },
+ {
+  "name": "outer_ramparts_4",
+  "size": "1440*816",
+  "prompt": "a postern gate in the outer wall at night. soft monochrome grayscale matte painting, a 2D side-scrolling game background, misty atmospheric depth: dark silhouetted foreground shapes at the edges fading into layers of pale grey fog towards a softly glowing light background, calm melancholic mood, painterly, no people, no animals, no characters, no text, wide landscape view.",
+  "negative": "text, letters, watermark, signature, people, person, child, character, animal, colour, color, saturated, frame, border, UI, logo"
+ },
+ {
+  "name": "moat_1",
+  "size": "1440*816",
+  "prompt": "a wide castle moat with dark still water and reeds. soft monochrome grayscale matte painting, a 2D side-scrolling game background, misty atmospheric depth: dark silhouetted foreground shapes at the edges fading into layers of pale grey fog towards a softly glowing light background, calm melancholic mood, painterly, no people, no animals, no characters, no text, wide landscape view.",
+  "negative": "text, letters, watermark, signature, people, person, child, character, animal, colour, color, saturated, frame, border, UI, logo"
+ },
+ {
+  "name": "moat_2",
+  "size": "1440*816",
+  "prompt": "the drawbridge chains over the moat in fog. soft monochrome grayscale matte painting, a 2D side-scrolling game background, misty atmospheric depth: dark silhouetted foreground shapes at the edges fading into layers of pale grey fog towards a softly glowing light background, calm melancholic mood, painterly, no people, no animals, no characters, no text, wide landscape view.",
+  "negative": "text, letters, watermark, signature, people, person, child, character, animal, colour, color, saturated, frame, border, UI, logo"
+ },
+ {
+  "name": "moat_3",
+  "size": "1440*816",
+  "prompt": "the moat wall with drain grates and moss. soft monochrome grayscale matte painting, a 2D side-scrolling game background, misty atmospheric depth: dark silhouetted foreground shapes at the edges fading into layers of pale grey fog towards a softly glowing light background, calm melancholic mood, painterly, no people, no animals, no characters, no text, wide landscape view.",
+  "negative": "text, letters, watermark, signature, people, person, child, character, animal, colour, color, saturated, frame, border, UI, logo"
+ },
+ {
+  "name": "moat_4",
+  "size": "1440*816",
+  "prompt": "the far bank of the moat with open fields beyond. soft monochrome grayscale matte painting, a 2D side-scrolling game background, misty atmospheric depth: dark silhouetted foreground shapes at the edges fading into layers of pale grey fog towards a softly glowing light background, calm melancholic mood, painterly, no people, no animals, no characters, no text, wide landscape view.",
+  "negative": "text, letters, watermark, signature, people, person, child, character, animal, colour, color, saturated, frame, border, UI, logo"
+ },
+ {
+  "name": "shattered_coast_1",
+  "size": "1440*816",
+  "prompt": "a rocky coastline with jagged sea stacks in a storm haze. soft monochrome grayscale matte painting, a 2D side-scrolling game background, misty atmospheric depth: dark silhouetted foreground shapes at the edges fading into layers of pale grey fog towards a softly glowing light background, calm melancholic mood, painterly, no people, no animals, no characters, no text, wide landscape view.",
+  "negative": "text, letters, watermark, signature, people, person, child, character, animal, colour, color, saturated, frame, border, UI, logo"
+ },
+ {
+  "name": "shattered_coast_2",
+  "size": "1440*816",
+  "prompt": "broken cliffs with crashing waves below. soft monochrome grayscale matte painting, a 2D side-scrolling game background, misty atmospheric depth: dark silhouetted foreground shapes at the edges fading into layers of pale grey fog towards a softly glowing light background, calm melancholic mood, painterly, no people, no animals, no characters, no text, wide landscape view.",
+  "negative": "text, letters, watermark, signature, people, person, child, character, animal, colour, color, saturated, frame, border, UI, logo"
+ },
+ {
+  "name": "shattered_coast_3",
+  "size": "1440*816",
+  "prompt": "a shipwreck on rocks along a misty shore. soft monochrome grayscale matte painting, a 2D side-scrolling game background, misty atmospheric depth: dark silhouetted foreground shapes at the edges fading into layers of pale grey fog towards a softly glowing light background, calm melancholic mood, painterly, no people, no animals, no characters, no text, wide landscape view.",
+  "negative": "text, letters, watermark, signature, people, person, child, character, animal, colour, color, saturated, frame, border, UI, logo"
+ },
+ {
+  "name": "shattered_coast_4",
+  "size": "1440*816",
+  "prompt": "a cliff path climbing away from the sea. soft monochrome grayscale matte painting, a 2D side-scrolling game background, misty atmospheric depth: dark silhouetted foreground shapes at the edges fading into layers of pale grey fog towards a softly glowing light background, calm melancholic mood, painterly, no people, no animals, no characters, no text, wide landscape view.",
+  "negative": "text, letters, watermark, signature, people, person, child, character, animal, colour, color, saturated, frame, border, UI, logo"
+ },
+ {
+  "name": "last_watch_1",
+  "size": "1440*816",
+  "prompt": "a lonely watchtower on a hill at night. soft monochrome grayscale matte painting, a 2D side-scrolling game background, misty atmospheric depth: dark silhouetted foreground shapes at the edges fading into layers of pale grey fog towards a softly glowing light background, calm melancholic mood, painterly, no people, no animals, no characters, no text, wide landscape view.",
+  "negative": "text, letters, watermark, signature, people, person, child, character, animal, colour, color, saturated, frame, border, UI, logo"
+ },
+ {
+  "name": "last_watch_2",
+  "size": "1440*816",
+  "prompt": "a broken signal beacon and stone walls on a ridge. soft monochrome grayscale matte painting, a 2D side-scrolling game background, misty atmospheric depth: dark silhouetted foreground shapes at the edges fading into layers of pale grey fog towards a softly glowing light background, calm melancholic mood, painterly, no people, no animals, no characters, no text, wide landscape view.",
+  "negative": "text, letters, watermark, signature, people, person, child, character, animal, colour, color, saturated, frame, border, UI, logo"
+ },
+ {
+  "name": "last_watch_3",
+  "size": "1440*816",
+  "prompt": "an old watch post with a fallen bell in fog. soft monochrome grayscale matte painting, a 2D side-scrolling game background, misty atmospheric depth: dark silhouetted foreground shapes at the edges fading into layers of pale grey fog towards a softly glowing light background, calm melancholic mood, painterly, no people, no animals, no characters, no text, wide landscape view.",
+  "negative": "text, letters, watermark, signature, people, person, child, character, animal, colour, color, saturated, frame, border, UI, logo"
+ },
+ {
+  "name": "last_watch_4",
+  "size": "1440*816",
+  "prompt": "the hill falling away toward distant woods at early dawn. soft monochrome grayscale matte painting, a 2D side-scrolling game background, misty atmospheric depth: dark silhouetted foreground shapes at the edges fading into layers of pale grey fog towards a softly glowing light background, calm melancholic mood, painterly, no people, no animals, no characters, no text, wide landscape view.",
+  "negative": "text, letters, watermark, signature, people, person, child, character, animal, colour, color, saturated, frame, border, UI, logo"
+ },
+ {
+  "name": "eastern_woods_1",
+  "size": "1440*816",
+  "prompt": "a quiet eastern forest at early dawn with tall pines. soft monochrome grayscale matte painting, a 2D side-scrolling game background, misty atmospheric depth: dark silhouetted foreground shapes at the edges fading into layers of pale grey fog towards a softly glowing light background, calm melancholic mood, painterly, no people, no animals, no characters, no text, wide landscape view.",
+  "negative": "text, letters, watermark, signature, people, person, child, character, animal, colour, color, saturated, frame, border, UI, logo"
+ },
+ {
+  "name": "eastern_woods_2",
+  "size": "1440*816",
+  "prompt": "a stream crossing in the woods with mossy stones. soft monochrome grayscale matte painting, a 2D side-scrolling game background, misty atmospheric depth: dark silhouetted foreground shapes at the edges fading into layers of pale grey fog towards a softly glowing light background, calm melancholic mood, painterly, no people, no animals, no characters, no text, wide landscape view.",
+  "negative": "text, letters, watermark, signature, people, person, child, character, animal, colour, color, saturated, frame, border, UI, logo"
+ },
+ {
+  "name": "eastern_woods_3",
+  "size": "1440*816",
+  "prompt": "a clearing with fallen logs and morning mist. soft monochrome grayscale matte painting, a 2D side-scrolling game background, misty atmospheric depth: dark silhouetted foreground shapes at the edges fading into layers of pale grey fog towards a softly glowing light background, calm melancholic mood, painterly, no people, no animals, no characters, no text, wide landscape view.",
+  "negative": "text, letters, watermark, signature, people, person, child, character, animal, colour, color, saturated, frame, border, UI, logo"
+ },
+ {
+  "name": "eastern_woods_4",
+  "size": "1440*816",
+  "prompt": "the forest edge opening onto farmland. soft monochrome grayscale matte painting, a 2D side-scrolling game background, misty atmospheric depth: dark silhouetted foreground shapes at the edges fading into layers of pale grey fog towards a softly glowing light background, calm melancholic mood, painterly, no people, no animals, no characters, no text, wide landscape view.",
+  "negative": "text, letters, watermark, signature, people, person, child, character, animal, colour, color, saturated, frame, border, UI, logo"
+ },
+ {
+  "name": "homeward_road_1",
+  "size": "1440*816",
+  "prompt": "a country road toward a village at dawn. soft monochrome grayscale matte painting, a 2D side-scrolling game background, misty atmospheric depth: dark silhouetted foreground shapes at the edges fading into layers of pale grey fog towards a softly glowing light background, calm melancholic mood, painterly, no people, no animals, no characters, no text, wide landscape view.",
+  "negative": "text, letters, watermark, signature, people, person, child, character, animal, colour, color, saturated, frame, border, UI, logo"
+ },
+ {
+  "name": "homeward_road_2",
+  "size": "1440*816",
+  "prompt": "stone walls and hedges along the road with mist. soft monochrome grayscale matte painting, a 2D side-scrolling game background, misty atmospheric depth: dark silhouetted foreground shapes at the edges fading into layers of pale grey fog towards a softly glowing light background, calm melancholic mood, painterly, no people, no animals, no characters, no text, wide landscape view.",
+  "negative": "text, letters, watermark, signature, people, person, child, character, animal, colour, color, saturated, frame, border, UI, logo"
+ },
+ {
+  "name": "homeward_road_3",
+  "size": "1440*816",
+  "prompt": "a small bridge over a brook near the village. soft monochrome grayscale matte painting, a 2D side-scrolling game background, misty atmospheric depth: dark silhouetted foreground shapes at the edges fading into layers of pale grey fog towards a softly glowing light background, calm melancholic mood, painterly, no people, no animals, no characters, no text, wide landscape view.",
+  "negative": "text, letters, watermark, signature, people, person, child, character, animal, colour, color, saturated, frame, border, UI, logo"
+ },
+ {
+  "name": "homeward_road_4",
+  "size": "1440*816",
+  "prompt": "the road reaching the first cottages of home with a windmill. soft monochrome grayscale matte painting, a 2D side-scrolling game background, misty atmospheric depth: dark silhouetted foreground shapes at the edges fading into layers of pale grey fog towards a softly glowing light background, calm melancholic mood, painterly, no people, no animals, no characters, no text, wide landscape view.",
+  "negative": "text, letters, watermark, signature, people, person, child, character, animal, colour, color, saturated, frame, border, UI, logo"
+ }
+]

@@ -15,6 +15,7 @@ import '../render/dust.dart';
 import '../render/chapter_backgrounds.dart';
 import '../render/grass.dart';
 import '../render/white_blossom_tree.dart';
+import 'decor_layout.dart';
 import '../story/cutscene.dart';
 import '../world/checkpoint_service.dart';
 import '../world/stage.dart';
@@ -465,6 +466,7 @@ abstract class Chapter extends Stage {
       ..add(DustField(player: player));
     if (grassy) pieces.add(FrontGrass(banks: banks, wind: wind));
     await addAll(pieces);
+    arrangeSurfaceDecor(this, pieces);
   }
 
   @override

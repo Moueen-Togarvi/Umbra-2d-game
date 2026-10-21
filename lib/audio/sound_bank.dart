@@ -34,7 +34,15 @@ abstract final class SoundBank {
   static const Set<String> long = {'bell', 'heartbeat', 'rumble', 'thunder'};
 
   /// The loops: the wind and the beds under it.
-  static const List<String> loops = ['wind', 'rain', 'river', 'cave', 'dungeon', 'clockwork', 'birds'];
+  static const List<String> loops = [
+    'wind',
+    'rain',
+    'river',
+    'cave',
+    'dungeon',
+    'clockwork',
+    'birds',
+  ];
 
   /// The music the player can pick to play under the game: id, title and
   /// who made it.

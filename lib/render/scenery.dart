@@ -49,7 +49,9 @@ class SceneryProp extends Component implements BackdropDrawable {
   final String image;
 
   /// Where the bottom middle of the art stands, world metres at depth 1.
-  final double x, baseY;
+  /// Mutable so a chapter can settle it on a clear piece of ground (see
+  /// `arrangeSurfaceDecor`).
+  double x, baseY;
 
   /// The art's height, metres at depth 1.
   final double height;
@@ -88,6 +90,13 @@ class SceneryProp extends Component implements BackdropDrawable {
 
   /// Far enough off to be drawn among the fog layers, by the backdrop.
   bool get inBackdrop => depth < nearDepth;
+
+  /// Whether it is drawn on the path with the boy: near, not replaced by
+  /// a painted background, and with its art loaded.
+  bool get standsOnPath =>
+      !inBackdrop &&
+      _art != null &&
+      !(_stage?.backgroundPlan?.replacesProp(image, depth) ?? false);
 
   @override
   Future<void> onLoad() async {

@@ -51,19 +51,24 @@ void main() {
         hasLength(3),
         reason: 'chapter ${chapter.number} must have three trees',
       );
-      for (var i = 0; i < trees.length; i++) {
-        expect(trees[i].position.x, closeTo(chapter.blossomTreeXs[i], .001));
+      trees.sort((a, b) => a.position.x.compareTo(b.position.x));
+      for (var i = 1; i < trees.length; i++) {
+        expect(
+          trees[i].position.x - trees[i - 1].position.x,
+          greaterThan(trees[i].size.x * .5),
+          reason: 'chapter ${chapter.number}: each tree stands apart',
+        );
       }
       for (final tree in trees) {
+        final double x = tree.position.x;
         expect(
-          chapter.terrain.segmentAt(tree.position.x),
+          chapter.terrain.segmentAt(x),
           isNotNull,
           reason: 'chapter ${chapter.number}: tree cannot stand over a pit',
         );
-        expect(
-          tree.position.y,
-          closeTo(chapter.groundAt(tree.position.x) + .08, .001),
-        );
+        // The foot is sunk a little into the ground: never a gap under it.
+        expect(tree.position.y, greaterThanOrEqualTo(chapter.groundAt(x)));
+        expect(tree.position.y, lessThan(chapter.groundAt(x) + .5));
       }
     }
   });
