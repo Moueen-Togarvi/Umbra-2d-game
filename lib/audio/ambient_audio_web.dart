@@ -51,7 +51,6 @@ class AmbientAudio {
   void update(double dt) {
     if (_context == null || _disposed) return;
     _clock += dt;
-    _setTrack('wind', SoundBank.loop('wind'));
     _setTrack('bed', _bed == null ? null : SoundBank.loop(_bed!));
     _setTrack(
       'score',

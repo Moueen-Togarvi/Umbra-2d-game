@@ -49,7 +49,15 @@ flutter:
 
   fonts:
     # Cinzel, by Natanael Gama, SIL Open Font License 1.1
-    # (assets/fonts/Cinzel-OFL.txt). The brand's only typeface.
+    # (assets/fonts/Cinzel-OFL.txt). The brand's typeface: the wordmark,
+    # headings and numerals.
     - family: Cinzel
       fonts:
         - asset: assets/fonts/Cinzel-Variable.ttf
+    # Cormorant Garamond Italic, by Christian Thalmann, SIL Open Font
+    # License 1.1 (assets/fonts/CormorantGaramond-OFL.txt). The main menu's
+    # choices.
+    - family: Cormorant
+      fonts:
+        - asset: assets/fonts/CormorantGaramond-Italic.ttf
+          style: italic

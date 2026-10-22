@@ -560,19 +560,21 @@ class UmbraGame extends Forge2DGame with HasKeyboardHandlerComponents {
   /// is open; null otherwise.
   String? previewBackground;
 
-  /// The music for now: one piece from the menu into play (the one the
-  /// player picked, or the one being tried out), carrying on unbroken when
-  /// the game starts; only a keeper's chase has its own.
+  /// The music for now: the main menu's own on the title (or the one being
+  /// tried out there), the chase's while a keeper is after him, and
+  /// otherwise the one the player picked for play, never the menu's.
   @visibleForTesting
   String get musicNow => _scoreNow(_stage);
 
   String _scoreNow(Stage? place) {
-    final bool title = director?.showingTitle ?? false;
-    if (!title && place?.threat == ThreatLevel.chase) {
+    if (director?.showingTitle ?? false) {
+      return previewBackground ?? SoundBank.menu;
+    }
+    if (place?.threat == ThreatLevel.chase) {
       return SoundBank.chase;
     }
     final String picked = previewBackground ?? settings.background;
-    return SoundBank.backgrounds.any((b) => b.$1 == picked)
+    return GameSettings.playBackgrounds.any((b) => b.$1 == picked)
         ? picked
         : GameSettings.defaultBackground;
   }
@@ -594,9 +596,10 @@ class UmbraGame extends Forge2DGame with HasKeyboardHandlerComponents {
   /// One foot coming down: a soft step on what it came down on.
   void _footstep(Player player, FootContact contact) {
     final String surface = _surface(player, onProp: contact.onProp);
+    // Every step carries: even a creep is clearly heard over the music.
     _audio.effect(
       _stepSound(surface),
-      contact.strength,
+      0.35 + 0.65 * contact.strength,
       ((contact.x - player.body.position.x) * 2).clamp(-0.2, 0.2),
     );
   }

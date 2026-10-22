@@ -43,6 +43,9 @@ Future<void> loadFonts() async {
   final loader = FontLoader('Cinzel')
     ..addFont(rootBundle.load('assets/fonts/Cinzel-Variable.ttf'));
   await loader.load();
+  await (FontLoader('Cormorant')
+        ..addFont(rootBundle.load('assets/fonts/CormorantGaramond-Italic.ttf')))
+      .load();
   // Flutter widget tests otherwise replace platform fonts with Ahem squares.
   final cache = Directory(
     '${File(Platform.resolvedExecutable).parent.path}/../../..',
@@ -1271,4 +1274,3 @@ void main() {
     }
   });
 }
-

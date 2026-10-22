@@ -27,7 +27,7 @@ class AmbientAudio {
   bool _wasEnabled = true;
   bool _paused = false, _loading = false, _ready = false, _disposed = false;
 
-  final _Loop _wind = _Loop(0.45), _bed = _Loop(0.55);
+  final _Loop _bed = _Loop(0.55);
   final _Loop _score = _Loop(0.8, isMusic: true);
   AudioPlayer? _music;
   String? _musicName;
@@ -40,7 +40,7 @@ class AmbientAudio {
   /// How strong the wind is here, 0–1 (indoors it is only heard faintly).
   double windLevel = 1;
 
-  Iterable<_Loop> get _loops => [_wind, _bed, _score];
+  Iterable<_Loop> get _loops => [_bed, _score];
 
   Future<void> unlock() async {
     if (!outputEnabled || _loading || _disposed) return;
@@ -70,9 +70,8 @@ class AmbientAudio {
       for (final loop in _loops) {
         await loop.player.setReleaseMode(ReleaseMode.loop);
       }
-      final music = _music = AudioPlayer();
+      final music = _music = _newPlayer();
       await music.setReleaseMode(ReleaseMode.stop);
-      _wind.want = 'wind';
       _wasEnabled = enabled;
       _ready = true;
       await updateMix();
@@ -82,7 +81,8 @@ class AmbientAudio {
           !kIsWeb && defaultTargetPlatform == TargetPlatform.android;
       for (final MapEntry(key: name, value: count)
           in SoundBank.effects.entries) {
-        final List<AudioPlayer> takes = [];
+        // Each take is heard as soon as it is ready.
+        final List<AudioPlayer> takes = _takes[name] = [];
         // In a browser every player opens its own audio context. Keep all
         // the outdoor footsteps, three of each other surface's (so a run
         // never falls into a two-step rhythm), and two of everything else.
@@ -91,16 +91,17 @@ class AmbientAudio {
             : math.min(count, name.startsWith('step_') ? 3 : 2);
         for (var i = 1; i <= takeCount; i++) {
           if (_disposed) return;
-          final voice = AudioPlayer();
-          if (pool && !SoundBank.long.contains(name)) {
-            await voice.setPlayerMode(PlayerMode.lowLatency);
-          }
-          await voice.setReleaseMode(ReleaseMode.stop);
-          await voice.setSource(AssetSource(SoundBank.effect(name, i)));
-          takes.add(voice);
+          // One take that will not load costs only itself, never the rest.
+          await _guard(() async {
+            final voice = _newPlayer();
+            if (pool && !SoundBank.long.contains(name)) {
+              await voice.setPlayerMode(PlayerMode.lowLatency);
+            }
+            await voice.setReleaseMode(ReleaseMode.stop);
+            await voice.setSource(AssetSource(SoundBank.effect(name, i)));
+            takes.add(voice);
+          });
         }
-        // Heard only once every take is ready.
-        _takes[name] = takes;
       }
     });
     _loading = false;
@@ -116,7 +117,6 @@ class AmbientAudio {
   }
 
   double _loopLevel(_Loop loop) {
-    if (loop == _wind) return windLevel;
     // The piece under the credits takes over from the looping music.
     if (loop == _score) return _musicName == null ? 1 : 0;
     return 0.65;
@@ -306,6 +306,12 @@ class AmbientAudio {
   }
 }
 
+/// A player that never polls its playback position: nothing here reads it,
+/// and a low-latency voice, which never reports finishing, would otherwise
+/// ask the platform for it every frame from its first play on, until the
+/// footsteps waited behind thousands of those calls and fell silent.
+AudioPlayer _newPlayer() => AudioPlayer()..positionUpdater = null;
+
 /// A looping sound that fades out before it changes and in after.
 class _Loop {
   _Loop(this.mix, {this.isMusic = false});
@@ -314,7 +320,7 @@ class _Loop {
   /// Its share of the ambience volume.
   final double mix;
   AudioPlayer? _player;
-  AudioPlayer get player => _player ??= AudioPlayer();
+  AudioPlayer get player => _player ??= _newPlayer();
   Future<void> dispose() async => _player?.dispose();
 
   /// What is playing, and what should be.

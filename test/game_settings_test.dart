@@ -51,14 +51,14 @@ void main() {
       ..set('music', .25)
       ..setFlag('musicOn', false)
       ..setFlag('soundOn', false)
-      ..setBackground('bg_descent');
+      ..setBackground('bg_solitude');
     expect(heard, 4);
     await Future<void>.delayed(Duration.zero);
     final reloaded = await GameSettings.load();
     expect(reloaded.music, .25);
     expect(reloaded.musicOn, isFalse);
     expect(reloaded.soundOn, isFalse);
-    expect(reloaded.background, 'bg_descent');
+    expect(reloaded.background, 'bg_solitude');
     expect(() => settings.setFlag('nonsense', true), throwsArgumentError);
   });
 }

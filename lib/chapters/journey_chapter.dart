@@ -209,8 +209,9 @@ class JourneyChapter extends Chapter {
   @override
   bool get grassy => number < 6 || number > 33;
   @override
+  // Out in the open: no wind bed, only the rain at the end.
   String? get ambience => grassy
-      ? (number < 35 ? 'wind' : 'rain')
+      ? (number < 35 ? null : 'rain')
       : number < 16
       ? 'cave'
       : 'dungeon';

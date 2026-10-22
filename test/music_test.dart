@@ -23,7 +23,8 @@ void main() {
     );
     expect(find.byType(Switch), findsNWidgets(2));
     expect(find.byType(Slider), findsNWidgets(3));
-    for (final (id, title, _) in SoundBank.backgrounds) {
+    expect(find.byKey(const ValueKey('music-${SoundBank.menu}')), findsNothing);
+    for (final (id, title, _) in GameSettings.playBackgrounds) {
       expect(find.byKey(ValueKey('music-$id')), findsOneWidget);
       expect(find.textContaining(title), findsOneWidget);
     }
@@ -41,18 +42,18 @@ void main() {
     expect(settings.soundOn, isFalse);
   });
 
-  testWidgets('the menu and play have the one picked, carrying on '
-      'unbroken, and a chase its own', (tester) async {
+  testWidgets('the menu has its own music, play another, '
+      'and a chase its own', (tester) async {
     final game = await bootCampaign(tester);
     expect(game.director!.showingTitle, isTrue);
-    expect(game.musicNow, game.settings.background);
+    expect(game.musicNow, SoundBank.menu);
     // Trying one out on the menu plays it there.
     game.previewBackground = 'bg_descent';
     expect(game.musicNow, 'bg_descent');
     game.previewBackground = null;
 
     game.settings.setBackground('bg_tomb');
-    expect(game.musicNow, 'bg_tomb', reason: 'the menu plays it too');
+    expect(game.musicNow, SoundBank.menu, reason: 'the menu keeps its own');
     final chase = await enterChapter<ChaseChapter>(tester, game, 15);
     expect(game.musicNow, 'bg_tomb');
     chase.startChase();
@@ -62,6 +63,9 @@ void main() {
     expect(game.musicNow, 'bg_tomb');
     // A piece that is not in the game falls back to the first.
     game.settings.setBackground('nothing');
+    expect(game.musicNow, GameSettings.defaultBackground);
+    // Nor does the menu's own play under the game.
+    game.settings.setBackground(SoundBank.menu);
     expect(game.musicNow, GameSettings.defaultBackground);
   });
 }

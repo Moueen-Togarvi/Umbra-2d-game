@@ -106,6 +106,15 @@ void main() {
     await drain();
     expect(calls.where(isStep), hasLength(18), reason: 'no busy-voice drops');
     expect(calls.where((c) => c.method == 'seek'), isEmpty);
+    // A low-latency voice never reports finishing. Nothing may ask the
+    // platform where it is every frame from then on: that flood is what
+    // left the later footsteps waiting until they were never heard.
+    for (var frame = 1; frame <= 30; frame++) {
+      binding.handleBeginFrame(Duration(milliseconds: frame * 16));
+      binding.handleDrawFrame();
+      await drain();
+    }
+    expect(calls.where((c) => c.method == 'getCurrentPosition'), isEmpty);
 
     // The music the game asks for comes in.
     audio.score('bg_descent');
