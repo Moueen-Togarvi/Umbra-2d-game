@@ -1,5 +1,6 @@
 import 'package:flame/components.dart';
-import 'package:flame_forge2d/flame_forge2d.dart' show QueryFilter, BodyType;
+import 'package:flame_forge2d/flame_forge2d.dart'
+    show BodyComponent, BodyType, QueryFilter;
 import '../physics/collision_layers.dart';
 
 import '../config/game_config.dart';
@@ -159,8 +160,6 @@ abstract class Chapter extends Stage {
   /// Indoors (no grass), his feet fall on stone and the wind is far off.
   @override
   String get footing => grassy ? 'grass' : 'stone';
-  @override
-  double get windLevel => grassy ? 1 : 0.25;
 
   @override
   double get height => GameConfig.levelHeight;
@@ -466,7 +465,20 @@ abstract class Chapter extends Stage {
       ..add(DustField(player: player));
     if (grassy) pieces.add(FrontGrass(banks: banks, wind: wind));
     await addAll(pieces);
-    arrangeSurfaceDecor(this, pieces);
+  }
+
+  /// The trees and standing props are settled on clear ground once all of
+  /// the chapter, its rooms' pieces too, is in the world.
+  bool _decorPending = true;
+  int _framesSeen = 0;
+
+  void _arrangeDecorWhenLoaded() {
+    if (!_decorPending || ++_framesSeen < 2) return;
+    final all = descendants().toList();
+    final bool ready = all.whereType<BodyComponent>().every((b) => b.isLoaded);
+    if (!ready && _framesSeen < 30) return;
+    _decorPending = false;
+    arrangeSurfaceDecor(this, all);
   }
 
   @override
@@ -478,6 +490,7 @@ abstract class Chapter extends Stage {
   @override
   void update(double dt) {
     super.update(dt);
+    _arrangeDecorWhenLoaded();
     wind.update(dt);
     if (_restorePending()) return;
     final Cutscene? scene = cutscene;

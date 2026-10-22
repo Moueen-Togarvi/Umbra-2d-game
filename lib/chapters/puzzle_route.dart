@@ -1,6 +1,7 @@
 import 'dart:ui';
 import 'dart:math' as math;
 import 'package:flame/components.dart';
+import '../world/footprint.dart';
 import '../entities/ground.dart';
 import '../entities/home_props.dart';
 import '../entities/physics_props.dart';
@@ -591,9 +592,12 @@ class PuzzleRoute extends Component {
   }
 }
 
-class _Cover extends Component {
+class _Cover extends Component implements HasFootprint {
   _Cover(this.bounds) : super(priority: -2);
   final Rect bounds;
+
+  @override
+  Rect get footprint => bounds;
   @override
   void render(Canvas canvas) {
     canvas.drawRRect(

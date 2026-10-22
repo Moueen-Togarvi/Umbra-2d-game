@@ -19,7 +19,6 @@ class AmbientAudio {
   final _voices = <_Voice>[];
   final _tracks = <String, _Track>{};
   int _epoch = 0;
-  double windLevel = 1;
   String? _bed, _score, _ending;
   double _clock = 0;
   int get activeVoices => _voices.length;
@@ -66,7 +65,7 @@ class AmbientAudio {
           ? 0.0
           : isMusic
           ? (settings.musicOn ? settings.music : 0.0)
-          : settings.ambience * (entry.key == 'wind' ? .45 * windLevel : .36);
+          : settings.ambience * .36;
       track.update(dt, gain, enabled && !_paused);
     }
   }

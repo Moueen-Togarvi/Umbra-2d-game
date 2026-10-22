@@ -3,6 +3,7 @@ import 'dart:ui';
 
 import 'package:flame/components.dart';
 
+import '../world/footprint.dart';
 import '../entities/cave_props.dart';
 import '../entities/ground.dart';
 import '../render/culling.dart';
@@ -46,8 +47,6 @@ class CageChapter extends Chapter {
   String? get ambience => 'cave';
   @override
   String get footing => 'gravel';
-  @override
-  double get windLevel => 0.4;
   @override
   int get number => 6;
   @override
@@ -385,11 +384,14 @@ class CageChapter extends Chapter {
 
 /// A niche in the tunnel wall, as black as he is: standing in it, still,
 /// only his eyes show.
-class _Niche extends Component with OffScreenCulling {
+class _Niche extends Component with OffScreenCulling implements HasFootprint {
   _Niche({required this.left, required this.right, required this.floor})
     : super(priority: -10);
   final double left, right, floor;
   static final Paint _paint = Paint()..color = const Color(0xFF020202);
+
+  @override
+  Rect get footprint => Rect.fromLTRB(left, floor - 2.4, right, floor);
 
   @override
   void render(Canvas canvas) {

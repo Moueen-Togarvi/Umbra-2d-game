@@ -125,9 +125,10 @@ class RoutePilot {
         case PuzzleKind.returnLoop:
           final returning = room.kind == PuzzleKind.returnLoop;
           final deck = room.floor - .24 + room.lift!.travel;
+          // Off only once no part of it rests on the deck's edge
+          // (x + 19.8): its weight there holds the lift down.
           final chestOn =
-              room.crates.first.body.position.x <
-              room.x + (returning ? 20.3 : 20);
+              room.crates.first.body.position.x < room.x + 20.35;
           if (local > 13 && local < 20 && !(returning && room.pedal!.pressed)) {
             if (ground &&
                 feet > room.floor - .1 &&

@@ -64,16 +64,24 @@ Future<void> main() async {
     MaterialApp(
       debugShowCheckedModeBanner: false,
       theme: ThemeData.dark(useMaterial3: true),
-      home: Listener(
-        onPointerDown: (_) => game.unlockAudio(),
-        child: GameWidget<UmbraGame>(
-          game: game,
-          loadingBuilder: (_) => const ColoredBox(color: Palette.brandBlack),
-          overlayBuilderMap: {
-            ChapterDirector.titleOverlay: (context, game) =>
-                TitleScreen(game: game),
-            UmbraGame.pauseOverlay: (context, game) => PauseScreen(game: game),
-          },
+      home: PopScope(
+        // Back never closes the game by itself: see UmbraGame.backPressed.
+        canPop: false,
+        onPopInvokedWithResult: (didPop, _) {
+          if (!didPop) game.backPressed();
+        },
+        child: Listener(
+          onPointerDown: (_) => game.unlockAudio(),
+          child: GameWidget<UmbraGame>(
+            game: game,
+            loadingBuilder: (_) => const ColoredBox(color: Palette.brandBlack),
+            overlayBuilderMap: {
+              ChapterDirector.titleOverlay: (context, game) =>
+                  TitleScreen(game: game),
+              UmbraGame.pauseOverlay: (context, game) =>
+                  PauseScreen(game: game),
+            },
+          ),
         ),
       ),
     ),

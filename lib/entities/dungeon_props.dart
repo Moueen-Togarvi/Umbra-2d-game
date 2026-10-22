@@ -3,6 +3,7 @@ import 'dart:ui';
 
 import 'package:flame/components.dart';
 
+import '../world/footprint.dart';
 import '../config/game_config.dart';
 import '../config/palette.dart';
 import '../render/light.dart';
@@ -14,7 +15,7 @@ const Color _iron = Color(0xFF050505);
 
 /// The barred front of a cell in the dungeon wall, behind the passage:
 /// the bars slide up into the lintel when its cord is pulled.
-class CellFront extends Component {
+class CellFront extends Component implements HasFootprint {
   CellFront({
     required this.left,
     required this.right,
@@ -27,6 +28,9 @@ class CellFront extends Component {
   double _raised = 0, _goal = 0;
 
   bool get isOpen => _raised > 0.85;
+
+  @override
+  Rect get footprint => Rect.fromLTRB(left, floorY - height, right, floorY);
 
   void open() => _goal = 1;
 

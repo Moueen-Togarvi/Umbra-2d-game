@@ -17,7 +17,7 @@ echo of the place it belongs to (a stone hall, a cave). Loops are cut to a
 length and crossfaded end into start so they never click. It writes:
 
     assets/audio/sfx/NAME_N.wav     one-shot effects, mono 32 kHz
-    assets/audio/loops/NAME.ogg     the beds under the wind
+    assets/audio/loops/NAME.ogg     the beds under a place
     assets/audio/music/NAME.ogg     drones and pieces
     lib/audio/sound_bank.dart       the list the game loads
 
@@ -295,7 +295,6 @@ LONG = ['bell', 'heartbeat', 'rumble', 'thunder']
 
 LOOPS = {
     # name: (file, start, seconds, loudness, low-pass)
-    'wind': ('wind1.wav', 2, 30, -27, 5000),
     'rain': ('1.ogg', 0, 24, -24, 9000),
     'river': ('sfx100v2_loop_water_03.ogg', 0, 8, -25, 7000),
     'cave': ('atmosbasement.mp3_.flac', 0, 18, -30, None),
@@ -305,12 +304,10 @@ LOOPS = {
 }
 
 # The music. The menu, the chase and the ending are fixed; the player picks
-# the music under play from BACKGROUNDS. Each loop is cut from the body of
+# the music under play from BACKGROUNDS (never the menu's own). Each loop is cut from the body of
 # the piece (from [start] of the way in) and crossfaded end into start.
 # (id, file, title, artist, licence, start)
 BACKGROUNDS = [
-    ('bg_tragic', 'ambientmain_0.ogg', 'Tragic ambient main menu', 'HaelDB',
-     'CC0', 0),
     ('bg_decoherence', 'sb_decoherence.mp3', 'Decoherence', 'Scott Buckley',
      'CC-BY 4.0', 0.2),
     ('bg_descent', 'descent.mp3', 'Descent', 'Scott Buckley', 'CC-BY 4.0', 0.1),
@@ -326,8 +323,9 @@ BACKGROUNDS = [
      'CC0', 0.1),
     ('bg_overshadow', 'overshadow_0.mp3', 'Overshadow', 'cinameng', 'CC0', 0),
 ]
-# The menu plays the first background; the chase and the ending are their own.
-MENU = 'bg_tragic'
+# The menu, the chase and the ending each have their own.
+# (Tragic ambient main menu, HaelDB, CC0)
+MENU = ('bg_tragic', 'ambientmain_0.ogg', 0)
 CHASE = ('chase', 'EyesInTheVoid.mp3', 0.45)
 ENDING = ('ending', '155 November_snow-33_tape_leveled.mp3', 0.08, 60)
 LOOP_SECONDS = 180
@@ -402,9 +400,9 @@ def build_music(src, out):
     for name, file, _, _, _, start in BACKGROUNDS:
         save(music_loop(src, file, start), out / f'music/{name}.ogg', 'bgm')
         print(f'music {name}')
-    name, file, start = CHASE
-    save(music_loop(src, file, start), out / f'music/{name}.ogg', 'bgm')
-    print(f'music {name}')
+    for name, file, start in (MENU, CHASE):
+        save(music_loop(src, file, start), out / f'music/{name}.ogg', 'bgm')
+        print(f'music {name}')
     name, file, start, seconds = ENDING
     x = load(find(src, file), channels=2)
     x = cut(x, x.shape[-1] / SR * start, x.shape[-1] / SR * start + seconds)
@@ -491,7 +489,7 @@ abstract final class SoundBank {{
   /// Effects too long for Android's low-latency pool.
   static const Set<String> long = {{{long}}};
 
-  /// The loops: the wind and the beds under it.
+  /// The loops: the beds under a place.
   static const List<String> loops = [{loops}];
 
   /// The music the player can pick to play under the game: id, title and
@@ -501,7 +499,7 @@ abstract final class SoundBank {{
   ];
 
   /// The fixed music: on the main menu, in a chase, under the credits.
-  static const String menu = '{MENU}', chase = '{CHASE[0]}', ending = '{ENDING[0]}';
+  static const String menu = '{MENU[0]}', chase = '{CHASE[0]}', ending = '{ENDING[0]}';
 
   static String effect(String name, int take) =>
       'audio/sfx/${{name}}_$take.${{long.contains(name) ? 'ogg' : 'wav'}}';

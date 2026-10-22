@@ -1,6 +1,7 @@
 import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../chapters/chapters.dart';
 import '../chapters/campaign_catalog.dart';
@@ -12,9 +13,9 @@ import 'wordmark.dart';
 
 /// The main menu: the white tree on its hill (see [MenuScene]), and on the
 /// right the wordmark over a few numbered words — Continue, Begin,
-/// Chapters, Music — with the lantern's warm light behind the first. The
-/// picture comes up first, then the words; leaving, it all fades into
-/// the game.
+/// Chapters, Music, Settings — with the lantern's warm light behind the
+/// first. The picture comes up first, then the words; leaving, it all
+/// fades into the game. Beginning again over a saved place asks first.
 class TitleScreen extends StatefulWidget {
   const TitleScreen({super.key, required this.game});
   final UmbraGame game;
@@ -33,10 +34,7 @@ class _TitleScreenState extends State<TitleScreen>
     vsync: this,
     duration: const Duration(milliseconds: 700),
   );
-  bool _chapters = false;
-
-  /// The music and sound settings are open.
-  bool _music = false;
+  _Page _page = _Page.main;
   bool _leaving = false;
 
   @override
@@ -44,19 +42,43 @@ class _TitleScreenState extends State<TitleScreen>
     super.initState();
     // The words come up after the picture has.
     _fade.forward();
+    // The menu covers the screen: the world behind it is not drawn.
+    widget.game.coveredByMenu = true;
+    widget.game.titleBack = _back;
   }
 
   @override
   void dispose() {
-    widget.game.previewBackground = null;
+    widget.game
+      ..previewBackground = null
+      ..coveredByMenu = false;
+    if (widget.game.titleBack == _back) widget.game.titleBack = null;
     _fade.dispose();
     _leave.dispose();
     super.dispose();
   }
 
+  void _open(_Page page) => setState(() {
+    _page = page;
+    widget.game.previewBackground = null;
+  });
+
+  /// Android's back: out of a panel to the menu, and from the menu out of
+  /// the game.
+  void _back() {
+    if (_leaving) return;
+    if (_page != _Page.main) {
+      _open(_Page.main);
+    } else {
+      SystemNavigator.pop();
+    }
+  }
+
   Future<void> _go(void Function() action) async {
     if (_leaving) return;
     setState(() => _leaving = true);
+    // The world shows through again as the menu fades.
+    widget.game.coveredByMenu = false;
     await _leave.forward();
     action();
   }
@@ -93,10 +115,41 @@ class _TitleScreenState extends State<TitleScreen>
                   () => director.playChapter(progress.current, resume: true),
                 ),
         ),
-      ('Begin', director == null ? null : () => _go(director.begin)),
-      ('Chapters', () => setState(() => _chapters = true)),
-      ('Music', () => setState(() => _music = true)),
+      (
+        'Begin',
+        director == null
+            ? null
+            : progress.canContinue
+            // Beginning again moves the saved place back to the start.
+            ? () => _open(_Page.confirmBegin)
+            : () => _go(director.begin),
+      ),
+      ('Chapters', () => _open(_Page.chapters)),
+      ('Music', () => _open(_Page.music)),
+      ('Settings', () => _open(_Page.settings)),
     ];
+    Widget words(List<Widget> children) => Positioned(
+      right: size.width * 0.069,
+      top: size.height * 0.11,
+      bottom: size.height * 0.04,
+      child: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.end,
+          children: [
+            Wordmark(height: unit * 9.8, eyes: Palette.lampAmber),
+            SizedBox(height: unit * 7),
+            ...children,
+          ],
+        ),
+      ),
+    );
+    final back = _Choice(
+      label: 'Back',
+      size: unit,
+      small: true,
+      onTap: () => _open(_Page.main),
+    );
     Widget panel(String title, List<Widget> children, {double? width}) => Align(
       alignment: const Alignment(0.95, 0),
       child: Container(
@@ -156,34 +209,65 @@ class _TitleScreenState extends State<TitleScreen>
               child: Stack(
                 fit: StackFit.expand,
                 children: [
-                  if (!_chapters && !_music)
-                    Positioned(
-                      right: size.width * 0.069,
-                      top: size.height * 0.11,
-                      bottom: size.height * 0.04,
-                      child: SingleChildScrollView(
-                        child: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          crossAxisAlignment: CrossAxisAlignment.end,
-                          children: [
-                            Wordmark(
-                              height: unit * 9.8,
-                              eyes: Palette.lampAmber,
-                            ),
-                            SizedBox(height: unit * 7),
-                            for (final (i, (label, onTap)) in choices.indexed)
-                              _MenuItem(
-                                numeral: CampaignCatalog.roman(i + 1),
-                                label: label,
-                                unit: unit,
-                                primary: i == 0,
-                                onTap: onTap,
-                              ),
-                          ],
+                  if (_page == _Page.main)
+                    words([
+                      for (final (i, (label, onTap)) in choices.indexed)
+                        _MenuItem(
+                          numeral: CampaignCatalog.roman(i + 1),
+                          label: label,
+                          unit: unit,
+                          primary: i == 0,
+                          onTap: onTap,
+                        ),
+                    ]),
+                  if (_page == _Page.confirmBegin)
+                    words([
+                      Text(
+                        'Begin again?',
+                        style: TextStyle(
+                          fontFamily: 'Cormorant',
+                          fontStyle: FontStyle.italic,
+                          fontSize: unit * 6.1,
+                          color: Palette.brandInk,
                         ),
                       ),
-                    ),
-                  if (_chapters)
+                      SizedBox(height: unit * 1.2),
+                      SizedBox(
+                        width: unit * 52,
+                        child: Text(
+                          'Your place in chapter '
+                          '${CampaignCatalog.roman(progress.current + 1)}, '
+                          '${Chapters.all[progress.current].title}, is set '
+                          'back to the start. Every chapter you have reached '
+                          'stays open.',
+                          textAlign: TextAlign.right,
+                          style: TextStyle(
+                            fontFamily: 'Cormorant',
+                            fontStyle: FontStyle.italic,
+                            fontSize: unit * 3.3,
+                            height: 1.35,
+                            color: Palette.brandInk.withValues(alpha: .6),
+                          ),
+                        ),
+                      ),
+                      SizedBox(height: unit * 3),
+                      _MenuItem(
+                        numeral: 'I',
+                        label: 'Begin again',
+                        unit: unit,
+                        primary: true,
+                        onTap: director == null
+                            ? null
+                            : () => _go(director.begin),
+                      ),
+                      _MenuItem(
+                        numeral: 'II',
+                        label: 'Back',
+                        unit: unit,
+                        onTap: () => _open(_Page.main),
+                      ),
+                    ]),
+                  if (_page == _Page.chapters)
                     panel('CHAPTERS', [
                       for (var group = 0; group < 8; group++) ...[
                         Padding(
@@ -200,30 +284,82 @@ class _TitleScreenState extends State<TitleScreen>
                         for (var i = group * 5; i < group * 5 + 5; i++)
                           chapterChoice(i),
                       ],
-                      _Choice(
-                        label: 'Back',
-                        size: unit,
-                        small: true,
-                        onTap: () => setState(() => _chapters = false),
-                      ),
+                      back,
                     ]),
-                  if (_music)
+                  if (_page == _Page.music)
                     panel('MUSIC', width: (size.width * 0.5).clamp(320, 560), [
                       AudioSettings(
                         settings: widget.game.settings,
                         // Picked here, it plays at once to be heard.
                         onTry: (id) => widget.game.previewBackground = id,
                       ),
-                      _Choice(
-                        label: 'Back',
-                        size: unit,
-                        small: true,
-                        onTap: () => setState(() {
-                          _music = false;
-                          widget.game.previewBackground = null;
-                        }),
-                      ),
+                      back,
                     ]),
+                  if (_page == _Page.settings)
+                    panel(
+                      'SETTINGS',
+                      width: (size.width * 0.5).clamp(320, 560),
+                      [
+                        ListenableBuilder(
+                          listenable: widget.game.settings,
+                          builder: (context, _) {
+                            final settings = widget.game.settings;
+                            return Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                SettingSlider(
+                                  settings: settings,
+                                  label: 'Brightness',
+                                  setting: 'brightness',
+                                  min: .8,
+                                  max: 1.3,
+                                ),
+                                SettingSlider(
+                                  settings: settings,
+                                  label: 'Film effects',
+                                  setting: 'atmosphere',
+                                ),
+                                SettingSlider(
+                                  settings: settings,
+                                  label: 'Button size',
+                                  setting: 'controlsScale',
+                                  min: .8,
+                                  max: 1.3,
+                                ),
+                                SettingSlider(
+                                  settings: settings,
+                                  label: 'Button opacity',
+                                  setting: 'controlsOpacity',
+                                  min: .3,
+                                  max: 1,
+                                ),
+                                SwitchListTile(
+                                  dense: true,
+                                  title: const Text(
+                                    'Vibration',
+                                    style: TextStyle(
+                                      color: Palette.brandInk,
+                                      fontSize: 12,
+                                    ),
+                                  ),
+                                  activeThumbColor: Palette.lampAmber,
+                                  value: settings.vibration,
+                                  onChanged: (v) =>
+                                      settings.setFlag('vibration', v),
+                                ),
+                                _Choice(
+                                  label: 'Reset settings',
+                                  size: unit,
+                                  small: true,
+                                  onTap: settings.reset,
+                                ),
+                              ],
+                            );
+                          },
+                        ),
+                        back,
+                      ],
+                    ),
                 ],
               ),
             ),
@@ -233,6 +369,8 @@ class _TitleScreenState extends State<TitleScreen>
     );
   }
 }
+
+enum _Page { main, chapters, music, settings, confirmBegin }
 
 /// One of the main menu's words: a Cinzel numeral in amber, the word in
 /// italic Cormorant, and the lantern's light behind it when it is the

@@ -4,6 +4,7 @@ import 'dart:ui';
 import 'package:flame/components.dart';
 import 'package:flame_forge2d/flame_forge2d.dart';
 
+import '../world/footprint.dart';
 import '../physics/collision_layers.dart';
 import '../physics/shape_clearance.dart';
 import '../render/culling.dart';
@@ -145,7 +146,9 @@ class RockMass extends BodyComponent
 /// [breakSpeed] is set, a blow against the rock at least that fast snaps
 /// the rusted latch, and the door, hinged at its foot, falls open outwards
 /// like a drawbridge.
-class HangingCage extends Component with OffScreenCulling {
+class HangingCage extends Component
+    with OffScreenCulling
+    implements HasFootprint {
   HangingCage({
     required this.anchor,
     required this.chainLength,
@@ -165,6 +168,16 @@ class HangingCage extends Component with OffScreenCulling {
   late Body body;
   Body? door;
   RevoluteJoint? _latch;
+
+  /// Where the cage hangs, below its chain.
+  @override
+  Rect get footprint => Rect.fromLTWH(
+    anchor.x - width / 2,
+    anchor.y + chainLength,
+    width,
+    height,
+  );
+
   final List<Body> chain = [];
   late Body _fixed;
   bool _built = false;

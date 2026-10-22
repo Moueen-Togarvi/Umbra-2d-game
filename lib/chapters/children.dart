@@ -2,6 +2,7 @@ import 'dart:ui' show Canvas, Color, Offset, Paint, Path, Rect;
 
 import 'package:flame/components.dart';
 
+import '../world/footprint.dart';
 import '../config/game_config.dart';
 import '../entities/castle_props.dart';
 import '../entities/dungeon_props.dart';
@@ -289,9 +290,12 @@ class ChildrenChapter extends Chapter {
 
 /// A low arched drain in the foot of the wall, a grating long since gone:
 /// big enough for a small child, not for him.
-class _Drain extends Component {
+class _Drain extends Component implements HasFootprint {
   _Drain({required this.x, required this.floorY}) : super(priority: -20);
   final double x, floorY;
+
+  @override
+  Rect get footprint => Rect.fromLTRB(x - 1.2, floorY - 1.4, x + 1.2, floorY);
 
   static final Paint _stone = Paint()..color = const Color(0xFF070707);
   static final Paint _hole = Paint()..color = const Color(0xFF000000);

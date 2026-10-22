@@ -1,8 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-import '../audio/sound_bank.dart';
-
 /// User preferences, independent of chapter progress and physics tuning.
 class GameSettings extends ChangeNotifier {
   // Keep the public constructor argument readable while storage remains private.
@@ -27,11 +25,6 @@ class GameSettings extends ChangeNotifier {
 
   /// The music under play until the player picks another.
   static const String defaultBackground = 'bg_descent';
-
-  /// The pieces that can play under the game: every background but the
-  /// main menu's own, so the menu always sounds different from play.
-  static Iterable<(String, String, String)> get playBackgrounds =>
-      SoundBank.backgrounds.where((b) => b.$1 != SoundBank.menu);
 
   final SharedPreferences? _preferences;
   late double brightness, atmosphere, controlsScale, controlsOpacity;

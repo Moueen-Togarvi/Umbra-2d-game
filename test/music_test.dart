@@ -3,7 +3,9 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:umbra/audio/sound_bank.dart';
 import 'package:umbra/chapters/chase.dart';
 import 'package:umbra/config/game_settings.dart';
+import 'package:umbra/game/umbra_game.dart';
 import 'package:umbra/ui/audio_settings.dart';
+import 'package:umbra/world/stage.dart';
 
 import 'support/campaign.dart';
 
@@ -24,7 +26,7 @@ void main() {
     expect(find.byType(Switch), findsNWidgets(2));
     expect(find.byType(Slider), findsNWidgets(3));
     expect(find.byKey(const ValueKey('music-${SoundBank.menu}')), findsNothing);
-    for (final (id, title, _) in GameSettings.playBackgrounds) {
+    for (final (id, title, _) in SoundBank.backgrounds) {
       expect(find.byKey(ValueKey('music-$id')), findsOneWidget);
       expect(find.textContaining(title), findsOneWidget);
     }
@@ -52,15 +54,22 @@ void main() {
     expect(game.musicNow, 'bg_descent');
     game.previewBackground = null;
 
-    game.settings.setBackground('bg_tomb');
+    game.settings.setBackground('bg_solitude');
     expect(game.musicNow, SoundBank.menu, reason: 'the menu keeps its own');
     final chase = await enterChapter<ChaseChapter>(tester, game, 15);
-    expect(game.musicNow, 'bg_tomb');
+    expect(game.musicNow, 'bg_solitude');
+    // A vampire near: dread, until it passes.
+    chase.reportThreat(ThreatLevel.tension);
+    expect(game.musicNow, UmbraGame.dreadMusic);
+    for (var i = 0; i < 240; i++) {
+      game.update(1 / 60);
+    }
+    expect(game.musicNow, 'bg_solitude');
     chase.startChase();
     expect(game.musicNow, SoundBank.chase);
     chase.stopChase();
     for (var i = 0; i < 120; i++) { game.update(1 / 60); }
-    expect(game.musicNow, 'bg_tomb');
+    expect(game.musicNow, 'bg_solitude');
     // A piece that is not in the game falls back to the first.
     game.settings.setBackground('nothing');
     expect(game.musicNow, GameSettings.defaultBackground);

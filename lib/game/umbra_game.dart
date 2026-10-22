@@ -124,6 +124,31 @@ class UmbraGame extends Forge2DGame with HasKeyboardHandlerComponents {
   static const String pauseOverlay = 'pause';
   bool get isGameplayPaused => overlays.isActive(pauseOverlay);
 
+  /// The main menu covers the whole screen: nothing of the world shows, so
+  /// none of it is drawn (the stage behind it keeps its sound).
+  bool coveredByMenu = false;
+
+  /// What Android's back does while the main menu is up; the menu sets it.
+  VoidCallback? titleBack;
+
+  @override
+  void render(Canvas canvas) {
+    if (coveredByMenu) return;
+    super.render(canvas);
+  }
+
+  /// Android's back button: the menu handles its own; in play it pauses,
+  /// and paused it plays on. It never drops out of the game mid-chapter.
+  void backPressed() {
+    if (director?.showingTitle ?? false) {
+      titleBack?.call();
+    } else if (isGameplayPaused) {
+      resumeGameplay();
+    } else {
+      pauseGameplay();
+    }
+  }
+
   void pauseGameplay() {
     if (isGameplayPaused || (director?.hidesControls ?? false)) return;
     _touchControls.clear();
@@ -456,9 +481,7 @@ class UmbraGame extends Forge2DGame with HasKeyboardHandlerComponents {
     director?.update(math.max(0.0, dt));
     final Stage? place = _stage;
     if (place != null) {
-      _audio
-        ..bed(place.ambience)
-        ..windLevel = place.windLevel;
+      _audio.bed(place.ambience);
     }
     _audio.score(_scoreNow(place));
     _audio.update(frameDt);
@@ -556,13 +579,17 @@ class UmbraGame extends Forge2DGame with HasKeyboardHandlerComponents {
 
   double _zoom = 1;
 
+  /// The music while a vampire is near.
+  static const String dreadMusic = 'bg_tomb';
+
   /// A background the music menu is trying out, played while the menu
   /// is open; null otherwise.
   String? previewBackground;
 
   /// The music for now: the main menu's own on the title (or the one being
-  /// tried out there), the chase's while a keeper is after him, and
-  /// otherwise the one the player picked for play, never the menu's.
+  /// tried out there), the chase's while a keeper is after him, dread while
+  /// one is near, and otherwise the one the player picked for play, never
+  /// the menu's.
   @visibleForTesting
   String get musicNow => _scoreNow(_stage);
 
@@ -573,8 +600,10 @@ class UmbraGame extends Forge2DGame with HasKeyboardHandlerComponents {
     if (place?.threat == ThreatLevel.chase) {
       return SoundBank.chase;
     }
+    // A vampire close by, not yet after him: dread under the scene.
+    if (place?.threat == ThreatLevel.tension) return dreadMusic;
     final String picked = previewBackground ?? settings.background;
-    return GameSettings.playBackgrounds.any((b) => b.$1 == picked)
+    return SoundBank.backgrounds.any((b) => b.$1 == picked)
         ? picked
         : GameSettings.defaultBackground;
   }

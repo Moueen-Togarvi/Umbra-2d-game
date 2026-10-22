@@ -49,8 +49,6 @@ class BonePitChapter extends Chapter {
   @override
   String get footing => 'gravel';
   @override
-  double get windLevel => 0.4;
-  @override
   int get number => 13;
   @override
   String get title => 'The Bone Pit';

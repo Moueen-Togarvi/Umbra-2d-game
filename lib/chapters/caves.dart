@@ -47,8 +47,6 @@ class CavesChapter extends Chapter {
   @override
   String get footing => 'gravel';
   @override
-  double get windLevel => 0.4;
-  @override
   int get number => 8;
   @override
   String get title => 'The Caves';

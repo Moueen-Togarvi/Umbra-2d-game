@@ -33,9 +33,8 @@ abstract final class SoundBank {
   /// Effects too long for Android's low-latency pool.
   static const Set<String> long = {'bell', 'heartbeat', 'rumble', 'thunder'};
 
-  /// The loops: the wind and the beds under it.
+  /// The loops: the beds under a place.
   static const List<String> loops = [
-    'wind',
     'rain',
     'river',
     'cave',
@@ -47,7 +46,6 @@ abstract final class SoundBank {
   /// The music the player can pick to play under the game: id, title and
   /// who made it.
   static const List<(String, String, String)> backgrounds = [
-    ('bg_tragic', 'Tragic ambient main menu', 'HaelDB'),
     ('bg_decoherence', 'Decoherence', 'Scott Buckley'),
     ('bg_descent', 'Descent', 'Scott Buckley'),
     ('bg_solitude', 'In Search Of Solitude', 'Scott Buckley'),

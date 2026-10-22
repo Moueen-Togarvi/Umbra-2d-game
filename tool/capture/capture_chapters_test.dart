@@ -178,16 +178,45 @@ void main() {
       await tester.pump(const Duration(milliseconds: 100));
     }
     await screen(tester, 'title', 'title');
+    // The world is not drawn under the menu; uncover it for this one.
+    game.coveredByMenu = false;
     await shot(tester, game, 'title', 'game_only');
-    await tester.tap(find.text('Chapters'));
-    await tester.pump(const Duration(milliseconds: 350));
+    game.coveredByMenu = true;
+    Future<void> tap(String text) async {
+      final target = find.text(text, skipOffstage: false).last;
+      await tester.ensureVisible(target);
+      await tester.pump();
+      await tester.tap(target);
+      await tester.pump(const Duration(milliseconds: 350));
+    }
+
+    await tap('Chapters');
     await screen(tester, 'title', 'chapters');
+    await tap('Back');
+    await tap('Settings');
+    await screen(tester, 'title', 'settings');
+    // With a place saved, Begin asks first.
+    await tester.runAsync(() => game.progress.enter(11));
+    await tap('Back');
+    await screen(tester, 'title', 'continue');
+    await tap('Begin');
+    await screen(tester, 'title', 'begin_again');
+    await tap('Back');
     // ignore: avoid_print
     print(
       'blackness ${game.blackness} director ${game.director!.blackness} '
       'stage ${game.stage!.blackness} death ${game.deathSequence.blackness} '
       'cam ${game.camera.viewfinder.position}',
     );
+  });
+
+  testWidgets('title tablet', (tester) async {
+    final game = await boot(tester, viewport: const Size(1024, 768));
+    step(game, 3);
+    for (var i = 0; i < 40; i++) {
+      await tester.pump(const Duration(milliseconds: 100));
+    }
+    await screen(tester, 'title', 'tablet');
   });
 
   testWidgets('opening', (tester) async {

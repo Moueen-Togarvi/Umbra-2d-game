@@ -16,7 +16,7 @@ import 'package:umbra/render/white_blossom_tree.dart';
 import '../../test/support/campaign.dart';
 
 void main() {
-  for (final index in [1, 2, 4, 22, 37]) {
+  for (var index = 0; index < 40; index++) {
     testWidgets('decor ${index + 1}', (tester) async {
       const size = Size(1600, 720);
       tester.view.physicalSize = size;
@@ -31,7 +31,7 @@ void main() {
           if (p.standsOnPath) p.x,
       ];
       var n = 0;
-      for (final x in xs.take(6)) {
+      for (final x in xs.take(3)) {
         chapter.player.teleportTo(
           Vector2(
             x + 1.2,

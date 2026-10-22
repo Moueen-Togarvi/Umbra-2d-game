@@ -37,9 +37,6 @@ class AmbientAudio {
   int _effectEpoch = 0;
   final math.Random _random = math.Random();
 
-  /// How strong the wind is here, 0–1 (indoors it is only heard faintly).
-  double windLevel = 1;
-
   Iterable<_Loop> get _loops => [_bed, _score];
 
   Future<void> unlock() async {
@@ -91,16 +88,23 @@ class AmbientAudio {
             : math.min(count, name.startsWith('step_') ? 3 : 2);
         for (var i = 1; i <= takeCount; i++) {
           if (_disposed) return;
-          // One take that will not load costs only itself, never the rest.
+          // One take that will not load costs only itself, never the rest,
+          // and its player is let go.
+          final voice = _newPlayer();
+          var loaded = false;
           await _guard(() async {
-            final voice = _newPlayer();
             if (pool && !SoundBank.long.contains(name)) {
               await voice.setPlayerMode(PlayerMode.lowLatency);
             }
             await voice.setReleaseMode(ReleaseMode.stop);
             await voice.setSource(AssetSource(SoundBank.effect(name, i)));
-            takes.add(voice);
+            loaded = true;
           });
+          if (loaded) {
+            takes.add(voice);
+          } else {
+            await _guard(voice.dispose);
+          }
         }
       }
     });
@@ -158,6 +162,9 @@ class AmbientAudio {
     });
   }
 
+  /// How late an effect may start before it is let go.
+  static const Duration _late = Duration(milliseconds: 250);
+
   /// Plays a take of [name] at [weight] (0–1), [pan] from the left (−1)
   /// to the right (1).
   void effect(String name, double weight, [double pan = 0]) {
@@ -188,11 +195,15 @@ class AmbientAudio {
     final double volume =
         (weight * settings.effects * (0.94 + 0.06 * _random.nextDouble()))
             .clamp(0.0, 1.0);
+    final asked = Stopwatch()..start();
     late final Future<void> playback;
     playback =
         _guard(() async {
           if (previous != null) await previous;
           if (_disposed || _paused || !enabled || epoch != _effectEpoch) return;
+          // Held up behind a voice that stalled: a sound this late belongs
+          // to a moment already past, and only muddles the next one.
+          if (asked.elapsed > _late) return;
           // Stop resets to zero without waiting for a browser seeked event.
           // Seeking an already stopped HTML player can stall until timeout.
           await voice.stop();
@@ -216,14 +227,21 @@ class AmbientAudio {
   void score(String? name) => _score.want = name;
 
   /// Plays the piece [name] once through (the music under the credits),
-  /// or stops it with null.
+  /// or fades it out over two seconds with null.
   Future<void> music(String? name) async {
     final AudioPlayer? player = _music;
     if (!_ready || player == null || name == _musicName) return;
     _musicName = name;
     await _guard(() async {
+      if (name == null) {
+        for (var step = 9; step >= 0 && _musicName == null; step--) {
+          await player.setVolume(_musicGain * step / 10);
+          await Future<void>.delayed(const Duration(milliseconds: 200));
+        }
+        if (_musicName == null) await player.stop();
+        return;
+      }
       await player.stop();
-      if (name == null) return;
       await player.setSource(AssetSource(SoundBank.music(name)));
       await player.setVolume(_musicGain);
       if (enabled && !_paused) await player.resume();

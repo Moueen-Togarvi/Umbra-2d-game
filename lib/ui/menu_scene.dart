@@ -36,72 +36,79 @@ class _MenuSceneState extends State<MenuScene>
   @override
   Widget build(BuildContext context) => ColoredBox(
     color: Palette.brandBlack,
-    child: ClipRect(
-      child: FittedBox(
-        fit: BoxFit.cover,
-        child: SizedBox.fromSize(
-          size: MenuScene.frame,
-          child: Stack(
-            children: [
-              const Positioned.fill(child: CustomPaint(painter: _Land())),
-              // Graves far off, nearly lost in the fog.
-              Positioned(
-                left: 930,
-                top: 462,
-                height: 90,
-                child: Opacity(
-                  opacity: .28,
-                  child: Image.asset('assets/images/part1/ch2_graves.png'),
-                ),
-              ),
-              const Positioned.fill(child: CustomPaint(painter: _Ground())),
-              Positioned(
-                left: 40,
-                top: 50,
-                height: 520,
-                child: ColorFiltered(
-                  colorFilter: const ColorFilter.matrix([
-                    .92, 0, 0, 0, 0, //
-                    0, .92, 0, 0, 0, //
-                    0, 0, .92, 0, 0, //
-                    0, 0, 0, 1, 0, //
-                  ]),
-                  child: Image.asset(
-                    'assets/images/white_trees/'
-                    'white_tree_05_ancient_blossom.webp',
-                    filterQuality: FilterQuality.medium,
+    child: Stack(
+      fit: StackFit.expand,
+      children: [
+        ClipRect(
+          child: FittedBox(
+            fit: BoxFit.cover,
+            // On a squarer screen the right is what is cut: the tree stays.
+            alignment: Alignment.centerLeft,
+            child: SizedBox.fromSize(
+              size: MenuScene.frame,
+              child: Stack(
+                children: [
+                  const Positioned.fill(child: CustomPaint(painter: _Land())),
+                  // Graves far off, nearly lost in the fog.
+                  Positioned(
+                    left: 930,
+                    top: 462,
+                    height: 90,
+                    child: Opacity(
+                      opacity: .28,
+                      child: Image.asset('assets/images/part1/ch2_graves.png'),
+                    ),
                   ),
-                ),
-              ),
-              // The boy under it, his shadow on the crest.
-              Positioned(
-                left: 466,
-                top: 469,
-                height: 74,
-                child: Image.asset(
-                  'assets/images/ui/menu_boy.png',
-                  filterQuality: FilterQuality.medium,
-                ),
-              ),
-              Positioned.fill(
-                child: RepaintBoundary(
-                  child: CustomPaint(painter: _Living(_time)),
-                ),
-              ),
-              const Positioned.fill(child: CustomPaint(painter: _Shade())),
-              Positioned.fill(
-                child: Opacity(
-                  opacity: .05,
-                  child: Image.asset(
-                    'assets/images/grain.png',
-                    repeat: ImageRepeat.repeat,
+                  const Positioned.fill(child: CustomPaint(painter: _Ground())),
+                  Positioned(
+                    left: 40,
+                    top: 50,
+                    height: 520,
+                    child: ColorFiltered(
+                      colorFilter: const ColorFilter.matrix([
+                        .92, 0, 0, 0, 0, //
+                        0, .92, 0, 0, 0, //
+                        0, 0, .92, 0, 0, //
+                        0, 0, 0, 1, 0, //
+                      ]),
+                      child: Image.asset(
+                        'assets/images/white_trees/'
+                        'white_tree_05_ancient_blossom.webp',
+                        filterQuality: FilterQuality.medium,
+                      ),
+                    ),
                   ),
-                ),
+                  // The boy under it, his shadow on the crest.
+                  Positioned(
+                    left: 466,
+                    top: 469,
+                    height: 74,
+                    child: Image.asset(
+                      'assets/images/ui/menu_boy.png',
+                      filterQuality: FilterQuality.medium,
+                    ),
+                  ),
+                  Positioned.fill(
+                    child: RepaintBoundary(
+                      child: CustomPaint(painter: _Living(_time)),
+                    ),
+                  ),
+                ],
               ),
-            ],
+            ),
           ),
         ),
-      ),
+        // On the screen itself, not the picture: the dark the words sit in
+        // stays on the right however much of the picture a screen shows.
+        const CustomPaint(painter: _Shade()),
+        Opacity(
+          opacity: .05,
+          child: Image.asset(
+            'assets/images/grain.png',
+            repeat: ImageRepeat.repeat,
+          ),
+        ),
+      ],
     ),
   );
 }

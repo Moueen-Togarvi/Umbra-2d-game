@@ -5,6 +5,7 @@ import 'package:flame/components.dart' hide World;
 import 'package:flame/flame.dart';
 import 'package:flame_forge2d/flame_forge2d.dart';
 
+import '../world/footprint.dart';
 import '../config/game_config.dart';
 import '../config/palette.dart';
 import '../physics/collision_layers.dart';
@@ -176,6 +177,11 @@ class Pulley extends Component with OffScreenCulling {
 
   double? _length;
 
+  /// How long more each side, having just struck the top of its travel
+  /// on the way up, is kept from bouncing back off it; and how fast each
+  /// was last sent.
+  double _knockA = 0, _knockB = 0, _sentA = 0, _sentB = 0;
+
   /// The wheels' turn, radians.
   double turned = 0;
 
@@ -236,7 +242,12 @@ class Pulley extends Component with OffScreenCulling {
   void update(double dt) {
     if (!a.isReady || !b.isReady || dt <= 0) return;
     final double ya = a.body.position.y, yb = b.body.position.y;
-    final double length = _length ??= ya + yb;
+    // The rope as laid out, both sides where they were built: not as found
+    // on the first step, by when the heavier side may already have fallen
+    // a little while the bodies were still being made (a lift that then
+    // stopped short of the floor it was built to reach).
+    final double length = _length ??=
+        a.start.y - a.startLift + b.start.y - b.startLift;
     final ra = _ridersOf(a), rb = _ridersOf(b);
     double ma = a.massKg, pa = a.massKg * a.body.linearVelocity.y;
     for (final r in ra) {
@@ -268,6 +279,18 @@ class Pulley extends Component with OffScreenCulling {
     }
     final double ia = aTop ? 0 : 1 / ma;
     final double ib = bTop ? 0 : 1 / mb;
+    // A side that comes up into its stop at speed is not bounced back down
+    // off it, and the whole rope with it: for a moment after the knock,
+    // what would carry it away from the stop is taken by the stop, while
+    // it is the lighter side (the heavier one goes down as it should).
+    _knockA = aTop && _sentA < -0.3 ? 0.5 : math.max(0, _knockA - dt);
+    _knockB = bTop && _sentB < -0.3 ? 0.5 : math.max(0, _knockB - dt);
+    if (taut &&
+        ((_knockA > 0 && va > 0 && ma < mb) ||
+            (_knockB > 0 && vb > 0 && mb < ma))) {
+      va = 0;
+      vb = 0;
+    }
     // The brake.
     final double fastest = math.max(va.abs(), vb.abs());
     if (fastest > maxSpeed) {
@@ -278,6 +301,8 @@ class Pulley extends Component with OffScreenCulling {
       _apply(a, ra, va);
       _apply(b, rb, vb);
     }
+    _sentA = va;
+    _sentB = vb;
     // Anything the step let stretch is taken back the same way, and what
     // rides each side goes with it.
     final double over = ya + yb - length;
@@ -1040,7 +1065,9 @@ abstract interface class GlowingLight implements LightSource {
 ///
 /// The window's art is drawn by the chapter; this is its panes' rectangle,
 /// the shutters over them, and the light.
-class MoonWindow extends Component with StageLight implements GlowingLight {
+class MoonWindow extends Component
+    with StageLight
+    implements GlowingLight, HasFootprint {
   MoonWindow({
     required this.paneLeft,
     required this.paneRight,
@@ -1062,6 +1089,15 @@ class MoonWindow extends Component with StageLight implements GlowingLight {
   double _time = 0;
 
   bool get isOpen => _open > 0.6;
+
+  /// The pane, and its shutters swung out a pane's width either side.
+  @override
+  Rect get footprint => Rect.fromLTRB(
+    paneLeft - (paneRight - paneLeft),
+    paneTop,
+    paneRight + (paneRight - paneLeft),
+    paneBottom,
+  );
 
   void open() => _goal = 1;
 

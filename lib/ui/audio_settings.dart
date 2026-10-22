@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../audio/sound_bank.dart';
 import '../config/game_settings.dart';
 import '../config/palette.dart';
 
@@ -63,7 +64,7 @@ class AudioSettings extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 4),
-        for (final (id, title, artist) in GameSettings.playBackgrounds)
+        for (final (id, title, artist) in SoundBank.backgrounds)
           _track(id, title, artist, selected: id == settings.background),
       ],
     ),

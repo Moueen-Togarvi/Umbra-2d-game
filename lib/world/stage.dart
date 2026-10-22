@@ -95,9 +95,6 @@ abstract class Stage extends Component {
   /// works of a clock, running water, birds at dawn), or null.
   String? get ambience => null;
 
-  /// How much of the wind is heard here, 0–1 (indoors, hardly any).
-  double get windLevel => 1;
-
   /// What the boy's feet fall on here, where he is not on something
   /// that moves: grass, gravel (a cave), stone (a hall).
   String get footing => 'grass';

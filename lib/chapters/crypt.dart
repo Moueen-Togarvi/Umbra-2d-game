@@ -51,8 +51,6 @@ class CryptChapter extends Chapter {
   @override
   String get footing => 'gravel';
   @override
-  double get windLevel => 0.4;
-  @override
   int get number => 11;
   @override
   String get title => 'The Crypt';
