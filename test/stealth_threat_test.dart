@@ -1,6 +1,7 @@
 import 'package:flame/components.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:umbra/chapters/journey_chapter.dart';
+import 'package:umbra/chapters/puzzle_route.dart';
 import 'package:umbra/world/stage.dart';
 import 'support/campaign.dart';
 
@@ -10,7 +11,7 @@ void main() {
     (tester) async {
       final game = await bootCampaign(tester);
       final stage = await enterChapter<JourneyChapter>(tester, game, 3);
-      final room = stage.rooms[1];
+      final room = stage.rooms.firstWhere((r) => r.kind == PuzzleKind.patrol);
       final hunter = room.hunter!;
       hunter.reset(room.x + 8);
       hunter.vampire.facing = 1;
@@ -45,7 +46,7 @@ void main() {
     (tester) async {
       final game = await bootCampaign(tester);
       final stage = await enterChapter<JourneyChapter>(tester, game, 3);
-      final room = stage.rooms[1];
+      final room = stage.rooms.firstWhere((r) => r.kind == PuzzleKind.patrol);
       final cover = room.x + 12;
       stage.player.teleportTo(Vector2(cover, 6.35));
       game.intent.setKeyboardState(sit: true);

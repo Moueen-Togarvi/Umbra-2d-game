@@ -68,7 +68,9 @@ void main() {
     chase.startChase();
     expect(game.musicNow, SoundBank.chase);
     chase.stopChase();
-    for (var i = 0; i < 120; i++) { game.update(1 / 60); }
+    for (var i = 0; i < 120; i++) {
+      game.update(1 / 60);
+    }
     expect(game.musicNow, 'bg_solitude');
     // A piece that is not in the game falls back to the first.
     game.settings.setBackground('nothing');

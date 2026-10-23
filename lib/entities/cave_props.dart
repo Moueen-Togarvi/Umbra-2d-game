@@ -4,6 +4,7 @@ import 'dart:ui';
 import 'package:flame/components.dart';
 import 'package:flame_forge2d/flame_forge2d.dart';
 
+import '../config/game_config.dart';
 import '../world/footprint.dart';
 import '../physics/collision_layers.dart';
 import '../physics/shape_clearance.dart';
@@ -673,6 +674,17 @@ class FootPedal extends BodyComponent with OffScreenCulling {
   @override
   void update(double dt) {
     super.update(dt);
+    if (_ready && body.isValid) {
+      // Its spring: enough to hold its own weight up (the joint's alone lets
+      // it sag flat and press itself), not his.
+      final double own =
+          massKg * GameConfig.gravityMetersPerSecondSquared * length / 2;
+      body.applyTorque(
+        own * 1.2 +
+            own * 2.4 * (raised - body.angle) -
+            own * 0.06 * body.angularVelocity,
+      );
+    }
     if (!pressed && _ready && body.angle < raised * 0.25) {
       pressed = true;
       onPress();

@@ -103,6 +103,45 @@ void main() {
     game.intent.setKeyboardState(axis: 0);
   });
 
+  testWidgets('sit held while moving: bent over and walking, never sitting, '
+      'and nothing goes into the ground', (tester) async {
+    final (game, player) = await boot(tester);
+    final double ground = player.body.position.y + h / 2;
+    var lowestHip = double.infinity;
+    var deepest = -double.infinity;
+    void watch(double seconds) {
+      for (var i = 0; i < (seconds * 120).round(); i++) {
+        game.update(1 / 120);
+        final pose = player.rigPoseWorld;
+        if (player.state == CharacterState.crouching) {
+          lowestHip = math.min(lowestHip, ground - pose[RigJoint.pelvis].y);
+        }
+        for (final j in const [
+          RigJoint.frontKnee,
+          RigJoint.backKnee,
+          RigJoint.frontAnkle,
+          RigJoint.backAnkle,
+        ]) {
+          deepest = math.max(deepest, pose[j].y - ground);
+        }
+      }
+    }
+
+    game.intent.setKeyboardState(sit: true, axis: 1);
+    watch(1.2);
+    // A short stop while low is not a sit: he stays bent over, ready.
+    game.intent.setKeyboardState(sit: true, axis: 0);
+    watch(0.4);
+    expect(player.state, CharacterState.crouching);
+    game.intent.setKeyboardState(sit: true, axis: -1);
+    watch(1.0);
+    expect(player.state, CharacterState.crouching);
+    // Bent over at the waist, not squatting: the hips stay well up.
+    expect(lowestHip, greaterThan(0.24));
+    expect(deepest, lessThan(0.005));
+    game.intent.setKeyboardState(sit: false, axis: 0);
+  });
+
   testWidgets('under a low beam he stays down until he is out from under it', (
     tester,
   ) async {

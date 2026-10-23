@@ -163,7 +163,10 @@ void main() {
           }
         }
       }
-      intent.setKeyboardState(axis: axis, sit: x > 85.3 && x < 86.7 && axis == 0);
+      intent.setKeyboardState(
+        axis: axis,
+        sit: x > 85.3 && x < 86.7 && axis == 0,
+      );
       driveExtension(game);
       game.update(1 / 60);
       expect(

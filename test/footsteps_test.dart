@@ -83,8 +83,7 @@ void main() {
       for (var i = 0; i < 6 * 120; i++) {
         final int before = player.footContacts;
         game.update(1 / 120);
-        final bool walking =
-            player.isOnGround && player.velocity.x.abs() > 0.5;
+        final bool walking = player.isOnGround && player.velocity.x.abs() > 0.5;
         quiet = player.footContacts > before || !walking ? 0 : quiet + 1 / 120;
         if (quiet > longest) longest = quiet;
       }

@@ -97,7 +97,11 @@ void main() {
           '${gate.crateB.body.position}; gate ${gate.gate.travel}; bridge '
           '${gate.bridge.body.angle}',
     );
-    expect(gate.bridge.down, isFalse, reason: 'bridge rises behind the boy to shut out the keeper');
+    expect(
+      gate.bridge.down,
+      isFalse,
+      reason: 'bridge rises behind the boy to shut out the keeper',
+    );
     expect(closest, greaterThan(0.8));
     // ignore: avoid_print
     print('closest the keeper came: ${closest.toStringAsFixed(2)} m');

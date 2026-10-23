@@ -305,7 +305,26 @@ class RopeBridge extends Component with OffScreenCulling {
   double get _plank => (to - from).length * (1 + sag) / planks;
 
   @override
-  Future<void> onLoad() async {
+  Future<void> onLoad() async => _build();
+
+  /// Whole again, hanging as it was built (after a death on it).
+  void reset() {
+    if (!_built) return;
+    _destroy();
+    _joints.clear();
+    boards.clear();
+    _far = null;
+    snapped = false;
+    _build();
+  }
+
+  void _destroy() {
+    for (final b in [...boards, _a, _b]) {
+      if (b.isValid) b.destroy();
+    }
+  }
+
+  void _build() {
     final world = (findGame()! as Forge2DGame).world.physicsWorld;
     _a = world.createBody(BodyDef(position: from));
     _b = world.createBody(BodyDef(position: to));
@@ -374,11 +393,7 @@ class RopeBridge extends Component with OffScreenCulling {
 
   @override
   void onRemove() {
-    if (_built) {
-      for (final b in [...boards, _a, _b]) {
-        if (b.isValid) b.destroy();
-      }
-    }
+    if (_built) _destroy();
     super.onRemove();
   }
 
@@ -445,7 +460,20 @@ class RockFall extends Component {
     this.count = 4,
     this.radius = 0.38,
     this.firstAfter = 1.0,
+    this.speed = 2.5,
+    this.rounding = 0,
+    this.deadly = 2.5,
   });
+
+  /// How fast a stone must be coming to kill him, metres a second.
+  final double deadly;
+
+  /// How round its corners are, metres: rounded stones roll on down a
+  /// gentle slope where sharp ones would stop.
+  final double rounding;
+
+  /// How fast each is thrown off the cliff, metres a second leftwards.
+  final double speed;
 
   final Vector2 from;
   final double every, radius, firstAfter;
@@ -486,7 +514,12 @@ class RockFall extends Component {
               (radius * (0.8 + random.nextDouble() * 0.3)),
       ];
       b.createShape(
-        Polygon(pts),
+        rounding > 0
+            ? Polygon([
+                for (final p in pts)
+                  p.normalized() * math.max(0.05, p.length - rounding),
+              ], radius: rounding)
+            : Polygon(pts),
         ShapeDef(
           density: 260,
           filter: CollisionLayers.propFilter(),
@@ -498,6 +531,13 @@ class RockFall extends Component {
     }
     _clock = every - firstAfter;
     _built = true;
+  }
+
+  /// Stopped, its stones gathered up, the first to come [firstAfter]
+  /// seconds after it is next set going.
+  void reset() {
+    stop();
+    _clock = every - firstAfter;
   }
 
   void stop() {
@@ -522,7 +562,7 @@ class RockFall extends Component {
         r
           ..isEnabled = true
           ..setTransform(from, Rot.fromAngle(_spin[_next]))
-          ..linearVelocity = Vector2(-2.5, 0)
+          ..linearVelocity = Vector2(-speed, 0)
           ..angularVelocity = -6;
       }
     }
@@ -531,7 +571,7 @@ class RockFall extends Component {
     final Vector2 p = boy.body.position;
     for (final r in rocks) {
       if (!r.isEnabled) continue;
-      if (r.linearVelocity.length > 2.5 &&
+      if (r.linearVelocity.length > deadly &&
           (r.position - p).length < radius + GameConfig.playerHeight * 0.45) {
         boy.die();
         return;
@@ -569,6 +609,16 @@ class RockFall extends Component {
         }
       }
       canvas.drawPath(path..close(), _stone);
+      if (g.radius > 0) {
+        canvas.drawPath(
+          path,
+          Paint()
+            ..color = _stone.color
+            ..style = PaintingStyle.stroke
+            ..strokeJoin = StrokeJoin.round
+            ..strokeWidth = g.radius * 2,
+        );
+      }
     }
   }
 }

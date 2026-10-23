@@ -103,7 +103,7 @@ void main() {
           }
         }
         // The drain: onto the pedal; then wait for the water to go.
-        if (grounded && x > 50.7 && x < 51.4 && !jumped.contains('drain')) {
+        if (grounded && x > 49.9 && x < 50.4 && !jumped.contains('drain')) {
           jump('drain');
         }
         if (x > 52.4 && x < 54 && crypt.passage.level < 9.3) axis = 0;

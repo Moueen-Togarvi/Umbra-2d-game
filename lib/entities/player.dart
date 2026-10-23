@@ -345,6 +345,9 @@ class Player extends BodyComponent {
     _lowStill = _low && still ? _lowStill + dt : 0;
     final bool sitting = _lowStill >= GameConfig.sitAfterSeconds;
     if (sitting && before < GameConfig.sitAfterSeconds) sitDowns++;
+    // Down onto the seat slowly; up off it at once when he moves on, so
+    // he never creeps along still half sitting.
+    _sit.hertz = sitting ? 1.3 : 3.2;
     _sit.step(sitting ? 1 : 0, dt);
     _crouch.step(_low && !sitting ? 1 : 0, dt);
   }
@@ -947,7 +950,7 @@ class Player extends BodyComponent {
           (2 *
               math.pi /
               (Gait.strideMeters(_actualSpeed) *
-                  FootPlacement.strideScale(bracing)));
+                  FootPlacement.strideScale(bracing, _crouch.value)));
     }
     final gaitTarget = moving
         ? (_actualSpeed.abs() / GameConfig.moveSpeedMetersPerSecond).clamp(
@@ -1049,6 +1052,7 @@ class Player extends BodyComponent {
       dt: dt,
       bracing: bracing,
       sliding: _sliding,
+      low: _crouch.value.clamp(0.0, 1.0),
     );
     _updateIdle(dt);
     _updateTeeter(dt);

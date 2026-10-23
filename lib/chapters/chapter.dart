@@ -17,6 +17,7 @@ import '../render/chapter_backgrounds.dart';
 import '../render/grass.dart';
 import '../render/white_blossom_tree.dart';
 import 'decor_layout.dart';
+import '../render/chapter_exit_gate.dart';
 import '../story/cutscene.dart';
 import '../world/checkpoint_service.dart';
 import '../world/stage.dart';
@@ -57,51 +58,25 @@ abstract class Chapter extends Stage {
   double get coreExitX => coreWidth - 4;
   List<double> get coreCheckpointXs => const [];
   static const extensionPlans = <int, List<PuzzleKind>>{
-    1: [PuzzleKind.crawl, PuzzleKind.crate],
-    5: [PuzzleKind.rope, PuzzleKind.crawl],
-    6: [PuzzleKind.crawl, PuzzleKind.patrol],
-    8: [PuzzleKind.drain, PuzzleKind.raft],
-    11: [PuzzleKind.crawl, PuzzleKind.raft, PuzzleKind.patrol],
-    13: [PuzzleKind.drain, PuzzleKind.rope, PuzzleKind.raft],
-    16: [PuzzleKind.weight, PuzzleKind.crawl, PuzzleKind.rope],
-    18: [PuzzleKind.lantern, PuzzleKind.patrol, PuzzleKind.weight],
-    20: [PuzzleKind.rope, PuzzleKind.cages, PuzzleKind.pendulum],
-    22: [
-      PuzzleKind.pendulum,
-      PuzzleKind.weight,
-      PuzzleKind.hammer,
-      PuzzleKind.rope,
-    ],
-    25: [
-      PuzzleKind.crawl,
-      PuzzleKind.patrol,
-      PuzzleKind.drain,
-      PuzzleKind.weight,
-    ],
-    28: [PuzzleKind.drain, PuzzleKind.raft, PuzzleKind.weight, PuzzleKind.raft],
-    33: [
-      PuzzleKind.returnLoop,
-      PuzzleKind.patrol,
-      PuzzleKind.rope,
-      PuzzleKind.crawl,
-      PuzzleKind.raft,
-    ],
-    35: [
-      PuzzleKind.rope,
-      PuzzleKind.returnLoop,
-      PuzzleKind.pendulum,
-      PuzzleKind.crawl,
-      PuzzleKind.rope,
-    ],
-    40: [
-      PuzzleKind.crate,
-      PuzzleKind.rope,
-      PuzzleKind.crawl,
-      PuzzleKind.raft,
-      PuzzleKind.returnLoop,
-    ],
+    1: [PuzzleKind.bats, PuzzleKind.crawl, PuzzleKind.plateGate],
+    5: [PuzzleKind.fireflies, PuzzleKind.bridge, PuzzleKind.bog],
+    6: [PuzzleKind.cages, PuzzleKind.ropeClimb],
+    8: [PuzzleKind.stalactites, PuzzleKind.raft],
+    11: [PuzzleKind.crusher, PuzzleKind.coffinHands, PuzzleKind.twoCrates],
+    13: [PuzzleKind.fallingFloor, PuzzleKind.boulder, PuzzleKind.barrelRun],
+    16: [PuzzleKind.fallingStairs, PuzzleKind.timedDoor],
+    18: [PuzzleKind.moonWindow, PuzzleKind.patrol, PuzzleKind.fireChase],
+    20: [PuzzleKind.chandelier, PuzzleKind.pendulum, PuzzleKind.cages],
+    22: [PuzzleKind.hammer, PuzzleKind.crusher],
+    25: [PuzzleKind.cages, PuzzleKind.crawl],
+    28: [PuzzleKind.movingPlatform, PuzzleKind.drain],
+    33: [PuzzleKind.drawbridge, PuzzleKind.cageLift],
+    35: [PuzzleKind.rockfall, PuzzleKind.collapse],
+    40: [PuzzleKind.chase, PuzzleKind.logBridge],
   };
-  double get extensionRoomLength => number <= 10
+  double get extensionRoomLength => number <= 5
+      ? 36
+      : number <= 10
       ? 42
       : number <= 20
       ? 48
@@ -127,10 +102,20 @@ abstract class Chapter extends Stage {
     if (extensionRooms.isEmpty) return result;
     final floor = baseProfile.last.last;
     var from = result.last[result.last.length - 2];
+    void point(double x, double y) {
+      // Never two points at one x, nor going back.
+      if (x <= result.last[result.last.length - 2] + 1e-6) return;
+      result.last.addAll([x, y]);
+    }
+
     for (final room in extensionRooms) {
+      // The room's own hill or hollow, where it has one.
+      for (final (at, up) in room.rise) {
+        point(room.x + at, floor - up);
+      }
       final gap = room.gap;
       if (gap == null) continue;
-      result.last.addAll([gap.$1, floor]);
+      point(gap.$1, floor);
       result.add([gap.$2, floor]);
       from = gap.$2;
     }
@@ -149,6 +134,10 @@ abstract class Chapter extends Stage {
 
   /// Crossing this x ends the chapter.
   double get exitX => coreExitX + extensionLength;
+
+  /// Where the gate out stands, the last thing he walks through; none
+  /// where the chapter ends in a scene of its own instead of a way out.
+  double? get exitGateX => exitX < width ? exitX - 1.0 : null;
 
   /// Source artwork roster for auditing. Live components load their own art;
   /// paintings replaced by the atlas must not enter the decoded image cache.
@@ -404,7 +393,7 @@ abstract class Chapter extends Stage {
           ? a.surface.last.y
           : b.surface.first.y;
       final extension = extensionRooms
-          .where((r) => r.gap?.$1 == a.right)
+          .where((r) => r.gap != null && (r.gap!.$1 - a.right).abs() < .05)
           .firstOrNull;
       if (extension == null) {
         pieces.addAll(buildPit(i, a.right, b.left, lip));
@@ -457,6 +446,16 @@ abstract class Chapter extends Stage {
           height: i == 1 ? 5.0 : (i == 0 ? 4.7 : 4.4),
           seed: number * 101 + i * 37,
           flip: i == 2,
+        ),
+      );
+    }
+    final double? gateX = exitGateX;
+    if (gateX != null) {
+      pieces.add(
+        ChapterExitGate(
+          design: ChapterExitGate.designFor[id] ?? 'ch04',
+          x: gateX,
+          groundAt: groundAt,
         ),
       );
     }

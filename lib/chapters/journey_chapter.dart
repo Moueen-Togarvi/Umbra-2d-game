@@ -14,185 +14,199 @@ class JourneyChapter extends Chapter {
   @override
   String get title => CampaignCatalog.titles[number - 1];
   static const routes = <int, List<PuzzleKind>>{
-    2: [PuzzleKind.crawl, PuzzleKind.seesaw, PuzzleKind.rope, PuzzleKind.crate],
-    3: [PuzzleKind.crate, PuzzleKind.rope, PuzzleKind.weight, PuzzleKind.crate],
-    4: [
-      PuzzleKind.crawl,
-      PuzzleKind.patrol,
-      PuzzleKind.crate,
-      PuzzleKind.patrol,
+    // Each of the first chapters its own handful: one easy to begin, a
+    // few to think about, and one to remember at the end (docs/puzzles.md).
+    2: [
+      PuzzleKind.weight,
+      PuzzleKind.rope,
+      PuzzleKind.spikes,
+      PuzzleKind.barrel,
+      PuzzleKind.seesaw,
     ],
-    7: [PuzzleKind.cages, PuzzleKind.weight, PuzzleKind.cages, PuzzleKind.rope],
-    9: [PuzzleKind.drain, PuzzleKind.raft, PuzzleKind.crawl, PuzzleKind.drain],
-    10: [PuzzleKind.raft, PuzzleKind.rope, PuzzleKind.drain, PuzzleKind.raft],
+    3: [
+      PuzzleKind.traps,
+      PuzzleKind.zipline,
+      PuzzleKind.logBridge,
+      PuzzleKind.bridge,
+      PuzzleKind.wolves,
+    ],
+    4: [
+      PuzzleKind.patrol,
+      PuzzleKind.coffin,
+      PuzzleKind.crows,
+      PuzzleKind.pullCrate,
+      PuzzleKind.chase,
+    ],
+    7: [
+      PuzzleKind.cageLift,
+      PuzzleKind.drawbridge,
+      PuzzleKind.hammer,
+      PuzzleKind.levers,
+      PuzzleKind.twoRopes,
+    ],
+    9: [
+      PuzzleKind.drain,
+      PuzzleKind.sluice,
+      PuzzleKind.logFloat,
+      PuzzleKind.crawl,
+    ],
+    10: [
+      PuzzleKind.floatCrate,
+      PuzzleKind.sinkingRaft,
+      PuzzleKind.rockfall,
+      PuzzleKind.collapse,
+    ],
     12: [
       PuzzleKind.coffin,
       PuzzleKind.patrol,
+      PuzzleKind.sleeper,
+      PuzzleKind.heavyLight,
       PuzzleKind.raft,
-      PuzzleKind.crawl,
-      PuzzleKind.patrol,
     ],
     14: [
+      PuzzleKind.floodRise,
       PuzzleKind.drain,
-      PuzzleKind.weight,
       PuzzleKind.raft,
-      PuzzleKind.drain,
       PuzzleKind.rope,
     ],
     15: [
       PuzzleKind.weight,
       PuzzleKind.lift,
+      PuzzleKind.bookcase,
+      PuzzleKind.fireJets,
       PuzzleKind.crate,
-      PuzzleKind.crawl,
-      PuzzleKind.weight,
     ],
     17: [
       PuzzleKind.crawl,
-      PuzzleKind.patrol,
-      PuzzleKind.weight,
-      PuzzleKind.crawl,
-      PuzzleKind.patrol,
+      PuzzleKind.crate,
+      PuzzleKind.lantern,
+      PuzzleKind.bell,
+      PuzzleKind.pullCrate,
     ],
     19: [
       PuzzleKind.lantern,
-      PuzzleKind.patrol,
-      PuzzleKind.rope,
-      PuzzleKind.lantern,
-      PuzzleKind.weight,
+      PuzzleKind.watchEye,
+      PuzzleKind.moonWindow,
+      PuzzleKind.crawl,
     ],
     21: [
-      PuzzleKind.lift,
-      PuzzleKind.cages,
-      PuzzleKind.pendulum,
-      PuzzleKind.rope,
-      PuzzleKind.weight,
-      PuzzleKind.crawl,
+      PuzzleKind.bellGate,
+      PuzzleKind.levers,
+      PuzzleKind.twoRopes,
+      PuzzleKind.tripwire,
+      PuzzleKind.twoPlates,
     ],
     23: [
-      PuzzleKind.hammer,
-      PuzzleKind.crate,
-      PuzzleKind.lift,
-      PuzzleKind.pendulum,
-      PuzzleKind.hammer,
-      PuzzleKind.rope,
+      PuzzleKind.bell,
+      PuzzleKind.bellGate,
+      PuzzleKind.fireJets,
+      PuzzleKind.seesaw,
+      PuzzleKind.twoPlates,
     ],
     24: [
-      PuzzleKind.lantern,
-      PuzzleKind.patrol,
-      PuzzleKind.crawl,
-      PuzzleKind.patrol,
-      PuzzleKind.lantern,
-      PuzzleKind.rope,
+      PuzzleKind.watchEye,
+      PuzzleKind.tripwire,
+      PuzzleKind.fallingFloor,
+      PuzzleKind.leapRope,
     ],
     26: [
-      PuzzleKind.weight,
-      PuzzleKind.crawl,
-      PuzzleKind.patrol,
+      PuzzleKind.sleeper,
+      PuzzleKind.heavyLight,
+      PuzzleKind.lantern,
+      PuzzleKind.crows,
       PuzzleKind.crate,
-      PuzzleKind.patrol,
-      PuzzleKind.drain,
     ],
     27: [
-      PuzzleKind.drain,
-      PuzzleKind.raft,
+      PuzzleKind.sluice,
+      PuzzleKind.logFloat,
+      PuzzleKind.stalactites,
       PuzzleKind.crawl,
       PuzzleKind.drain,
-      PuzzleKind.rope,
-      PuzzleKind.raft,
     ],
     29: [
+      PuzzleKind.logBridge,
       PuzzleKind.rope,
-      PuzzleKind.drain,
-      PuzzleKind.raft,
-      PuzzleKind.weight,
-      PuzzleKind.raft,
-      PuzzleKind.pendulum,
+      PuzzleKind.boulder,
+      PuzzleKind.leapRope,
     ],
     30: [
-      PuzzleKind.floodTrap,
-      PuzzleKind.lantern,
-      PuzzleKind.drain,
-      PuzzleKind.returnLoop,
-      PuzzleKind.drain,
+      PuzzleKind.floatCrate,
+      PuzzleKind.sinkingRaft,
       PuzzleKind.raft,
+      PuzzleKind.floodRise,
+      PuzzleKind.bats,
     ],
     31: [
       PuzzleKind.oil,
-      PuzzleKind.patrol,
-      PuzzleKind.weight,
-      PuzzleKind.crawl,
-      PuzzleKind.oil,
       PuzzleKind.lantern,
-      PuzzleKind.rope,
+      PuzzleKind.burningRope,
+      PuzzleKind.fireChase,
+      PuzzleKind.crawl,
     ],
     32: [
-      PuzzleKind.returnLoop,
-      PuzzleKind.pendulum,
-      PuzzleKind.patrol,
-      PuzzleKind.rope,
-      PuzzleKind.lantern,
-      PuzzleKind.cages,
-      PuzzleKind.weight,
+      PuzzleKind.boulderChase,
+      PuzzleKind.barrelRun,
+      PuzzleKind.crate,
+      PuzzleKind.spikes,
     ],
     34: [
       PuzzleKind.rope,
-      PuzzleKind.raft,
-      PuzzleKind.drain,
+      PuzzleKind.movingPlatform,
+      PuzzleKind.barrel,
       PuzzleKind.weight,
-      PuzzleKind.raft,
-      PuzzleKind.crawl,
-      PuzzleKind.rope,
     ],
+    // The last of the way home: what he has learnt, met once more and
+    // harder (docs/puzzles.md).
     36: [
-      PuzzleKind.rope,
-      PuzzleKind.pendulum,
+      PuzzleKind.movingPlatform,
+      PuzzleKind.bog,
+      PuzzleKind.twoCrates,
       PuzzleKind.returnLoop,
-      PuzzleKind.rope,
-      PuzzleKind.crawl,
-      PuzzleKind.patrol,
-      PuzzleKind.rope,
+      PuzzleKind.wolves,
     ],
     37: [
       PuzzleKind.patrol,
-      PuzzleKind.crawl,
-      PuzzleKind.lantern,
+      PuzzleKind.timedDoor,
       PuzzleKind.returnLoop,
-      PuzzleKind.patrol,
-      PuzzleKind.rope,
       PuzzleKind.lantern,
-      PuzzleKind.patrol,
     ],
     38: [
+      PuzzleKind.fireflies,
+      PuzzleKind.spikes,
       PuzzleKind.rope,
-      PuzzleKind.patrol,
-      PuzzleKind.crawl,
-      PuzzleKind.returnLoop,
-      PuzzleKind.rope,
-      PuzzleKind.patrol,
+      PuzzleKind.traps,
       PuzzleKind.crawl,
     ],
     39: [
-      PuzzleKind.crate,
+      PuzzleKind.barrel,
+      PuzzleKind.seesaw,
       PuzzleKind.rope,
-      PuzzleKind.crawl,
-      PuzzleKind.returnLoop,
-      PuzzleKind.raft,
+      PuzzleKind.crusher,
       PuzzleKind.crate,
-      PuzzleKind.rope,
     ],
   };
-  double get roomLength => number <= 10
+  // The first chapters keep their rooms close: less walking between.
+  double get roomLength => number <= 5
+      ? 36
+      : number <= 10
       ? 42
       : number <= 20
       ? 48
       : number <= 30
       ? 54
       : 60;
+
+  /// The ground each room stands on. The first chapters rise and fall
+  /// from room to room over the hills; the rest keep to one level.
+  double floorOf(int i) =>
+      number <= 5 ? const [7.0, 6.4, 7.0, 6.5, 7.0, 6.4][i % 6] : 7.0;
+
   late final rooms = [
     for (var i = 0; i < routes[number]!.length; i++)
       PuzzleRoom(
         routes[number]![i],
         4 + i * roomLength,
+        floor: floorOf(i),
         length: roomLength,
         withWatcher: number == 37,
       ),
@@ -224,21 +238,43 @@ class JourneyChapter extends Chapter {
   ]);
   @override
   List<List<double>> get profile {
+    // One bank after another, broken only at the rooms' gaps; between two
+    // rooms on different ground, a slope over the first three metres of
+    // the second (the first may have a low roof at its end); and a room's
+    // own hill where it has one.
     final result = <List<double>>[];
-    var from = 0.0;
-    for (final room in rooms) {
+    var bank = <double>[0, rooms.first.floor];
+    void point(double x, double y) {
+      // Never two points at one x: the ground there would have no length.
+      if ((bank[bank.length - 2] - x).abs() < 1e-6) return;
+      bank.addAll([x, y]);
+    }
+
+    for (var i = 0; i < rooms.length; i++) {
+      final room = rooms[i];
+      if (i > 0 && rooms[i - 1].floor != room.floor) {
+        point(room.x, rooms[i - 1].floor);
+        point(room.x + 3, room.floor);
+      }
+      for (final (at, up) in room.rise) {
+        point(room.x + at, room.floor - up);
+      }
       final gap = room.gap;
       if (gap == null) continue;
-      result.add([from, 7, gap.$1, 7]);
-      from = gap.$2;
+      point(gap.$1, room.floor);
+      result.add(bank);
+      bank = [gap.$2, room.floor];
     }
-    result.add([from, 7, width, 7]);
+    point(width, rooms.last.floor);
+    result.add(bank);
     return result;
   }
 
   @override
   List<Component> buildPit(int index, double left, double right, double lip) {
-    final room = rooms.firstWhere((r) => r.gap?.$1 == left);
+    final room = rooms.firstWhere(
+      (r) => r.gap != null && (r.gap!.$1 - left).abs() < .05,
+    );
     final pit = room.pit(this);
     return pit.isNotEmpty ? pit : super.buildPit(index, left, right, lip);
   }

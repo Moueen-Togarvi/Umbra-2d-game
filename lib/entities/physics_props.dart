@@ -217,6 +217,9 @@ enum RopeSupport {
 
   /// An iron ring in a vaulted ceiling.
   ring,
+
+  /// A pulley block running on a line overhead.
+  pulley,
 }
 
 class SwingRope extends BodyComponent {
@@ -565,6 +568,19 @@ class SwingRope extends BodyComponent {
   @override
   void render(Canvas canvas) {
     if (!isReady) return;
+    if (support == RopeSupport.pulley) {
+      // The block, its wheel on the line above.
+      canvas.drawRRect(
+        RRect.fromRectAndRadius(
+          const Rect.fromLTRB(-0.1, -0.2, 0.1, 0.02),
+          const Radius.circular(0.03),
+        ),
+        _branch,
+      );
+      canvas.drawCircle(const Offset(0, -0.16), 0.08, _ring);
+      _drawRope(canvas);
+      return;
+    }
     if (support == RopeSupport.ring) {
       // A chain up into the dark of the vault, a block and a ring.
       canvas.drawLine(const Offset(0, -0.3), const Offset(0, -7), _ring);

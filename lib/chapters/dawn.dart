@@ -94,6 +94,11 @@ class DawnChapter extends Chapter {
     'part1/ch2_giant_tree_a_far.png',
   ];
 
+  /// The garden gate before home: he comes through it, and she is at
+  /// the door.
+  @override
+  double get exitGateX => cottage.centreX - 10;
+
   late final Sunrise sun;
   late final Cottage cottage = Cottage(
     centreX: 141 + extensionLength,

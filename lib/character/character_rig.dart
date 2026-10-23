@@ -355,7 +355,7 @@ class CharacterRig {
 
   /// How far the hips come down crouched, and sitting (the seat on the
   /// ground), as fractions of height.
-  static const double crouchDrop = 0.20, sitDrop = 0.27;
+  static const double crouchDrop = 0.06, sitDrop = 0.22;
 
   /// Where the shoulder line (top of the torso) is for a given lean.
   static Vector2 _rotate(Vector2 v, double angle) {
@@ -503,8 +503,9 @@ class CharacterRig {
         pose.teeter * (0.03 + 0.07 * _rock(pose.teeterTime)) +
         // Climbing onto a ledge: over the edge, then upright to stand.
         0.32 * math.sin(math.pi * pose.climb.clamp(0.0, 1.0)) +
-        // Hunched over the knees, crouched or sitting.
-        pose.crouch * 0.45 +
+        // Bent over, crouched: the back, not the knees, takes him down. A
+        // little hunched over the knees, sitting.
+        pose.crouch * 0.95 +
         pose.sit * 0.10;
 
     // Hands on a crate or rope must not be dragged away by the lean. Find
@@ -566,7 +567,9 @@ class CharacterRig {
         pose.headTurn * 0.06 +
         pose.teeter * 0.22 +
         pose.hardLanding * 0.2 +
-        pose.sit * 0.05;
+        pose.sit * 0.05 -
+        // Bent over, he still looks ahead, not at the ground.
+        pose.crouch * 0.45;
     points[RigJoint.head] = neck + _rotate(Vector2(0.026, -0.14), headTilt);
 
     for (final front in const [false, true]) {

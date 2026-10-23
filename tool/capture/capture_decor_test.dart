@@ -53,9 +53,7 @@ void main() {
         });
         final dir = Directory('build/chapters-preview/decor')
           ..createSync(recursive: true);
-        File(
-          '${dir.path}/ch${index + 1}_${n++}.png',
-        ).writeAsBytesSync(bytes!);
+        File('${dir.path}/ch${index + 1}_${n++}.png').writeAsBytesSync(bytes!);
       }
     });
   }

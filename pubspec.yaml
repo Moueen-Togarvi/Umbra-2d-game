@@ -40,6 +40,7 @@ flutter:
     - assets/images/part4/
     - assets/images/backgrounds/
     - assets/images/characters/
+    - assets/images/exits/
     - assets/images/ui/
     - assets/images/white_trees/
     - assets/brand/

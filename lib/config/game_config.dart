@@ -129,8 +129,9 @@ abstract final class GameConfig {
   /// get under a low beam, tall enough to hold the drawn head.
   static const double lowHeightRatio = 0.72;
 
-  /// Held still this long while low, he sits down.
-  static const double sitAfterSeconds = 0.15;
+  /// Held still this long while low, he sits down; before that he stays
+  /// bent over, ready to creep on.
+  static const double sitAfterSeconds = 0.7;
 
   /// LIMBO's jump leaves the ground almost at once: a single frame of bent
   /// knees, not a wind-up.

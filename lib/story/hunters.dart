@@ -67,7 +67,12 @@ class Pursuer {
     this.leap = 3.2,
     this.catchReach = 0.8,
     this.burnsInLight = false,
+    this.climb = 2.25,
   });
+
+  /// The tallest thing he hauls himself up onto; anything taller stops
+  /// him. A wolf has no hands: nothing much above its knees.
+  final double climb;
 
   /// Whether light that falls on him burns him (sunlight); otherwise it
   /// only stops him while it lasts (a lightning flash), shielding his face.
@@ -159,7 +164,9 @@ class Pursuer {
             footing.blocked(x, _feet - 1.0, dir, 0.5) ||
             footing.blocked(x, _feet - 1.9, dir, 0.5);
         // Taller than he can haul himself over: a wall, a shut gate.
-        final bool tall = wall && footing.blocked(x, _feet - 2.25, dir, 0.5);
+        final bool tall =
+            wall &&
+            (climb < 1.0 || footing.blocked(x, _feet - climb, dir, 0.5));
         if (tall) {
           blocked = true;
         } else if (ahead != null && ahead < _feet - 0.08) {
@@ -462,6 +469,13 @@ class Stalker {
       vampire.seize();
       boy.die();
     }
+  }
+
+  /// A sound at [x] (a bell): he goes to look, and stays a while.
+  void investigate(double x) {
+    awake = true;
+    _lastSeenX = x;
+    _searchTime = 4 + (x - vampire.x).abs() / math.max(speed, .1);
   }
 
   /// Back to how he was, at [x] (after a death undid the boy's work).

@@ -90,6 +90,7 @@ class FootPlacement {
     required double dt,
     bool bracing = false,
     bool sliding = false,
+    double low = 0,
   }) {
     if (!grounded) {
       reset();
@@ -132,7 +133,7 @@ class FootPlacement {
     final root = body.position;
     final soleY = root.y + height / 2;
     final stanceFraction = Gait.stanceFraction(gait);
-    final reach = Gait.reachMeters(speed, gait) * strideScale(bracing);
+    final reach = Gait.reachMeters(speed, gait) * strideScale(bracing, low);
     // Leaning on a crate, the short steps land a little behind the hips,
     // so the legs drive the body into it instead of stepping in under it.
     final double land = reach - (bracing ? height * 0.04 : 0);
@@ -254,15 +255,22 @@ class FootPlacement {
         // up, then sweeps through to land a stride's reach ahead.
         if (foot.wasStance) foot.swingFrom = foot.position.x - root.x;
         final t = (cycle - stanceFraction) / (1 - stanceFraction);
+        // Creeping low, the foot is carried straight through, close to the
+        // ground: no heel kicked up behind.
+        final double progress =
+            Gait.swingProgress(t) + (_smooth(t) - Gait.swingProgress(t)) * low;
         final x =
             root.x +
             foot.swingFrom +
-            (travelDirection * land - foot.swingFrom) * Gait.swingProgress(t);
+            (travelDirection * land - foot.swingFrom) * progress;
         final hit = _surface(world, body, x, soleY, height);
         foot.position.setValues(
           x,
           (hit?.point.y ?? soleY) -
-              Gait.swingLift(t, gait) * height * (backwards ? 0.6 : 1),
+              Gait.swingLift(t, gait) *
+                  height *
+                  (backwards ? 0.6 : 1) *
+                  (1 - 0.55 * low),
         );
         foot.normal.setValues(0, -1);
         foot.support = null;
@@ -274,8 +282,10 @@ class FootPlacement {
     }
   }
 
-  /// Steps are shorter, and so quicker, while leaning on a crate.
-  static double strideScale(bool bracing) => bracing ? 0.7 : 1;
+  /// Steps are shorter, and so quicker, while leaning on a crate, and
+  /// creeping low ([low] 1).
+  static double strideScale(bool bracing, [double low = 0]) =>
+      (bracing ? 0.7 : 1) * (1 - 0.25 * low);
 
   static double _smooth(double t) {
     final double x = t.clamp(0.0, 1.0);
