@@ -210,7 +210,7 @@ abstract final class GameConfig {
   static const double climbSeconds = 1.0;
 
   /// Turning round: the body passes through a front view in this long.
-  static const double turnSeconds = 0.12;
+  static const double turnSeconds = 0.16;
 
   /// Idle life: the first idle action after standing still this long, then
   /// one every few seconds.

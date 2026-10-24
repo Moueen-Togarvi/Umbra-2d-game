@@ -129,12 +129,15 @@ class TimedHazardRow extends Component
       if (style == HazardStyle.blade) {
         final double len = floor - 0.9 - ceiling;
         final double bx = xs[i] + math.sin(swing(i)) * len;
-        if ((p.x - bx).abs() < 0.75) boy.die();
+        if ((p.x - bx).abs() < 0.75) {
+          boy.die(push: Vector2((p.x - bx).sign * 4, -1.8));
+        }
         continue;
       }
       if ((p.x - xs[i]).abs() < width / 2 + 0.12 &&
           p.y + GameConfig.playerHeight / 2 > floor - 2.2) {
-        boy.die();
+        // The crusher drives him down; the rest just take him.
+        boy.die(push: style == HazardStyle.crusher ? Vector2(0, 4) : null);
       }
     }
   }
@@ -742,7 +745,7 @@ class ArrowTrap extends Component
           ? p.y + GameConfig.playerHeight / 2 - 0.94
           : p.y - GameConfig.playerHeight / 2;
       if ((_arrows[i] - p.x).abs() < 0.3 && top < floor - height + 0.04) {
-        boy.die();
+        boy.die(push: Vector2(-4.5, -1.2));
       }
     }
   }

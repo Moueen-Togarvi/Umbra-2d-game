@@ -7,6 +7,7 @@ import 'package:flame/components.dart' show Component;
 import 'package:flame/input.dart' show HasKeyboardHandlerComponents;
 import 'package:flame_forge2d/flame_forge2d.dart';
 import 'package:flutter/foundation.dart' show kIsWeb, visibleForTesting;
+import 'package:flutter/services.dart' show HapticFeedback;
 
 import '../config/game_config.dart';
 import '../config/game_settings.dart';
@@ -490,15 +491,20 @@ class UmbraGame extends Forge2DGame with HasKeyboardHandlerComponents {
       return;
     }
     deathSequence.update(frameDt, player);
+    _hapticRest -= frameDt;
+    if (player.isDead && !_feltDeath) _feel(1);
+    _feltDeath = player.isDead;
     // What the stage asked to be heard, and felt.
     final Stage? stage = _stage;
     if (stage != null) {
       for (final (name, weight, pan) in stage.cues) {
         _audio.effect(name, weight, pan);
+        if (name == 'checkpoint') _tap(HapticFeedback.selectionClick);
       }
       stage.cues.clear();
       if (stage.shake > 0) {
         _trauma = math.max(_trauma, stage.shake);
+        _feel(stage.shake);
         stage.shake = 0;
       }
     }
@@ -509,6 +515,10 @@ class UmbraGame extends Forge2DGame with HasKeyboardHandlerComponents {
       _audio
         ..effect(_stepSound(surface), 0.4 + 0.4 * impact)
         ..effect('land', impact);
+      // Only a hard landing is felt.
+      if (player.lastLandingImpact > GameConfig.cameraShakeImpact) {
+        _feel(impact * 0.6);
+      }
     }
     if (player.sitDowns != _heardSits) {
       _heardSits = player.sitDowns;
@@ -637,6 +647,28 @@ class UmbraGame extends Forge2DGame with HasKeyboardHandlerComponents {
 
   /// Plays one effect now, from outside a stage (a card, the credits).
   void sound(String name, [double weight = 1]) => _audio.effect(name, weight);
+
+  double _hapticRest = 0;
+  bool _feltDeath = false;
+
+  /// A jolt in the hand as well as on the screen, as strong as [strength]
+  /// (0–1): a gate slamming, a trap, a boulder, dying. Never two at once.
+  void _feel(double strength) {
+    if (strength < 0.12 || _hapticRest > 0) return;
+    _hapticRest = 0.18;
+    _tap(
+      strength > 0.55
+          ? HapticFeedback.heavyImpact
+          : strength > 0.25
+          ? HapticFeedback.mediumImpact
+          : HapticFeedback.lightImpact,
+    );
+  }
+
+  void _tap(Future<void> Function() haptic) {
+    if (!settings.vibration) return;
+    unawaited(haptic().catchError((Object _) {}));
+  }
 
   /// A hard landing jolts the view: mostly up and down, a little sideways,
   /// fading out fast.

@@ -90,6 +90,7 @@ class Player extends BodyComponent {
   bool forceLookBack = false;
   bool forceLookUp = false;
   bool _dead = false;
+  Vector2? _deathPush;
   bool _grounded = false;
 
   /// Down low: crouched or sitting, on a capsule shortened from the top.
@@ -1271,15 +1272,23 @@ class Player extends BodyComponent {
   CharacterPose get _pose =>
       _buildPose(hipFloor: _hipFloor.isFinite ? _hipFloor : null);
 
+  /// How far over his head the water is, 0 (not) to 1 (well under).
+  double get _drowning =>
+      ((waterDepth - GameConfig.playerHeight * 0.75) / 0.3).clamp(0.0, 1.0);
+
   CharacterPose _buildPose({double? hipFloor}) {
+    // Into the drawn body's side-on frame (the rig squeezes it by
+    // [visualFacing]): by the side it is drawn from, not the side he has
+    // just decided to face, so a planted foot stays planted as he turns.
+    final double side = visualFacing >= 0 ? 1.0 : -1.0;
     Offset local(Vector2 point) => Offset(
-      (point.x - body.position.x) * _facing / GameConfig.playerHeight,
+      (point.x - body.position.x) * side / GameConfig.playerHeight,
       (point.y - body.position.y) / GameConfig.playerHeight,
     );
     final targets = _feet.targets;
     final normals = _feet.normals;
     final rolls = _feet.rolls;
-    Offset localNormal(Vector2 n) => Offset(n.x * _facing, n.y);
+    Offset localNormal(Vector2 n) => Offset(n.x * side, n.y);
     final hands = _handTargets;
     // Feet clamping a rope: soles pressed to it from behind, toes down.
     final ropeFeet = interactions.ropeFeet;
@@ -1343,7 +1352,8 @@ class Player extends BodyComponent {
           // Climbing: out of the hang as he pulls himself up.
           : climb != null
           ? 1 - _smooth((climb / 0.5).clamp(0.0, 1.0))
-          : 0,
+          // In over his head: arms up, reaching for the air.
+          : _drowning * (0.7 + 0.3 * math.sin(_time * 9)),
       climb: climb ?? 0,
       hangLow: interactions.mode == InteractionMode.swinging ? 1 : 0,
       swingKick: _swingKick,
@@ -1367,9 +1377,12 @@ class Player extends BodyComponent {
   }
 
   /// The body goes limp, for good. Used by spikes, long falls and heavy hits.
-  void die() {
+  /// A blow ([push], metres a second) throws the body the way it came: an
+  /// arrow knocks him back, a boulder carries him off his feet.
+  void die({Vector2? push}) {
     if (_dead) return;
     _dead = true;
+    _deathPush = push;
     if (_recoveryPose != null) {
       _recoveryPose = null;
       body.isEnabled = true;
@@ -1384,10 +1397,12 @@ class Player extends BodyComponent {
     interactions.release();
     final rig = rigPoseWorld;
     _resetLow();
+    final Vector2? push = _deathPush;
+    _deathPush = null;
     _ragdoll = CharacterRagdoll.activate(
       world: world.physicsWorld,
       pose: rig,
-      velocity: body.linearVelocity,
+      velocity: push == null ? body.linearVelocity : body.linearVelocity + push,
       userData: this,
     );
     body.isEnabled = false;

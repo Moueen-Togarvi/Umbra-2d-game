@@ -4,13 +4,13 @@ import 'package:umbra/audio/sound_bank.dart';
 import 'package:umbra/chapters/chase.dart';
 import 'package:umbra/config/game_settings.dart';
 import 'package:umbra/game/umbra_game.dart';
-import 'package:umbra/ui/audio_settings.dart';
+import 'package:umbra/ui/settings_panel.dart';
 import 'package:umbra/world/stage.dart';
 
 import 'support/campaign.dart';
 
 void main() {
-  testWidgets('the music panel: music and sound switches, three sliders, '
+  testWidgets('the sound page: music and sound switches, three sliders, '
       'and every piece to play under the game', (tester) async {
     final settings = GameSettings();
     final tried = <String>[];
@@ -18,28 +18,37 @@ void main() {
       MaterialApp(
         home: Scaffold(
           body: SingleChildScrollView(
-            child: AudioSettings(settings: settings, onTry: tried.add),
+            child: SettingsPanel(
+              settings: settings,
+              unit: 7.2,
+              initialTab: SettingsTab.sound,
+              onTry: tried.add,
+            ),
           ),
         ),
       ),
     );
-    expect(find.byType(Switch), findsNWidgets(2));
-    expect(find.byType(Slider), findsNWidgets(3));
+    expect(find.byType(PillToggle), findsNWidgets(2));
+    expect(find.byType(ThinSlider), findsNWidgets(3));
     expect(find.byKey(const ValueKey('music-${SoundBank.menu}')), findsNothing);
     for (final (id, title, _) in SoundBank.backgrounds) {
       expect(find.byKey(ValueKey('music-$id')), findsOneWidget);
       expect(find.textContaining(title), findsOneWidget);
     }
 
+    await tester.ensureVisible(
+      find.byKey(const ValueKey('music-bg_overshadow')),
+    );
     await tester.tap(find.byKey(const ValueKey('music-bg_overshadow')));
     await tester.pump();
     expect(settings.background, 'bg_overshadow');
     expect(tried, ['bg_overshadow'], reason: 'tried out at once');
 
-    await tester.tap(find.byType(Switch).first);
+    await tester.ensureVisible(find.byKey(const ValueKey('toggle-musicOn')));
+    await tester.tap(find.byKey(const ValueKey('toggle-musicOn')));
     await tester.pump();
     expect(settings.musicOn, isFalse);
-    await tester.tap(find.byType(Switch).last);
+    await tester.tap(find.byKey(const ValueKey('toggle-soundOn')));
     await tester.pump();
     expect(settings.soundOn, isFalse);
   });

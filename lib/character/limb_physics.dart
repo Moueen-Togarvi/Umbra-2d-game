@@ -108,6 +108,19 @@ class LimbPhysics {
   /// for, metres.
   static const double _contactWindow = 0.04;
 
+  double _squeeze = 1;
+
+  /// [joint], bent out from the straight line between [a] and [b], as seen
+  /// mid-turn: its sideways reach off that line shortened by [_squeeze].
+  Vector2 _turned(Vector2 joint, Vector2 a, Vector2 b) {
+    if (_squeeze >= 0.999) return joint;
+    final Vector2 ab = b - a;
+    final double len2 = ab.length2;
+    final double t = len2 < 1e-9 ? 0 : (joint - a).dot(ab) / len2;
+    final double onX = a.x + ab.x * t;
+    return Vector2(onX + (joint.x - onX) * _squeeze, joint.y);
+  }
+
   /// Starts again from the animated pose, e.g. after a teleport.
   void reset() => _ready = false;
 
@@ -122,8 +135,11 @@ class LimbPhysics {
     required GroundQuery ground,
   }) {
     // Mid-turn the pose is squeezed towards side-on; the joints still bend
-    // the way the body faces.
+    // the way the body faces, but a knee or elbow bent out sideways then
+    // points partly at the camera, and is seen squeezed as well (else it
+    // would flip from one side to the other as he passes face-on).
     final double facing = target.side;
+    _squeeze = target.facing.abs().clamp(0.0, 1.0);
     _stepArms(dt, target, armModes, ground, facing);
     _stepLegs(dt, target, modes, ground, facing);
     _ready = true;
@@ -322,8 +338,11 @@ class LimbPhysics {
         fore,
         bendDirection: -facing,
       );
-      target.joints[front ? RigJoint.frontElbow : RigJoint.backElbow] =
-          solved.joint;
+      target.joints[front ? RigJoint.frontElbow : RigJoint.backElbow] = _turned(
+        solved.joint,
+        shoulder,
+        solved.end,
+      );
       target.joints[handJoint] = solved.end;
     }
   }
@@ -448,12 +467,18 @@ class LimbPhysics {
             bendDirection: facing,
           );
           final Vector2 along = _along(leg.angle, facing);
-          joints[front ? RigJoint.frontKnee : RigJoint.backKnee] = placed.joint;
+          joints[front ? RigJoint.frontKnee : RigJoint.backKnee] = _turned(
+            placed.joint,
+            hip,
+            placed.end,
+          );
+          // The foot, too, points partly at the camera mid-turn.
+          final Vector2 seen = Vector2(along.x * _squeeze, along.y);
           joints[front ? RigJoint.frontAnkle : RigJoint.backAnkle] = placed.end;
           joints[front ? RigJoint.frontToe : RigJoint.backToe] =
-              placed.end + along * (CharacterRig.toeOffset * h);
+              placed.end + seen * (CharacterRig.toeOffset * h);
           joints[front ? RigJoint.frontHeel : RigJoint.backHeel] =
-              placed.end - along * (CharacterRig.heelOffset * h);
+              placed.end - seen * (CharacterRig.heelOffset * h);
           final (heel, toe) = _soles(placed.end, along, facing);
           leg.lastHeel = heel.y;
           leg.lastToe = toe.y;

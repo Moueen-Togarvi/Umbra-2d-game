@@ -807,7 +807,9 @@ class RollingBarrel extends BodyComponent with OffScreenCulling {
     final Player? boy = _stage?.player;
     if (boy == null || !boy.isMounted || boy.isDead || speed < 2.4) return;
     final Vector2 d = boy.body.position - body.position;
-    if (d.length < radius + 0.45 && d.dot(v) > 0) boy.die();
+    if (d.length < radius + 0.45 && d.dot(v) > 0) {
+      boy.die(push: v * 0.6 + Vector2(0, -1.2));
+    }
   }
 
   static final Paint _wood = Paint()..color = const Color(0xFF080706);

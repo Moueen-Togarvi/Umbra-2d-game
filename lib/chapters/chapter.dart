@@ -513,6 +513,8 @@ abstract class Chapter extends Stage {
       final double cx = checkpointXs[_nextCheckpoint++];
       checkpoints.setCheckpoint(checkpointPosition(cx));
       onCheckpoint?.call('checkpoint-${_nextCheckpoint - 1}');
+      // A soft breath as the place takes note; not at the very start.
+      if (cx > spawn.x + 3) cue('checkpoint', weight: 0.7);
     }
     for (var i = 0; i < _triggers.length; i++) {
       final (tx, action) = _triggers[i];

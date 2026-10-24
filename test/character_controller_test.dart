@@ -134,13 +134,15 @@ void main() {
     await tester.sendKeyDownEvent(LogicalKeyboardKey.keyA);
     var sawFront = false;
     double? frontAt;
+    final knees = <RigJoint, List<Vector2>>{};
     for (var i = 0; i < 120; i++) {
       game.update(1 / 120);
       if (!sawFront && player.visualFacing.abs() < 0.2) {
         sawFront = true;
         frontAt = i / 120;
       }
-      // The body stays whole through the turn.
+      // The body stays whole through the turn: no bone stretched, and none
+      // shorter than a bone pointing partly at the camera would look.
       final pose = player.rigPoseWorld;
       for (final (a, b, length) in [
         (RigJoint.frontHip, RigJoint.frontKnee, CharacterRig.thigh),
@@ -148,10 +150,23 @@ void main() {
         (RigJoint.frontShoulder, RigJoint.frontElbow, CharacterRig.upperArm),
         (RigJoint.backElbow, RigJoint.backHand, CharacterRig.forearm),
       ]) {
-        expect(
-          (pose[a] - pose[b]).length,
-          closeTo(length * GameConfig.playerHeight, 0.02),
-        );
+        final double seen = (pose[a] - pose[b]).length;
+        expect(seen, lessThan(length * GameConfig.playerHeight + 0.02));
+        expect(seen, greaterThan(length * GameConfig.playerHeight * 0.3));
+      }
+      // And the knees do not flip from one side to the other as he passes
+      // face-on: no jolt from one frame to the next.
+      for (final knee in const [RigJoint.frontKnee, RigJoint.backKnee]) {
+        final seen = knees.putIfAbsent(knee, () => [])
+          ..add(pose[knee] - player.body.position);
+        if (seen.length > 3) seen.removeAt(0);
+        if (seen.length == 3) {
+          expect(
+            (seen[2] - seen[1] * 2 + seen[0]).length,
+            lessThan(0.06),
+            reason: '$knee at ${i / 120} s',
+          );
+        }
       }
     }
     expect(sawFront, isTrue);

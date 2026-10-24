@@ -52,13 +52,13 @@ try:
         page.screenshot(path=str(OUT/'pause.png'))
         # Flutter's scroll semantics node can cover the button's DOM box.
         # Use a real pointer click at its measured position on the canvas.
-        resume = page.get_by_role('button', name='RESUME', exact=True).bounding_box()
+        resume = page.get_by_role('button', name='Resume', exact=True).bounding_box()
         page.mouse.click(resume['x'] + resume['width']/2, resume['y'] + resume['height']/2)
         time.sleep(.5)
         page.screenshot(path=str(OUT/'resumed.png'))
         report['resumed'] = page.get_by_text('PAUSED', exact=True).count() == 0
         assert report['resumed'], 'Pause menu did not close after the resume click'
-        assert report['sliders'] == 6, 'Expected all six settings controls'
+        assert report['sliders'] == 2, 'Expected the display page: brightness and film grain'
         assert not report['page_errors'], report['page_errors']
         assert not report['http_errors'], report['http_errors']
         video = page.video.path()

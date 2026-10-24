@@ -470,8 +470,10 @@ def build_vampire_foley():
 
 
 def write_bank(counts):
+    import synth_sounds
     build_vampire_foley()
-    counts = dict(counts, vampire_step=3, vampire_cloth=3)
+    counts = dict(counts, vampire_step=3, vampire_cloth=3,
+                  **synth_sounds.counts())
     effects = '\n'.join(f"    '{k}': {v}," for k, v in counts.items())
     long = ', '.join(f"'{k}'" for k in LONG)
     loops = ', '.join(f"'{k}'" for k in LOOPS)

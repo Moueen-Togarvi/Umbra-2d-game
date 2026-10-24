@@ -195,6 +195,11 @@ void main() {
     await tap('Back');
     await tap('Settings');
     await screen(tester, 'title', 'settings');
+    await tap('Controls');
+    await screen(tester, 'title', 'settings_controls');
+    await tap('Back');
+    await tap('Music');
+    await screen(tester, 'title', 'settings_sound');
     // With a place saved, Begin asks first.
     await tester.runAsync(() => game.progress.enter(11));
     await tap('Back');
@@ -903,7 +908,7 @@ void main() {
       await screen(tester, 'review', 'controls_${viewport.width.toInt()}');
       game.pauseGameplay();
       await tester.pump();
-      await tester.tap(find.text('MAIN MENU'));
+      await tester.tap(find.text('Main menu'));
       for (var i = 0; i < 160; i++) {
         await tester.runAsync(
           () => Future<void>.delayed(const Duration(milliseconds: 5)),

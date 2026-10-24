@@ -433,7 +433,7 @@ class StrikingHammer extends Component with OffScreenCulling {
       final Vector2 h = headAt(i);
       if ((h.x - p.x).abs() < 0.7 &&
           (h.y - p.y).abs() < GameConfig.playerHeight / 2 + 0.3) {
-        boy.die();
+        boy.die(push: Vector2((p.x - h.x).sign * 3.5, -1.5));
         return;
       }
     }

@@ -28,6 +28,7 @@ abstract final class SoundBank {
     'creak': 4,
     'vampire_step': 3,
     'vampire_cloth': 3,
+    'checkpoint': 2,
   };
 
   /// Effects too long for Android's low-latency pool.
