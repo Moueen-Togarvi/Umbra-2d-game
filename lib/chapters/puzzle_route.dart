@@ -231,9 +231,13 @@ class PuzzleRoom {
     this.length = 42,
     this.withWatcher = false,
     this.variant = 0,
+    this.alternateRoute = false,
+    this.quietFinish = false,
   });
   final PuzzleKind kind;
   final bool withWatcher;
+  final bool alternateRoute;
+  final bool quietFinish;
   final double x, floor, length;
 
   /// Repeated mechanics keep their rule but change their staging.
@@ -2008,6 +2012,82 @@ class PuzzleRoom {
         ]);
         crate(x + 12, mass: 38);
         resets.add(gear.free);
+    }
+
+    if (alternateRoute) _furnishAlternate(stage, pieces);
+    if (quietFinish) {
+      pieces.add(_BreathingSpace(x + length - 6, floor));
+    }
+  }
+
+  /// A few rooms accept a second readable solution. These reuse ordinary
+  /// world objects, so the alternative obeys the same physics as the rest.
+  void _furnishAlternate(Stage stage, List<Component> pieces) {
+    if (kind == PuzzleKind.patrol ||
+        kind == PuzzleKind.lantern ||
+        kind == PuzzleKind.sleeper) {
+      final cover = Coffin(
+        position: Vector2(x + 9, floor - .45),
+        massKg: 24,
+        height: .9,
+      );
+      crates.insert(0, cover);
+      pieces.add(cover);
+      movingCoverIndex = stage.hidingPlaces.length;
+      stage.hidingPlaces.add(Rect.zero);
+      return;
+    }
+
+    if (kind == PuzzleKind.ropeClimb || kind == PuzzleKind.movingPlatform) {
+      final line = SwingRope(
+        anchor: Vector2(x + 17.5, floor - 5.5),
+        length: 4.4,
+        support: RopeSupport.ring,
+      );
+      ropes.add(line);
+      pieces.add(line);
+      return;
+    }
+
+    final gate = door;
+    if (gate == null) return;
+    late final PullCord bypass;
+    bypass = PullCord(
+      anchor: Vector2(x + 16.5, floor - 4.8),
+      length: 3.5,
+      onPulled: () {
+        solved = true;
+        gate.shut = false;
+        stage.cue('gate', at: Vector2(gate.x, floor - 1.4));
+      },
+    );
+    cords.add(bypass);
+    pieces.add(bypass);
+    resets.add(bypass.reset);
+  }
+}
+
+/// A short visual exhale after dense puzzle chains.
+class _BreathingSpace extends Component {
+  _BreathingSpace(this.x, this.floor) : super(priority: 38);
+  final double x, floor;
+  double _time = 0;
+  static final Paint _glow = Paint()..color = const Color(0x55D8F28A);
+  static final Paint _spark = Paint()..color = const Color(0xFFEFFAC4);
+
+  @override
+  void update(double dt) => _time += dt;
+
+  @override
+  void render(Canvas canvas) {
+    for (var i = 0; i < 5; i++) {
+      final t = _time * (.45 + i * .06) + i * 1.7;
+      final at = Offset(
+        x - 1.8 + i * .8 + math.sin(t) * .18,
+        floor - 1.1 - (i.isOdd ? .35 : 0) + math.cos(t * 1.3) * .12,
+      );
+      canvas.drawCircle(at, .12, _glow);
+      canvas.drawCircle(at, .025, _spark);
     }
   }
 }

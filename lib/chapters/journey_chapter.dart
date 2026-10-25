@@ -49,7 +49,7 @@ class JourneyChapter extends Chapter {
       PuzzleKind.sluice,
       PuzzleKind.logFloat,
       PuzzleKind.crawl,
-      PuzzleKind.cageLift,
+      PuzzleKind.floodTrap,
     ],
     10: [
       PuzzleKind.floatCrate,
@@ -66,11 +66,11 @@ class JourneyChapter extends Chapter {
       PuzzleKind.raft,
     ],
     14: [
-      PuzzleKind.floodRise,
       PuzzleKind.drain,
       PuzzleKind.raft,
-      PuzzleKind.rope,
       PuzzleKind.moonWindow,
+      PuzzleKind.ropeClimb,
+      PuzzleKind.floodRise,
     ],
     15: [
       PuzzleKind.weight,
@@ -80,32 +80,32 @@ class JourneyChapter extends Chapter {
       PuzzleKind.crate,
     ],
     17: [
-      PuzzleKind.crawl,
-      PuzzleKind.crate,
-      PuzzleKind.lantern,
-      PuzzleKind.bell,
+      PuzzleKind.plateGate,
       PuzzleKind.pullCrate,
+      PuzzleKind.fallingStairs,
+      PuzzleKind.bell,
+      PuzzleKind.chandelier,
     ],
     19: [
       PuzzleKind.lantern,
       PuzzleKind.watchEye,
       PuzzleKind.moonWindow,
-      PuzzleKind.crawl,
+      PuzzleKind.coffinHands,
       PuzzleKind.pendulum,
     ],
     21: [
-      PuzzleKind.bellGate,
       PuzzleKind.levers,
       PuzzleKind.twoRopes,
       PuzzleKind.tripwire,
       PuzzleKind.twoPlates,
+      PuzzleKind.bellGate,
     ],
     23: [
       PuzzleKind.bell,
-      PuzzleKind.bellGate,
+      PuzzleKind.plateGate,
       PuzzleKind.fireJets,
       PuzzleKind.seesaw,
-      PuzzleKind.twoPlates,
+      PuzzleKind.fireChase,
     ],
     24: [
       PuzzleKind.watchEye,
@@ -119,35 +119,35 @@ class JourneyChapter extends Chapter {
       PuzzleKind.heavyLight,
       PuzzleKind.lantern,
       PuzzleKind.crows,
-      PuzzleKind.crate,
+      PuzzleKind.coffinHands,
     ],
     27: [
       PuzzleKind.sluice,
       PuzzleKind.logFloat,
       PuzzleKind.stalactites,
-      PuzzleKind.crawl,
-      PuzzleKind.drain,
+      PuzzleKind.fallingStairs,
+      PuzzleKind.collapse,
     ],
     29: [
       PuzzleKind.logBridge,
-      PuzzleKind.rope,
+      PuzzleKind.ropeClimb,
       PuzzleKind.boulder,
       PuzzleKind.leapRope,
-      PuzzleKind.drawbridge,
+      PuzzleKind.boulderChase,
     ],
     30: [
       PuzzleKind.floatCrate,
       PuzzleKind.sinkingRaft,
       PuzzleKind.raft,
-      PuzzleKind.floodRise,
       PuzzleKind.bats,
+      PuzzleKind.floodRise,
     ],
     31: [
       PuzzleKind.oil,
       PuzzleKind.lantern,
       PuzzleKind.burningRope,
+      PuzzleKind.fallingFloor,
       PuzzleKind.fireChase,
-      PuzzleKind.crawl,
     ],
     32: [
       PuzzleKind.boulderChase,
@@ -157,7 +157,7 @@ class JourneyChapter extends Chapter {
       PuzzleKind.tripwire,
     ],
     34: [
-      PuzzleKind.rope,
+      PuzzleKind.ropeClimb,
       PuzzleKind.movingPlatform,
       PuzzleKind.barrel,
       PuzzleKind.weight,
@@ -175,34 +175,50 @@ class JourneyChapter extends Chapter {
       PuzzleKind.patrol,
       PuzzleKind.timedDoor,
       PuzzleKind.returnLoop,
-      PuzzleKind.lantern,
-      PuzzleKind.bell,
+      PuzzleKind.watchEye,
+      PuzzleKind.bellGate,
     ],
     38: [
       PuzzleKind.fireflies,
       PuzzleKind.spikes,
-      PuzzleKind.rope,
+      PuzzleKind.cages,
       PuzzleKind.traps,
-      PuzzleKind.crawl,
+      PuzzleKind.ropeClimb,
     ],
     39: [
       PuzzleKind.barrel,
       PuzzleKind.seesaw,
-      PuzzleKind.rope,
+      PuzzleKind.movingPlatform,
+      PuzzleKind.twoCrates,
       PuzzleKind.crusher,
-      PuzzleKind.crate,
     ],
   };
-  // The first chapters keep their rooms close: less walking between.
-  double get roomLength => number <= 5
-      ? 36
-      : number <= 10
-      ? 42
-      : number <= 20
-      ? 48
-      : number <= 30
-      ? 54
-      : 60;
+
+  /// Preserve early-room staging; cap the late campaign's empty walks.
+  double roomLength(PuzzleKind kind) {
+    if (number == 37 && kind == PuzzleKind.patrol) return 60;
+    final base = number <= 5
+        ? 36.0
+        : number <= 10
+        ? 42.0
+        : number <= 20
+        ? 48.0
+        : 48.0;
+    final setPiece = switch (kind) {
+      PuzzleKind.returnLoop => 52.0,
+      PuzzleKind.lantern ||
+      PuzzleKind.weight ||
+      PuzzleKind.cageLift ||
+      PuzzleKind.floodRise => 44.0,
+      PuzzleKind.chase ||
+      PuzzleKind.collapse ||
+      PuzzleKind.fireChase ||
+      PuzzleKind.boulderChase ||
+      PuzzleKind.rockfall => 42.0,
+      _ => 0.0,
+    };
+    return base > setPiece ? base : setPiece;
+  }
 
   /// Ground rhythm changes by arc. The first room remains at the common spawn;
   /// later rooms climb, dip and return through short connecting slopes.
@@ -219,26 +235,59 @@ class JourneyChapter extends Chapter {
     return pattern[i % pattern.length];
   }
 
-  late final rooms = [
-    for (var i = 0; i < routes[number]!.length; i++)
-      PuzzleRoom(
-        routes[number]![i],
-        4 + i * roomLength,
-        floor: floorOf(i),
-        length: roomLength,
-        withWatcher: number == 37,
-        variant: (number + i) % 3,
-      ),
-  ];
+  static const _alternateRooms = <(int, int)>{
+    (14, 3),
+    (17, 0),
+    (21, 3),
+    (23, 1),
+    (29, 1),
+    (34, 1),
+    (36, 0),
+    (38, 4),
+  };
+  static const _quietRooms = <(int, int)>{
+    (4, 1),
+    (12, 2),
+    (19, 2),
+    (30, 2),
+    (38, 2),
+  };
+
+  List<PuzzleRoom> _buildRooms() {
+    final result = <PuzzleRoom>[];
+    double x = 4;
+    for (final (i, kind) in routes[number]!.indexed) {
+      final length = roomLength(kind);
+      result.add(
+        PuzzleRoom(
+          kind,
+          x,
+          floor: floorOf(i),
+          length: length,
+          withWatcher: number == 37,
+          variant: (number + i) % 3,
+          alternateRoute: _alternateRooms.contains((number, i)),
+          quietFinish: _quietRooms.contains((number, i)),
+        ),
+      );
+      x += length;
+    }
+    return result;
+  }
+
+  late final rooms = _buildRooms();
   late final route = PuzzleRoute(this, rooms);
   @override
-  double get width => 8 + routes[number]!.length * roomLength;
+  double get width => rooms.last.end + 4;
   @override
   double get exitX => width - 3;
   @override
   Vector2 get spawn => Vector2(2, 7 - GameConfig.playerHeight / 2);
   @override
-  List<double> get checkpointXs => [for (final r in rooms) r.x + 2];
+  List<double> get checkpointXs => [
+    for (final (i, room) in rooms.indexed)
+      if (i.isEven) room.x + 2,
+  ];
   @override
   String get footing => number < 6 || number > 33 ? 'grass' : 'stone';
   @override
