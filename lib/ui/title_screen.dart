@@ -12,11 +12,10 @@ import 'menu_word.dart';
 import 'settings_panel.dart';
 import 'wordmark.dart';
 
-/// The main menu: the white tree on its hill (see [MenuScene]), and on the
-/// right the wordmark over a few numbered words — Continue, Begin,
-/// Chapters, Music, Settings — with the lantern's warm light behind the
-/// first. The picture comes up first, then the words; leaving, it all
-/// fades into the game. Beginning again over a saved place asks first.
+/// The main menu: a quiet field with the boy at its centre (see [MenuScene])
+/// and a compact wordmark and menu at the left. The selected word rests on a
+/// pale brush mark. The picture comes up first, then the words; leaving, it
+/// all fades into the game. Beginning again over a saved place asks first.
 class TitleScreen extends StatefulWidget {
   const TitleScreen({super.key, required this.game});
   final UmbraGame game;
@@ -38,6 +37,7 @@ class _TitleScreenState extends State<TitleScreen>
   _Page _page = _Page.main;
   SettingsTab _tab = SettingsTab.display;
   bool _leaving = false;
+  int _mainSelection = 0;
 
   @override
   void initState() {
@@ -132,10 +132,48 @@ class _TitleScreenState extends State<TitleScreen>
             : () => _go(director.begin),
       ),
       ('Chapters', () => _open(_Page.chapters)),
-      // Music opens the settings on their sound page.
-      ('Music', () => _settings(SettingsTab.sound)),
       ('Settings', () => _settings(SettingsTab.display)),
     ];
+    Widget mainMenu() => Positioned(
+      left: size.width * .055,
+      top: size.height * .19,
+      child: ConstrainedBox(
+        constraints: BoxConstraints(maxWidth: size.width * .40),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'UMBRA',
+              semanticsLabel: 'Umbra',
+              style: TextStyle(
+                fontFamily: 'Cinzel',
+                fontSize: (unit * 8.2).clamp(38, 72),
+                fontWeight: FontWeight.w400,
+                letterSpacing: (unit * 2).clamp(8, 17),
+                color: const Color(0xFFE1E0DE),
+                shadows: const [
+                  Shadow(color: Color(0x66000000), blurRadius: 16),
+                ],
+              ),
+            ),
+            SizedBox(height: (unit * 5.4).clamp(22, 48)),
+            for (final (i, (label, onTap)) in choices.indexed)
+              _MainMenuChoice(
+                label: label,
+                unit: unit,
+                selected: i == _mainSelection,
+                autofocus: i == 0,
+                onHighlight: () {
+                  if (_mainSelection != i) {
+                    setState(() => _mainSelection = i);
+                  }
+                },
+                onTap: onTap,
+              ),
+          ],
+        ),
+      ),
+    );
     Widget words(List<Widget> children) => Positioned(
       right: size.width * 0.069,
       top: size.height * 0.11,
@@ -217,17 +255,7 @@ class _TitleScreenState extends State<TitleScreen>
               child: Stack(
                 fit: StackFit.expand,
                 children: [
-                  if (_page == _Page.main)
-                    words([
-                      for (final (i, (label, onTap)) in choices.indexed)
-                        MenuWord(
-                          numeral: CampaignCatalog.roman(i + 1),
-                          label: label,
-                          unit: unit,
-                          primary: i == 0,
-                          onTap: onTap,
-                        ),
-                    ]),
+                  if (_page == _Page.main) mainMenu(),
                   if (_page == _Page.confirmBegin)
                     words([
                       Text(
@@ -368,6 +396,118 @@ class _TitleScreenState extends State<TitleScreen>
 }
 
 enum _Page { main, chapters, settings, confirmBegin }
+
+/// A compact title choice whose selected state sits on a painted mark.
+class _MainMenuChoice extends StatelessWidget {
+  const _MainMenuChoice({
+    required this.label,
+    required this.unit,
+    required this.selected,
+    required this.autofocus,
+    required this.onHighlight,
+    required this.onTap,
+  });
+
+  final String label;
+  final double unit;
+  final bool selected, autofocus;
+  final VoidCallback onHighlight;
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final double fontSize = (unit * 3.15).clamp(17, 27);
+    return Padding(
+      padding: EdgeInsets.only(bottom: (unit * .8).clamp(3, 8)),
+      child: TextButton(
+        autofocus: autofocus,
+        onPressed: onTap,
+        onHover: (hot) {
+          if (hot) onHighlight();
+        },
+        onFocusChange: (focused) {
+          if (focused) onHighlight();
+        },
+        style: ButtonStyle(
+          minimumSize: const WidgetStatePropertyAll(Size(180, 46)),
+          alignment: Alignment.centerLeft,
+          padding: WidgetStatePropertyAll(
+            EdgeInsets.symmetric(
+              horizontal: (unit * 2.1).clamp(10, 19),
+              vertical: (unit * 1.05).clamp(6, 10),
+            ),
+          ),
+          overlayColor: const WidgetStatePropertyAll(Colors.transparent),
+        ),
+        child: CustomPaint(
+          painter: selected ? const _BrushMark() : null,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+            child: Text(
+              label.toUpperCase(),
+              style: TextStyle(
+                fontFamily: 'Cinzel',
+                fontSize: fontSize,
+                fontWeight: FontWeight.w400,
+                letterSpacing: (unit * .72).clamp(3.5, 6),
+                color: selected
+                    ? const Color(0xFF171719)
+                    : Palette.brandInk.withValues(alpha: .92),
+                shadows: selected
+                    ? null
+                    : const [Shadow(color: Color(0x99000000), blurRadius: 8)],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _BrushMark extends CustomPainter {
+  const _BrushMark();
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final Paint paint = Paint()..color = const Color(0xE9E7E5E1);
+    final Path stroke = Path()
+      ..moveTo(-9, size.height * .22)
+      ..quadraticBezierTo(size.width * .18, -2, size.width * .43, 1)
+      ..quadraticBezierTo(
+        size.width * .76,
+        3,
+        size.width + 12,
+        size.height * .16,
+      )
+      ..lineTo(size.width + 7, size.height * .78)
+      ..quadraticBezierTo(
+        size.width * .72,
+        size.height + 2,
+        size.width * .48,
+        size.height - 1,
+      )
+      ..quadraticBezierTo(
+        size.width * .17,
+        size.height - 3,
+        -7,
+        size.height * .84,
+      )
+      ..close();
+    canvas.drawPath(stroke, paint);
+    canvas.drawRect(
+      Rect.fromLTWH(-14, size.height * .42, 10, 1.5),
+      paint..color = const Color(0x99E7E5E1),
+    );
+    canvas.drawRect(
+      Rect.fromLTWH(size.width + 2, size.height * .58, 13, 1),
+      paint..color = const Color(0x88E7E5E1),
+    );
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+}
 
 /// Keyboard, touch and assistive-technology accessible menu choice.
 class _Choice extends StatelessWidget {
