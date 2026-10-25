@@ -6,6 +6,7 @@ import 'package:flame/components.dart';
 import '../world/footprint.dart';
 import '../entities/cave_props.dart';
 import '../entities/ground.dart';
+import '../entities/player.dart';
 import '../render/culling.dart';
 import '../render/mood.dart';
 import '../render/scenery.dart';
@@ -366,7 +367,7 @@ class CageChapter extends Chapter {
       guard
         ..facing = dx.sign
         ..seize();
-      player.die();
+      player.die(cause: DeathCause.vampire);
     }
   }
 

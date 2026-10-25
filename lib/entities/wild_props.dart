@@ -418,7 +418,7 @@ class Bog extends Component with OffScreenCulling implements HasFootprint {
     if (sink >= 1) {
       stage.cue('splash', weight: 0.9, at: p);
       boy.reportWaterDepth(this, 0);
-      boy.die();
+      boy.die(cause: DeathCause.drowning);
     }
   }
 
@@ -808,7 +808,7 @@ class RollingBarrel extends BodyComponent with OffScreenCulling {
     if (boy == null || !boy.isMounted || boy.isDead || speed < 2.4) return;
     final Vector2 d = boy.body.position - body.position;
     if (d.length < radius + 0.45 && d.dot(v) > 0) {
-      boy.die(push: v * 0.6 + Vector2(0, -1.2));
+      boy.die(push: v * 0.6 + Vector2(0, -1.2), cause: DeathCause.crushing);
     }
   }
 

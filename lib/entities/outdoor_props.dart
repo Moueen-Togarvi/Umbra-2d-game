@@ -573,7 +573,10 @@ class RockFall extends Component {
       if (!r.isEnabled) continue;
       if (r.linearVelocity.length > deadly &&
           (r.position - p).length < radius + GameConfig.playerHeight * 0.45) {
-        boy.die(push: r.linearVelocity * 0.7 + Vector2(0, -1.5));
+        boy.die(
+          push: r.linearVelocity * 0.7 + Vector2(0, -1.5),
+          cause: DeathCause.crushing,
+        );
         return;
       }
     }

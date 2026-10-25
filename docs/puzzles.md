@@ -1,7 +1,8 @@
 # Umbra puzzles: the catalogue
 
-Every puzzle room in the campaign is drawn from this list. Each kind
-appears at most twice in the whole game, and each chapter follows the
+Every puzzle room in the campaign is drawn from this list. Repeated core
+skills deliberately return with different terrain, danger or a second
+solution; they are not limited to two appearances. Each chapter follows the
 same shape: one easy warm-up, two or three medium, one hard, and one set
 piece. Code: `lib/chapters/puzzle_route.dart` (`PuzzleKind`), the bot that
 solves them: `test/support/route_pilot.dart`.
@@ -20,7 +21,7 @@ solves them: `test/support/route_pilot.dart`.
    - 1 mushkil;
    - 1 yaadgaar set piece (peecha, dhehti gufa, baadh).
 6. **Khaali chalna na ho.** Do puzzles ke beech chhote mahaul wale lamhe hon: chamgadad, andhere mein aankhein, door vampire ki jhalak.
-7. **Ek type poore game mein zyada se zyada 2 baar aaye.** Jagah ke hisaab se: khet aur jungle, gufa, qila, aur bahar bhaagna.
+7. **Repeat ho to naya sawaal ho.** Wohi skill dobara aaye to terrain, pressure, enemy, darkness, water ya doosra hal badle.
 
 ## 100 puzzles ki list
 
@@ -177,7 +178,7 @@ solves them: `test/support/route_pilot.dart`.
 - Maujooda (✓): ~45; naye (✚): ~55.
 - Mushkil ke hisaab se: aasaan ~14, darmiyana ~45, mushkil ~41.
 
-## Kaunsa chapter, kaunse puzzles (har type max 2 baar)
+## Kaunsa chapter, kaunse puzzles
 
 | Ch | Jagah | Puzzles (# upar ki list se) |
 |---|---|---|

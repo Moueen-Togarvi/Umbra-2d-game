@@ -20,6 +20,7 @@ import '../input/keyboard_input.dart';
 import '../input/player_intent.dart';
 import '../input/touch_controls.dart';
 import '../render/debug_hud.dart';
+import '../render/death_feedback.dart';
 import '../render/fog_backdrop.dart';
 import '../render/chapter_backdrop.dart';
 import '../render/npc_atlas.dart';
@@ -173,7 +174,7 @@ class UmbraGame extends Forge2DGame with HasKeyboardHandlerComponents {
     deathSequence.cancel();
     final current = _stage;
     if (current is Chapter) {
-      current.restartCheckpoint();
+      current.resetCurrentPuzzle();
     } else {
       checkpoints.respawn(player);
     }
@@ -278,6 +279,7 @@ class UmbraGame extends Forge2DGame with HasKeyboardHandlerComponents {
       if (!campaign) ForegroundFog(camera: camera),
       ForegroundOverlay(camera: camera, settings: settings),
       ScreenFade(camera: camera, blackness: () => blackness),
+      DeathFeedback(camera: camera, player: () => _player),
     ]);
 
     // The keyboard listener lives on the game, not in the world: it is not a

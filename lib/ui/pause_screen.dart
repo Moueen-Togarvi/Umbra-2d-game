@@ -67,7 +67,7 @@ class _PauseScreenState extends State<PauseScreen> {
         ),
         SizedBox(height: unit * 2),
         word('I', 'Resume', game.resumeGameplay, primary: true),
-        word('II', 'Restart checkpoint', game.resetFromPause),
+        word('II', 'Reset puzzle', game.resetFromPause),
         if (game.campaign)
           word(
             'III',

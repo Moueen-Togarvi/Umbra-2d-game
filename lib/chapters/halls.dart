@@ -61,7 +61,7 @@ class HallsChapter extends Chapter {
   @override
   List<FogLayerSpec>? get backdropSpecs => FogBackdrop.hallSpecs;
   @override
-  bool get grassy => false;
+  String get footing => 'stone';
 
   static const double floor = 7.0;
   static const double wallLeft = 48, wallTop = 4.2, wallRight = 54;

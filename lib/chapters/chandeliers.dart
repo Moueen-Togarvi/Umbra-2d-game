@@ -63,7 +63,7 @@ class ChandeliersChapter extends Chapter with KeeperChase {
   @override
   List<FogLayerSpec>? get backdropSpecs => FogBackdrop.hallSpecs;
   @override
-  bool get grassy => false;
+  String get footing => 'stone';
 
   static const double floor = 7.0;
   static const double gallery = 4.0;

@@ -15,6 +15,7 @@ import '../physics/water.dart';
 import '../render/dust.dart';
 import '../render/chapter_backgrounds.dart';
 import '../render/grass.dart';
+import '../render/near_layer.dart';
 import '../render/white_blossom_tree.dart';
 import 'decor_layout.dart';
 import '../render/chapter_exit_gate.dart';
@@ -37,6 +38,8 @@ abstract class Chapter extends Stage {
   Chapter({required this.intent});
 
   final PlayerIntent intent;
+  @override
+  bool get touchControlsUsed => intent.touchUsed;
 
   /// Its place in the story, from 1, and its name on the card.
   int get number;
@@ -143,13 +146,6 @@ abstract class Chapter extends Stage {
   /// paintings replaced by the atlas must not enter the decoded image cache.
   List<String> get art => const [];
 
-  /// Whether grass grows on its ground (not on a castle's stone floors).
-  bool get grassy => true;
-
-  /// Indoors (no grass), his feet fall on stone and the wind is far off.
-  @override
-  String get footing => grassy ? 'grass' : 'stone';
-
   @override
   double get height => GameConfig.levelHeight;
   @override
@@ -246,11 +242,13 @@ abstract class Chapter extends Stage {
     return Vector2(x, surface - GameConfig.playerHeight / 2);
   }
 
-  /// Three story-wide blossom landmarks, spaced across safe ground.
+  /// Three story-wide blossom landmarks, spaced across safe ground, out in
+  /// the open (never in a cave or a castle hall).
   /// If a nominal position lands over a pit it moves to the nearest bank.
   List<double> get blossomTreeXs => [
-    for (final fraction in const [.22, .50, .78])
-      _nearestSurfaceX(width * fraction),
+    if (grassy)
+      for (final fraction in const [.22, .50, .78])
+        _nearestSurfaceX(width * fraction),
   ];
 
   double _nearestSurfaceX(double target) {
@@ -336,6 +334,10 @@ abstract class Chapter extends Stage {
     onRespawned();
     player.teleportTo(checkpoints.activeCheckpoint);
   }
+
+  /// A quick recovery action for a stuck puzzle. Bespoke chapters use their
+  /// authored checkpoint restore; reusable-room chapters narrow this further.
+  void resetCurrentPuzzle() => restartCheckpoint();
 
   /// Reconstitute puzzle outcomes before placing the player at a safe boundary.
   void restoreWorld(double x) {}
@@ -461,7 +463,18 @@ abstract class Chapter extends Stage {
     }
     pieces
       ..add(player)
-      ..add(DustField(player: player));
+      ..add(DustField(player: player))
+      ..add(
+        NearLayer(
+          kind: grassy
+              ? NearKind.branches
+              : footing == 'gravel'
+              ? NearKind.roots
+              : NearKind.chains,
+          width: width,
+          seed: number,
+        ),
+      );
     if (grassy) pieces.add(FrontGrass(banks: banks, wind: wind));
     await addAll(pieces);
   }
@@ -498,7 +511,9 @@ abstract class Chapter extends Stage {
     wind.pusherX = player.isDead ? double.nan : player.cameraPosition.x;
     wind.pusherSpeed = player.velocity.x;
     final Vector2 at = player.cameraPosition;
-    if (at.y > height + 3 || at.x < -1 || at.x > width + 1) player.die();
+    if (at.y > height + 3 || at.x < -1 || at.x > width + 1) {
+      player.die(cause: DeathCause.fall);
+    }
     if (_wasDead && !player.isDead) {
       extensionRoute.restoreAt(checkpoints.activeCheckpoint.x);
       onRespawned();

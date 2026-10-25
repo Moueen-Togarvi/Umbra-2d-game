@@ -10,6 +10,9 @@
 /// [endScript] the player reads only what the script sets, and presses on
 /// the keyboard or screen change nothing.
 class PlayerIntent {
+  /// True after this run has received a real touch control. Timed puzzles use
+  /// it to leave a little room for a thumb covering part of the screen.
+  bool touchUsed = false;
   double _keyboardAxis = 0, _touchAxis = 0;
   bool _keyboardJump = false, _touchJump = false;
   bool _keyboardInteract = false, _touchInteract = false;
@@ -69,6 +72,14 @@ class PlayerIntent {
     bool? up,
     bool? sit,
   }) {
+    if ((axis?.abs() ?? 0) > 0 ||
+        jump == true ||
+        interact == true ||
+        down == true ||
+        up == true ||
+        sit == true) {
+      touchUsed = true;
+    }
     final wasInteracting = isInteractHeld;
     if (axis != null) _touchAxis = axis;
     if (jump != null) _touchJump = jump;

@@ -99,6 +99,10 @@ abstract class Stage extends Component {
   /// that moves: grass, gravel (a cave), stone (a hall).
   String get footing => 'grass';
 
+  /// Out in the open (grass underfoot), not in a cave or a castle: rock
+  /// rather than dressed stone, the moon in the sky rather than a window.
+  bool get grassy => footing == 'grass';
+
   /// Asks for the sound [name], as loud as [weight] and quieter the
   /// further [at] is from the camera, from its side; and a shake of
   /// [shake] (0–1).
@@ -145,6 +149,9 @@ abstract class Stage extends Component {
 
   /// Whether the play buttons should be hidden (a cutscene is running).
   bool get controlsHidden => false;
+
+  /// Whether this run is being driven by on-screen controls.
+  bool get touchControlsUsed => false;
 
   /// Set once the boy has reached the stage's end.
   bool get isComplete => false;

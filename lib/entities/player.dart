@@ -90,6 +90,8 @@ class Player extends BodyComponent {
   bool forceLookBack = false;
   bool forceLookUp = false;
   bool _dead = false;
+  DeathCause _deathCause = DeathCause.impact;
+  DeathCause get deathCause => _deathCause;
   Vector2? _deathPush;
   bool _grounded = false;
 
@@ -503,7 +505,7 @@ class Player extends BodyComponent {
       _lastLandingImpact = impact;
       _lastLandingAt.setValues(body.position.x, _supportY);
       if (impact > GameConfig.deathImpactSpeed) {
-        die();
+        die(cause: DeathCause.fall);
         return;
       }
       // The body takes the landing from the next step, when the capsule
@@ -528,7 +530,7 @@ class Player extends BodyComponent {
           hit.shapeA.isValid &&
           hit.shapeB.isValid &&
           (hit.shapeA.body == body || hit.shapeB.body == body)) {
-        die();
+        die(cause: DeathCause.crushing);
         return;
       }
     }
@@ -1379,9 +1381,10 @@ class Player extends BodyComponent {
   /// The body goes limp, for good. Used by spikes, long falls and heavy hits.
   /// A blow ([push], metres a second) throws the body the way it came: an
   /// arrow knocks him back, a boulder carries him off his feet.
-  void die({Vector2? push}) {
+  void die({Vector2? push, DeathCause cause = DeathCause.impact}) {
     if (_dead) return;
     _dead = true;
+    _deathCause = cause;
     _deathPush = push;
     if (_recoveryPose != null) {
       _recoveryPose = null;
@@ -1631,4 +1634,17 @@ class FootContact {
   final double x;
   final bool onProp, stride;
   final double strength;
+}
+
+/// Why the last attempt ended. The game keeps this small vocabulary so the
+/// death beat can teach the player without a game-over screen.
+enum DeathCause {
+  impact,
+  fall,
+  drowning,
+  vampire,
+  crushing,
+  spikes,
+  fire,
+  trap,
 }

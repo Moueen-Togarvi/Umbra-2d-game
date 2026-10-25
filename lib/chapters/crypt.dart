@@ -5,6 +5,7 @@ import 'package:flame/components.dart';
 import '../config/game_config.dart';
 import '../entities/cave_props.dart';
 import '../entities/ground.dart';
+import '../entities/player.dart';
 import '../entities/water_props.dart';
 import '../physics/water.dart';
 import '../render/mood.dart';
@@ -332,7 +333,7 @@ class CryptChapter extends Chapter {
     if ((x - tomb.x).abs() < 0.85 && !inStream && x < streamLeft) {
       _caught = true;
       tomb.seize();
-      player.die();
+      player.die(cause: DeathCause.vampire);
     }
   }
 

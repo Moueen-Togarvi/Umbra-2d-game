@@ -130,14 +130,24 @@ class TimedHazardRow extends Component
         final double len = floor - 0.9 - ceiling;
         final double bx = xs[i] + math.sin(swing(i)) * len;
         if ((p.x - bx).abs() < 0.75) {
-          boy.die(push: Vector2((p.x - bx).sign * 4, -1.8));
+          boy.die(
+            push: Vector2((p.x - bx).sign * 4, -1.8),
+            cause: DeathCause.trap,
+          );
         }
         continue;
       }
       if ((p.x - xs[i]).abs() < width / 2 + 0.12 &&
           p.y + GameConfig.playerHeight / 2 > floor - 2.2) {
         // The crusher drives him down; the rest just take him.
-        boy.die(push: style == HazardStyle.crusher ? Vector2(0, 4) : null);
+        boy.die(
+          push: style == HazardStyle.crusher ? Vector2(0, 4) : null,
+          cause: switch (style) {
+            HazardStyle.crusher => DeathCause.crushing,
+            HazardStyle.flame => DeathCause.fire,
+            _ => DeathCause.trap,
+          },
+        );
       }
     }
   }
@@ -625,7 +635,7 @@ class WatchEye extends Component with OffScreenCulling implements HasFootprint {
       _caught += dt;
       if (_caught > 0.25) {
         stage.cue('shriek', at: at);
-        boy.die();
+        boy.die(cause: DeathCause.vampire);
       }
     } else {
       _caught = 0;
@@ -745,7 +755,7 @@ class ArrowTrap extends Component
           ? p.y + GameConfig.playerHeight / 2 - 0.94
           : p.y - GameConfig.playerHeight / 2;
       if ((_arrows[i] - p.x).abs() < 0.3 && top < floor - height + 0.04) {
-        boy.die(push: Vector2(-4.5, -1.2));
+        boy.die(push: Vector2(-4.5, -1.2), cause: DeathCause.trap);
       }
     }
   }

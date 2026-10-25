@@ -275,6 +275,8 @@ class Hazard extends BodyComponent with ContactCallbacks, OffScreenCulling {
   void beginContact(Object other, Contact contact) {
     // `other` is the userData of whatever touched us: the capsule, or a
     // limb of the ragdoll, both of which carry the Player.
-    if (other is Player) other.die();
+    if (other is Player) {
+      other.die(cause: stakes ? DeathCause.spikes : DeathCause.fall);
+    }
   }
 }

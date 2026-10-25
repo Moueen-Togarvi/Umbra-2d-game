@@ -49,12 +49,14 @@ class JourneyChapter extends Chapter {
       PuzzleKind.sluice,
       PuzzleKind.logFloat,
       PuzzleKind.crawl,
+      PuzzleKind.cageLift,
     ],
     10: [
       PuzzleKind.floatCrate,
       PuzzleKind.sinkingRaft,
       PuzzleKind.rockfall,
       PuzzleKind.collapse,
+      PuzzleKind.zipline,
     ],
     12: [
       PuzzleKind.coffin,
@@ -68,6 +70,7 @@ class JourneyChapter extends Chapter {
       PuzzleKind.drain,
       PuzzleKind.raft,
       PuzzleKind.rope,
+      PuzzleKind.moonWindow,
     ],
     15: [
       PuzzleKind.weight,
@@ -88,6 +91,7 @@ class JourneyChapter extends Chapter {
       PuzzleKind.watchEye,
       PuzzleKind.moonWindow,
       PuzzleKind.crawl,
+      PuzzleKind.pendulum,
     ],
     21: [
       PuzzleKind.bellGate,
@@ -108,6 +112,7 @@ class JourneyChapter extends Chapter {
       PuzzleKind.tripwire,
       PuzzleKind.fallingFloor,
       PuzzleKind.leapRope,
+      PuzzleKind.oil,
     ],
     26: [
       PuzzleKind.sleeper,
@@ -128,6 +133,7 @@ class JourneyChapter extends Chapter {
       PuzzleKind.rope,
       PuzzleKind.boulder,
       PuzzleKind.leapRope,
+      PuzzleKind.drawbridge,
     ],
     30: [
       PuzzleKind.floatCrate,
@@ -148,6 +154,7 @@ class JourneyChapter extends Chapter {
       PuzzleKind.barrelRun,
       PuzzleKind.crate,
       PuzzleKind.spikes,
+      PuzzleKind.tripwire,
     ],
     34: [
       PuzzleKind.rope,
@@ -169,6 +176,7 @@ class JourneyChapter extends Chapter {
       PuzzleKind.timedDoor,
       PuzzleKind.returnLoop,
       PuzzleKind.lantern,
+      PuzzleKind.bell,
     ],
     38: [
       PuzzleKind.fireflies,
@@ -196,10 +204,20 @@ class JourneyChapter extends Chapter {
       ? 54
       : 60;
 
-  /// The ground each room stands on. The first chapters rise and fall
-  /// from room to room over the hills; the rest keep to one level.
-  double floorOf(int i) =>
-      number <= 5 ? const [7.0, 6.4, 7.0, 6.5, 7.0, 6.4][i % 6] : 7.0;
+  /// Ground rhythm changes by arc. The first room remains at the common spawn;
+  /// later rooms climb, dip and return through short connecting slopes.
+  double floorOf(int i) {
+    if (i == 0) return 7;
+    if (routes[number]![i] == PuzzleKind.returnLoop) return 7;
+    const patterns = <List<double>>[
+      [7, 6.4, 7.1, 6.6, 7.0],
+      [7, 7.5, 6.8, 7.3, 6.6],
+      [7, 6.2, 6.8, 7.4, 6.7],
+      [7, 7.6, 6.9, 6.3, 7.2],
+    ];
+    final pattern = patterns[((number - 1) ~/ 10).clamp(0, 3).toInt()];
+    return pattern[i % pattern.length];
+  }
 
   late final rooms = [
     for (var i = 0; i < routes[number]!.length; i++)
@@ -209,6 +227,7 @@ class JourneyChapter extends Chapter {
         floor: floorOf(i),
         length: roomLength,
         withWatcher: number == 37,
+        variant: (number + i) % 3,
       ),
   ];
   late final route = PuzzleRoute(this, rooms);
@@ -221,7 +240,7 @@ class JourneyChapter extends Chapter {
   @override
   List<double> get checkpointXs => [for (final r in rooms) r.x + 2];
   @override
-  bool get grassy => number < 6 || number > 33;
+  String get footing => number < 6 || number > 33 ? 'grass' : 'stone';
   @override
   // Out in the open: no wind bed, only the rain at the end.
   String? get ambience => grassy
@@ -289,4 +308,11 @@ class JourneyChapter extends Chapter {
 
   @override
   void onRespawned() => route.restoreAt(checkpoints.activeCheckpoint.x);
+
+  @override
+  void resetCurrentPuzzle() {
+    intent.clear();
+    final safe = route.resetCurrent(player.body.position.x);
+    player.teleportTo(safe);
+  }
 }

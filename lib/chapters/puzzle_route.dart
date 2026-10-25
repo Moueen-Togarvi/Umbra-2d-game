@@ -6,6 +6,7 @@ import '../config/game_config.dart';
 import '../world/footprint.dart';
 import '../entities/ground.dart';
 import '../entities/hazard.dart';
+import '../entities/player.dart';
 import '../entities/home_props.dart';
 import '../entities/physics_props.dart';
 import '../entities/castle_props.dart';
@@ -229,10 +230,14 @@ class PuzzleRoom {
     this.floor = 7,
     this.length = 42,
     this.withWatcher = false,
+    this.variant = 0,
   });
   final PuzzleKind kind;
   final bool withWatcher;
   final double x, floor, length;
+
+  /// Repeated mechanics keep their rule but change their staging.
+  final int variant;
   double get end => x + length;
   (double, double)? get gap => switch (kind) {
     PuzzleKind.rope => (x + 16, x + 19.2),
@@ -370,6 +375,30 @@ class PuzzleRoom {
   FootPedal? pedal;
   bool solved = false;
   int? movingCoverIndex;
+  double hintPulse = 0;
+  double idleSeconds = 0;
+  double _furthest = double.negativeInfinity;
+  bool? _doorWasShut;
+
+  /// The first useful thing to notice on entering this room.
+  Vector2? pulseTarget;
+  Vector2 get hintTarget {
+    final p = pedal;
+    if (p != null) return p.hinge;
+    final c = cord;
+    if (c != null) return c.anchor + Vector2(0, c.length);
+    final a = plate;
+    if (a != null) return Vector2((a.left + a.right) / 2, a.groundY);
+    final d = door;
+    if (d != null) return Vector2(d.x, floor - 1.4);
+    if (crates.isNotEmpty && crates.first.isReady) {
+      return crates.first.body.position;
+    }
+    if (ropes.isNotEmpty) return ropes.first.anchor;
+    return Vector2(x + length * .48, floor - .7);
+  }
+
+  Vector2 get visibleHintTarget => pulseTarget ?? hintTarget;
 
   void restore() {
     solved = false;
@@ -380,6 +409,11 @@ class PuzzleRoom {
       reset();
     }
     if (hunter != null) hunter!.reset(hunterStart!);
+    idleSeconds = 0;
+    hintPulse = 0;
+    pulseTarget = null;
+    _furthest = double.negativeInfinity;
+    _doorWasShut = door?.shut;
   }
 
   List<Component> pit(Stage stage) {
@@ -545,7 +579,7 @@ class PuzzleRoom {
 
     switch (kind) {
       case PuzzleKind.crawl:
-        roof(x + 12, x + 22);
+        roof(x + 12, x + (variant == 1 ? 20.5 : 22));
         pieces.add(
           StoneBlock(
             left: x + 28,
@@ -591,11 +625,12 @@ class PuzzleRoom {
         windowAt(x + 27, x + 37);
       case PuzzleKind.crate:
         crate(x + 9);
+        if (variant == 2) crate(x + 12.2, size: .72, mass: 14);
         pieces.add(
           StoneBlock(
             left: x + 16,
-            right: x + 19,
-            top: floor - 2.7,
+            right: x + (variant == 1 ? 18.2 : 19),
+            top: floor - (variant == 1 ? 2.45 : 2.7),
             bottom: floor + .1,
           ),
         );
@@ -1984,6 +2019,7 @@ class PuzzleRoute extends Component {
   @override
   void update(double dt) {
     super.update(dt);
+    final boy = stage.player;
     for (final room in rooms) {
       if (room.movingCoverIndex != null) {
         final at = room.crates.first.body.position;
@@ -2007,7 +2043,80 @@ class PuzzleRoute extends Component {
             : 0;
       }
       room.hunter?.update(dt);
+      _guide(room, boy, dt);
       _runNewRooms(room, dt);
+    }
+  }
+
+  void _guide(PuzzleRoom room, Player boy, double dt) {
+    room.hintPulse = math.max(0, room.hintPulse - dt);
+    if (boy.isDead || room.solved) return;
+    final local = boy.body.position.x - room.x;
+    if (local < 1 || local > room.length - 1) return;
+
+    if (local > room._furthest + .7) {
+      room._furthest = local;
+      room.idleSeconds = 0;
+    } else if (boy.velocity.length < 1.1) {
+      room.idleSeconds += dt;
+    }
+    final threshold = room.idleSeconds > 36 ? 7.0 : 22.0;
+    if (room.idleSeconds >= threshold && room.hintPulse <= 0) {
+      room.hintPulse = 2.2;
+      room.idleSeconds = room.idleSeconds > 36 ? 29 : 0;
+      room.pulseTarget = null;
+      stage.cue('tick', weight: .3, at: room.hintTarget);
+    }
+
+    final door = room.door;
+    if (door != null) {
+      final previous = room._doorWasShut;
+      if (previous != null && previous != door.shut) {
+        room
+          ..hintPulse = 1.25
+          ..pulseTarget = Vector2(door.x, room.floor - 1.4);
+      }
+      room._doorWasShut = door.shut;
+    }
+
+    if (room.crates.any(
+      (c) =>
+          c.isReady &&
+          (c.body.position.y > room.floor + 5 ||
+              c.body.position.x < room.x - 3 ||
+              c.body.position.x > room.end + 3),
+    )) {
+      room.restore();
+      room.hintPulse = 1.5;
+      stage.cue('wood', weight: .35, at: room.hintTarget);
+    }
+  }
+
+  /// Restores only the room occupied by the player and returns a safe start.
+  Vector2 resetCurrent(double playerX) {
+    final room = rooms.lastWhere(
+      (r) => playerX >= r.x,
+      orElse: () => rooms.first,
+    );
+    room.restore();
+    room.hintPulse = 1.4;
+    return Vector2(room.x + 2, room.floor - GameConfig.playerHeight / 2);
+  }
+
+  @override
+  void render(Canvas canvas) {
+    super.render(canvas);
+    for (final room in rooms) {
+      if (room.hintPulse <= 0) continue;
+      final t = (room.hintPulse / 2.2).clamp(0.0, 1.0);
+      final target = room.visibleHintTarget.toOffset();
+      final wave = 1 - t;
+      final paint = Paint()
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = .025
+        ..color = const Color(0xFFD8D4CC).withValues(alpha: .42 * t);
+      canvas.drawCircle(target, .22 + wave * .55, paint);
+      canvas.drawCircle(target, .12 + wave * .28, paint);
     }
   }
 
@@ -2027,7 +2136,7 @@ class PuzzleRoute extends Component {
         final double? fuse = room.bridgeFuse;
         if (fuse == null) {
           if (!boy.isDead && local > 12.4 && local < 19.6) {
-            room.bridgeFuse = 3.0;
+            room.bridgeFuse = stage.touchControlsUsed ? 3.6 : 3.0;
             stage.cue('creak', at: Vector2(room.x + 16, room.floor));
           }
         } else {
@@ -2087,7 +2196,7 @@ class PuzzleRoute extends Component {
           for (final bat in flock.bats) {
             final Vector2 b = bat.position;
             if ((b.x - c.x).abs() < .3 && b.y > c.y - .75 && b.y < c.y + .6) {
-              boy.die();
+              boy.die(cause: DeathCause.trap);
               break;
             }
           }
@@ -2358,7 +2467,7 @@ class PuzzleRoute extends Component {
       case PuzzleKind.timedDoor:
         if (local > 22) room.solved = true;
         if (room.plate!.pressed) {
-          room.doorTimer = 4.4;
+          room.doorTimer = stage.touchControlsUsed ? 5.3 : 4.4;
         } else if (room.doorTimer > 0) {
           room.doorTimer -= dt;
           if (room.doorTimer <= 0 && !room.solved) {

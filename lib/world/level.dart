@@ -82,7 +82,7 @@ class Level extends Stage {
     if (player.cameraPosition.y > GameConfig.levelHeight + 3 ||
         player.cameraPosition.x < -1 ||
         player.cameraPosition.x > GameConfig.levelWidth + 1) {
-      player.die();
+      player.die(cause: DeathCause.fall);
     }
     while (_nextCheckpoint < _checkpointXs.length &&
         player.body.position.x >= _checkpointXs[_nextCheckpoint]) {

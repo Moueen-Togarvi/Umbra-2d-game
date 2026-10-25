@@ -22,10 +22,15 @@ class DeathSequence {
   double _clock = -1;
   bool _respawned = false;
 
-  static const double _linger = GameConfig.deathLingerSeconds;
-  static const double _fadeOut = GameConfig.deathFadeOutSeconds;
+  double get _retrySpeed => checkpoints.deathsHere >= 2
+      ? .58
+      : checkpoints.deathsHere == 1
+      ? .76
+      : 1;
+  double get _linger => GameConfig.deathLingerSeconds * _retrySpeed;
+  double get _fadeOut => GameConfig.deathFadeOutSeconds * _retrySpeed;
   static const double _black = GameConfig.deathBlackSeconds;
-  static const double _fadeIn = GameConfig.deathFadeInSeconds;
+  double get _fadeIn => GameConfig.deathFadeInSeconds * _retrySpeed;
 
   void update(double dt, Player player) {
     if (_clock < 0) {

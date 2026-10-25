@@ -496,7 +496,7 @@ class WaterBody extends Component {
         for (var i = 0; i < 8; i++) {
           _bubble(at.x + (_random.nextDouble() - 0.5) * 0.3, head);
         }
-        boy.die();
+        boy.die(cause: DeathCause.drowning);
       }
     } else {
       _under = 0;

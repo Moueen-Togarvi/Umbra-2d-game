@@ -58,6 +58,8 @@ class GreatGateChapter extends Chapter with KeeperChase {
   MoodTrack get moods => const MoodTrack(Mood.night);
   @override
   List<FogLayerSpec>? get backdropSpecs => FogBackdrop.sparse;
+  @override
+  String get footing => 'stone';
 
   static const double floor = 7.0;
   static const double galleryLeft = 14, galleryTop = 5.6;

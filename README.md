@@ -6,6 +6,8 @@ The story follows a boy from home, through the vampires’ castle, and back into
 
 Continue restores the last safe checkpoint, including completed machinery and rescued children. Chapter replay starts at the beginning. Existing fifteen-chapter saves migrate to stable chapter IDs. Threat music responds to nearby vampires and active pursuits; browser sound shares one audio context with at most twelve SFX voices. Settings include vibration and a reset that preserves story progress.
 
+Journey rooms now vary their elevation and repeated mechanics change their staging. Underused set pieces extend eight shorter chapters. If progress stalls, the important control receives a quiet environmental pulse; remote gates answer their controls visually. Reset puzzle restores only the active reusable room. Deaths identify their cause, and repeated attempts shorten the fade without changing puzzle physics.
+
 [CHAPTERS.md](CHAPTERS.md) describes the campaign and architecture. [PLAYTEST.md](PLAYTEST.md) is the human feedback checklist; automated routes do not establish human completion times. [BRANDING.md](BRANDING.md) records the visual identity.
 
 See [CHARACTER_SYSTEM.md](CHARACTER_SYSTEM.md) for the architecture, tuning, verification and what each system does. [STEP1_NOTES.md](STEP1_NOTES.md) records the project's initial setup and migration notes.

@@ -53,7 +53,7 @@ class ClockTowerChapter extends Chapter {
   @override
   List<FogLayerSpec>? get backdropSpecs => FogBackdrop.hallSpecs;
   @override
-  bool get grassy => false;
+  String get footing => 'stone';
 
   static const double floor = 7.0;
   static const double swingLeft = 13.5, swingRight = 21.5;

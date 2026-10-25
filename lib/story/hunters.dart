@@ -223,7 +223,7 @@ class Pursuer {
         caught = true;
         active = false;
         vampire.seize();
-        boy.die();
+        boy.die(cause: DeathCause.vampire);
       }
     }
   }
@@ -467,7 +467,7 @@ class Stalker {
         (boyFeet - vampire.groundY).abs() < 1.3) {
       caught = true;
       vampire.seize();
-      boy.die();
+      boy.die(cause: DeathCause.vampire);
     }
   }
 

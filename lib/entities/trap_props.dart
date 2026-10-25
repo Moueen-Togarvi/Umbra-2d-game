@@ -69,7 +69,9 @@ class BearTrap extends Component with OffScreenCulling implements HasFootprint {
       stage.cue('chain', at: Vector2(x, groundY), shake: 0.2);
       stage.cue('wood', weight: 0.6, at: Vector2(x, groundY));
       final data = body.userData;
-      if (data is Player && !data.isDead) data.die();
+      if (data is Player && !data.isDead) {
+        data.die(cause: DeathCause.trap);
+      }
       break;
     }
   }
@@ -233,7 +235,9 @@ class StakeRow extends Component with OffScreenCulling implements HasFootprint {
     );
     for (final body in _bodiesIn(this, points)) {
       final data = body.userData;
-      if (data is Player && !data.isDead) data.die();
+      if (data is Player && !data.isDead) {
+        data.die(cause: DeathCause.spikes);
+      }
     }
   }
 

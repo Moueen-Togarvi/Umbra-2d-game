@@ -17,6 +17,8 @@ class CheckpointService {
     : _activeCheckpoint = initialCheckpoint.clone();
 
   Vector2 _activeCheckpoint;
+  int _deathsHere = 0;
+  int get deathsHere => _deathsHere;
 
   /// The position the player will respawn at.
   ///
@@ -27,10 +29,12 @@ class CheckpointService {
   /// Records a new respawn point, e.g. when the player reaches a checkpoint.
   void setCheckpoint(Vector2 position) {
     _activeCheckpoint = position.clone();
+    _deathsHere = 0;
   }
 
   /// Sends the player back to the active checkpoint, at rest.
   void respawn(Player player) {
+    _deathsHere++;
     player.teleportTo(_activeCheckpoint);
   }
 }

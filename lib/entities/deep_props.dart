@@ -176,7 +176,7 @@ class StalactiteRow extends Component
               (t.x - p.x).abs() < 0.32 &&
               tip > p.y - GameConfig.playerHeight / 2 &&
               ceiling + t.drop < p.y + GameConfig.playerHeight / 2) {
-            boy.die();
+            boy.die(cause: DeathCause.trap);
           }
           if (tip >= floor) {
             t.state = 3;
@@ -306,7 +306,7 @@ class Collapse extends Component with OffScreenCulling implements HasFootprint {
     final Player boy = stage.player;
     final double edge = boulder ? front + _ball : front + 0.1;
     if (boy.isMounted && !boy.isDead && boy.body.position.x < edge) {
-      boy.die();
+      boy.die(cause: boulder ? DeathCause.crushing : DeathCause.fire);
     }
     if (front >= to) active = false;
   }

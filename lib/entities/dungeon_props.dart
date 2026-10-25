@@ -133,7 +133,7 @@ class Fire extends Component with StageLight implements GlowingLight {
     if (p.x > _left + 0.1 &&
         p.x < _right - 0.1 &&
         (feet - floorY).abs() < 0.6) {
-      boy.die();
+      boy.die(cause: DeathCause.fire);
     }
     if (strength <= 0 && _time > seconds + 1) removeFromParent();
   }

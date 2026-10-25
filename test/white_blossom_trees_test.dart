@@ -5,7 +5,7 @@ import 'package:umbra/game/umbra_game.dart';
 import 'package:umbra/render/white_blossom_tree.dart';
 
 void main() {
-  testWidgets('every chapter has blossom trees on clear, solid ground', (
+  testWidgets('outdoor chapters keep blossom trees on clear, solid ground', (
     tester,
   ) async {
     final game = UmbraGame(campaign: true);
@@ -46,12 +46,13 @@ void main() {
 
       final chapter = game.stage! as Chapter;
       final trees = chapter.children.whereType<WhiteBlossomTree>().toList();
-      // Three are planted; one with no clear ground left for it is let go
-      // rather than stood in front of something.
+      // Three are planted outdoors; one with no clear ground left for it is
+      // let go rather than stood in front of something. Caves and castle
+      // rooms deliberately have none.
       expect(
         trees.length,
-        inInclusiveRange(1, 3),
-        reason: 'chapter ${chapter.number} keeps its trees',
+        chapter.grassy ? inInclusiveRange(1, 3) : 0,
+        reason: 'chapter ${chapter.number} matches its environment',
       );
       trees.sort((a, b) => a.position.x.compareTo(b.position.x));
       for (var i = 1; i < trees.length; i++) {

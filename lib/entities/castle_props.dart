@@ -460,7 +460,7 @@ class Portcullis extends Hoisted {
     if ((p.x - body.position.x).abs() < GameConfig.playerWidth / 2 + 0.12 &&
         foot > p.y - GameConfig.playerHeight / 2 &&
         foot < p.y + GameConfig.playerHeight / 2) {
-      boy.die();
+      boy.die(cause: DeathCause.crushing);
     }
   }
 
@@ -862,7 +862,9 @@ class CastleTable extends BodyComponent with OffScreenCulling {
 }
 
 /// Dressed stone: a castle wall, a step, a ledge, the slab over a door.
-/// Straight-edged blocks laid in courses, the mortar barely showing.
+/// Straight-edged blocks laid in courses, the mortar barely showing. Out in
+/// the open ([Stage.grassy]) the same block is a rock instead: rounded,
+/// split by a fissure or two, with grass on top.
 class StoneBlock extends BodyComponent with OffScreenCulling {
   StoneBlock({
     required this.left,
@@ -910,6 +912,117 @@ class StoneBlock extends BodyComponent with OffScreenCulling {
 
   double get _hw => (right - left) / 2;
   double get _hh => (bottom - top) / 2;
+
+  bool _rock = false;
+
+  @override
+  void onMount() {
+    super.onMount();
+    _rock = ancestors().whereType<Stage>().firstOrNull?.grassy ?? false;
+  }
+
+  /// A rock's outline: its corners worn round and its top a little uneven
+  /// (never far from the flat top he walks on), grass along it, its sides
+  /// bulging out and in.
+  late final Path _rockOutline = () {
+    final random = math.Random(seed * 17 + 5);
+    final double hw = _hw, hh = _hh;
+    final double round = math.min(0.28, math.min(hw, hh) * 0.45);
+    final path = Path()..moveTo(-hw, -hh + round);
+    path.quadraticBezierTo(-hw, -hh, -hw + round, -hh);
+    double x = -hw + round;
+    while (x < hw - round) {
+      final double step = math.min(
+        hw - round - x,
+        0.3 + random.nextDouble() * 0.5,
+      );
+      final double r = random.nextDouble();
+      if (r < 0.45 && step > 0.2) {
+        // A clump of grass.
+        final double bx = x + step * 0.5;
+        for (var k = 0; k < 3; k++) {
+          final double t = bx - 0.08 + k * 0.07;
+          final double tall = 0.08 + random.nextDouble() * 0.12;
+          final double lean = (random.nextDouble() - 0.4) * 0.08;
+          path
+            ..lineTo(t - 0.02, -hh)
+            ..lineTo(t + lean, -hh - tall)
+            ..lineTo(t + 0.02, -hh);
+        }
+      }
+      x += step;
+      // The top stays within a couple of centimetres of the flat.
+      path.lineTo(x, -hh + random.nextDouble() * 0.025 - 0.008);
+    }
+    path
+      ..lineTo(hw - round, -hh)
+      ..quadraticBezierTo(hw, -hh, hw, -hh + round);
+    for (double y = -hh + round; y < hh - 0.2;) {
+      final double step = 0.25 + random.nextDouble() * 0.35;
+      final double out = (random.nextDouble() - 0.35) * 0.05;
+      path.quadraticBezierTo(hw + out * 2, y + step / 2, hw, y + step);
+      y += step;
+    }
+    path.lineTo(hw, hh);
+    path.lineTo(-hw, hh);
+    for (double y = hh - 0.2; y > -hh + round;) {
+      final double step = math.min(
+        y - (-hh + round),
+        0.25 + random.nextDouble() * 0.35,
+      );
+      final double out = (random.nextDouble() - 0.35) * 0.05;
+      path.quadraticBezierTo(-hw - out * 2, y - step / 2, -hw, y - step);
+      y -= step;
+      if (step < 0.01) break;
+    }
+    return path..close();
+  }();
+
+  /// A rock's face: a fissure or two running down it, and a few paler
+  /// planes where it has split.
+  late final (Path, Path) _rockDetail = () {
+    final faces = Path(), fissures = Path();
+    final random = math.Random(seed * 11 + 9);
+    final double hw = _hw, hh = _hh;
+    final int count = 1 + (hw * 2 / 1.6).floor().clamp(0, 5);
+    for (var i = 0; i < count; i++) {
+      final double fx =
+          -hw + (i + 0.3 + random.nextDouble() * 0.4) * (2 * hw) / count;
+      double y = -hh + 0.06 + random.nextDouble() * 0.2;
+      double x = fx;
+      fissures.moveTo(x, y);
+      final double end = math.min(
+        hh - 0.05,
+        y + 0.3 + random.nextDouble() * hh,
+      );
+      while (y < end) {
+        y += 0.08 + random.nextDouble() * 0.12;
+        x += (random.nextDouble() - 0.5) * 0.1;
+        fissures.lineTo(x, math.min(y, end));
+      }
+      if (random.nextDouble() < 0.6 && hh > 0.4) {
+        // Kept inside the rock's sides and off its top and bottom.
+        final double py = -hh + 0.1 + random.nextDouble() * (hh * 1.2);
+        final double pw = math.min(
+          0.2 + random.nextDouble() * 0.35,
+          hw - 0.08 - (fx + 0.04),
+        );
+        final double ph = math.min(
+          0.18 + random.nextDouble() * 0.15,
+          hh - 0.08 - py,
+        );
+        if (pw > 0.08 && ph > 0.08) {
+          faces.addPolygon([
+            Offset(fx + 0.04, py),
+            Offset(fx + 0.04 + pw, py + 0.05),
+            Offset(fx + 0.04 + pw * 0.8, py + ph),
+            Offset(fx + 0.06, py + ph * 0.75),
+          ], true);
+        }
+      }
+    }
+    return (faces, fissures);
+  }();
 
   /// Its outline: straight where the collision is, but its top edge
   /// chipped, its sides a little uneven, a weed or two on top and, under a
@@ -1017,6 +1130,14 @@ class StoneBlock extends BodyComponent with OffScreenCulling {
   @override
   void render(Canvas canvas) {
     if (!isOnScreen(Rect.fromLTRB(left, top - 0.3, right, bottom + 0.6))) {
+      return;
+    }
+    if (_rock) {
+      final (faces, fissures) = _rockDetail;
+      canvas
+        ..drawPath(_rockOutline, _stone)
+        ..drawPath(faces, _worn)
+        ..drawPath(fissures, _crack);
       return;
     }
     final (joints, worn, cracks) = _detail;
@@ -1137,20 +1258,27 @@ class MoonWindow extends Component
   static final Paint _strap = Paint()..color = _iron;
   final Paint _speck = Paint();
 
+  /// Out in the open there is no window: the moon comes out from behind
+  /// the cloud and its light falls through the trees. No panes, no
+  /// shutters; only the shaft of light.
+  bool get _sky => stage?.grassy ?? false;
+
   @override
   void paintLight(Canvas canvas) {
     final double a = _open * (0.92 + 0.08 * math.sin(_time * 0.7));
     if (a <= 0.01) return;
     final Color moon = Palette.moonLight;
     final (double fl, double fr) = floorSpan;
-    // The sky in the panes.
-    _beam
-      ..shader = null
-      ..color = moon.withValues(alpha: 0.55 * a);
-    canvas.drawRect(
-      Rect.fromLTRB(paneLeft, paneTop - 1.2, paneRight, paneBottom),
-      _beam,
-    );
+    if (!_sky) {
+      // The sky in the panes.
+      _beam
+        ..shader = null
+        ..color = moon.withValues(alpha: 0.55 * a);
+      canvas.drawRect(
+        Rect.fromLTRB(paneLeft, paneTop - 1.2, paneRight, paneBottom),
+        _beam,
+      );
+    }
     final beam = Path()
       ..moveTo(paneLeft, paneTop)
       ..lineTo(paneRight, paneTop)
@@ -1204,6 +1332,7 @@ class MoonWindow extends Component
 
   @override
   void render(Canvas canvas) {
+    if (_sky) return;
     // The shutters over the panes (the panes' light is drawn behind the
     // window's stonework, in [paintLight], so it shows through its holes).
     final double w = paneRight - paneLeft;
@@ -1529,7 +1658,7 @@ class HungChandelier extends BodyComponent
     if ((p.x - body.position.x).abs() < width * 0.42 &&
         bottom > p.y - GameConfig.playerHeight / 2 &&
         bottom < p.y + GameConfig.playerHeight / 2 + 0.2) {
-      boy.die();
+      boy.die(cause: DeathCause.crushing);
     }
   }
 
