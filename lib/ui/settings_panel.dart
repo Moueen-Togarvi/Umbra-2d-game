@@ -23,6 +23,7 @@ class SettingsPanel extends StatefulWidget {
     this.initialTab = SettingsTab.display,
     this.onTry,
     this.width = 470,
+    this.centered = false,
   });
 
   final GameSettings settings;
@@ -31,6 +32,7 @@ class SettingsPanel extends StatefulWidget {
   final double unit;
   final SettingsTab initialTab;
   final double width;
+  final bool centered;
 
   /// Called with a piece of music as it is picked, to play it at once.
   final void Function(String id)? onTry;
@@ -57,29 +59,53 @@ class _SettingsPanelState extends State<SettingsPanel> {
       child: ListenableBuilder(
         listenable: settings,
         builder: (context, _) => Column(
-          crossAxisAlignment: CrossAxisAlignment.end,
+          crossAxisAlignment: widget.centered
+              ? CrossAxisAlignment.center
+              : CrossAxisAlignment.end,
           mainAxisSize: MainAxisSize.min,
           children: [
             // Smaller rather than cut off on a narrow screen.
-            FittedBox(
-              fit: BoxFit.scaleDown,
-              alignment: Alignment.centerRight,
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  for (final tab in SettingsTab.values)
-                    Padding(
-                      padding: EdgeInsets.only(left: u * 3.4),
-                      child: _Tab(
-                        label: _label(tab),
-                        chosen: tab == _tab,
-                        unit: u,
-                        onTap: () => setState(() => _tab = tab),
+            if (widget.centered)
+              Center(
+                child: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      for (final (index, tab)
+                          in SettingsTab.values.indexed) ...[
+                        if (index > 0) SizedBox(width: u * 3.4),
+                        _Tab(
+                          label: _label(tab),
+                          chosen: tab == _tab,
+                          unit: u,
+                          onTap: () => setState(() => _tab = tab),
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+              )
+            else
+              FittedBox(
+                fit: BoxFit.scaleDown,
+                alignment: Alignment.centerRight,
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    for (final tab in SettingsTab.values)
+                      Padding(
+                        padding: EdgeInsets.only(left: u * 3.4),
+                        child: _Tab(
+                          label: _label(tab),
+                          chosen: tab == _tab,
+                          unit: u,
+                          onTap: () => setState(() => _tab = tab),
+                        ),
                       ),
-                    ),
-                ],
+                  ],
+                ),
               ),
-            ),
             SizedBox(height: u * 3),
             ..._page(settings, u),
           ],

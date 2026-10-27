@@ -1,4 +1,3 @@
-import 'dart:math' as math;
 import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
@@ -6,57 +5,94 @@ import 'package:flutter/services.dart';
 
 import '../config/palette.dart';
 import '../game/umbra_game.dart';
-import 'menu_word.dart';
+import 'main_menu_choice.dart';
 import 'settings_panel.dart';
 
-/// The pause screen, over the game blurred and darkened: on the left the
-/// menu's words — Resume, Restart checkpoint, Main menu — and on the right
-/// the same settings as the main menu. Settings live outside the
-/// fixed-step simulation and persist independently.
+/// Pause menu styled to match the quiet, brush-highlighted title menu.
 class PauseScreen extends StatefulWidget {
   const PauseScreen({super.key, required this.game});
   final UmbraGame game;
+
   @override
   State<PauseScreen> createState() => _PauseScreenState();
 }
 
 class _PauseScreenState extends State<PauseScreen> {
   bool _leaving = false;
+  bool _showSettings = false;
+  int _selection = 0;
+
+  void _back() {
+    if (_showSettings) {
+      setState(() => _showSettings = false);
+    } else {
+      widget.game.resumeGameplay();
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final game = widget.game;
-    final Size size = MediaQuery.sizeOf(context);
-    final double unit = size.shortestSide / 100;
-    // Smaller rather than cut off where the column is narrow.
-    Widget word(
-      String numeral,
-      String label,
-      VoidCallback? onTap, {
-      bool primary = false,
-    }) => FittedBox(
-      fit: BoxFit.scaleDown,
-      alignment: Alignment.centerLeft,
-      child: MenuWord(
-        numeral: numeral,
-        label: label,
-        unit: unit,
-        scale: .8,
-        alignNumerals: true,
-        primary: primary,
-        onTap: onTap,
+    final size = MediaQuery.sizeOf(context);
+    final unit = size.shortestSide / 100;
+
+    final actions = <(String, VoidCallback?)>[
+      ('Resume', game.resumeGameplay),
+      ('Settings', () => setState(() => _showSettings = true)),
+      ('Reset puzzle', game.resetFromPause),
+      if (game.campaign)
+        (
+          'Main menu',
+          _leaving
+              ? null
+              : () async {
+                  setState(() => _leaving = true);
+                  await game.returnToTitle();
+                },
+        ),
+    ];
+
+    Widget title(String text) => Text(
+      text,
+      style: TextStyle(
+        fontFamily: 'Cinzel',
+        fontSize: (unit * 8.2).clamp(38, 72),
+        fontWeight: FontWeight.w400,
+        letterSpacing: (unit * 2).clamp(8, 17),
+        color: const Color(0xFFE1E0DE),
+        shadows: const [Shadow(color: Color(0x99000000), blurRadius: 12)],
       ),
     );
-    final menu = Column(
+
+    Widget choices() => Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       mainAxisSize: MainAxisSize.min,
       children: [
+        for (final (i, action) in actions.indexed)
+          MainMenuChoice(
+            label: action.$1,
+            unit: unit,
+            selected: i == _selection,
+            autofocus: i == 0,
+            onHighlight: () {
+              if (_selection != i) setState(() => _selection = i);
+            },
+            onTap: action.$2,
+          ),
+      ],
+    );
+
+    Widget settings(double width) => Column(
+      crossAxisAlignment: CrossAxisAlignment.center,
+      mainAxisSize: MainAxisSize.min,
+      children: [
         Text(
-          'PAUSED',
+          'SETTINGS',
           style: TextStyle(
             fontFamily: 'Cinzel',
-            color: Palette.lampAmber,
-            fontSize: (unit * 3.6).clamp(18, 30),
-            letterSpacing: unit * .9,
+            fontSize: (unit * 4).clamp(16, 28),
+            letterSpacing: unit * .8,
+            color: Palette.brandInk,
           ),
         ),
         SizedBox(height: unit * 1.4),
@@ -66,62 +102,52 @@ class _PauseScreenState extends State<PauseScreen> {
           color: Palette.lampAmber.withValues(alpha: .7),
         ),
         SizedBox(height: unit * 2),
-        word('I', 'Resume', game.resumeGameplay, primary: true),
-        word('II', 'Reset puzzle', game.resetFromPause),
-        if (game.campaign)
-          word(
-            'III',
-            'Main menu',
-            _leaving
-                ? null
-                : () async {
-                    setState(() => _leaving = true);
-                    await game.returnToTitle();
-                  },
-          ),
-        SizedBox(height: unit * 3),
-        Text(
-          'A / D  move     Space  jump\n'
-          'E  hold to grab or pull\n'
-          'S / Down  hold to crouch or hide\n'
-          'On a rope  W / S to climb',
-          style: TextStyle(
-            fontFamily: 'Cormorant',
-            fontStyle: FontStyle.italic,
-            fontSize: (unit * 2.4).clamp(12, 18),
-            height: 1.5,
-            color: Palette.brandInk.withValues(alpha: .42),
+        SettingsPanel(
+          settings: game.settings,
+          unit: unit,
+          width: width,
+          centered: true,
+        ),
+        SizedBox(height: unit * 1.4),
+        SizedBox(
+          width: width,
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Transform.translate(
+                offset: Offset(unit * 4, 0),
+                child: MainMenuChoice(
+                  label: 'Reset settings',
+                  unit: unit * .72,
+                  selected: false,
+                  autofocus: false,
+                  onHighlight: () {},
+                  onTap: game.settings.reset,
+                  centered: true,
+                ),
+              ),
+              SizedBox(width: unit * 5.5),
+              MainMenuChoice(
+                label: 'Back',
+                unit: unit * .72,
+                selected: true,
+                autofocus: false,
+                onHighlight: () {},
+                onTap: () => setState(() => _showSettings = false),
+                centered: true,
+              ),
+            ],
           ),
         ),
       ],
     );
-    Widget settings(double width) => Column(
-      crossAxisAlignment: CrossAxisAlignment.end,
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        SettingsPanel(settings: game.settings, unit: unit, width: width),
-        SizedBox(height: unit * 1.6),
-        _Small('Reset settings', unit, game.settings.reset),
-        Padding(
-          padding: EdgeInsets.only(right: unit * 1.2),
-          child: Text(
-            'Saved as you change them.',
-            style: TextStyle(
-              fontFamily: 'Cormorant',
-              fontStyle: FontStyle.italic,
-              fontSize: (unit * 2.2).clamp(11, 16),
-              color: Palette.brandInk.withValues(alpha: .35),
-            ),
-          ),
-        ),
-      ],
-    );
+
     return Focus(
       autofocus: true,
       onKeyEvent: (_, event) {
         if (event is KeyDownEvent &&
             event.logicalKey == LogicalKeyboardKey.escape) {
-          game.resumeGameplay();
+          _back();
           return KeyEventResult.handled;
         }
         return KeyEventResult.ignored;
@@ -131,43 +157,72 @@ class _PauseScreenState extends State<PauseScreen> {
         child: Stack(
           fit: StackFit.expand,
           children: [
-            // The game, held still behind, blurred and darkened.
             BackdropFilter(
-              filter: ui.ImageFilter.blur(sigmaX: 9, sigmaY: 9),
-              child: const ColoredBox(color: Color(0xBF080A0B)),
+              filter: ui.ImageFilter.blur(sigmaX: 8, sigmaY: 8),
+              child: const ColoredBox(color: Color(0xA6080A0B)),
             ),
             SafeArea(
               minimum: const EdgeInsets.all(18),
               child: LayoutBuilder(
                 builder: (context, bounds) {
-                  if (bounds.maxWidth < 620) {
-                    return SingleChildScrollView(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        children: [
-                          menu,
-                          SizedBox(height: unit * 5),
-                          settings(bounds.maxWidth),
-                        ],
-                      ),
-                    );
-                  }
-                  final double width = math.min(
-                    (unit * 70).clamp(380, 620),
-                    bounds.maxWidth * .58,
+                  final compact = bounds.maxWidth < 620;
+                  final content = AnimatedSwitcher(
+                    duration: const Duration(milliseconds: 220),
+                    switchInCurve: Curves.easeOut,
+                    switchOutCurve: Curves.easeIn,
+                    child: _showSettings
+                        ? KeyedSubtree(
+                            key: const ValueKey('settings'),
+                            child: settings(
+                              compact
+                                  ? bounds.maxWidth * .92
+                                  : (unit * 64)
+                                        .clamp(400, bounds.maxWidth * .9)
+                                        .toDouble(),
+                            ),
+                          )
+                        : KeyedSubtree(
+                            key: const ValueKey('pause-menu'),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                title('UMBRA'),
+                                SizedBox(height: unit * 1.2),
+                                Text(
+                                  'PAUSED',
+                                  style: TextStyle(
+                                    fontFamily: 'Cinzel',
+                                    fontSize: (unit * 2).clamp(12, 18),
+                                    letterSpacing: unit * .8,
+                                    color: Palette.brandInk.withValues(
+                                      alpha: .72,
+                                    ),
+                                  ),
+                                ),
+                                SizedBox(height: unit * 3),
+                                choices(),
+                              ],
+                            ),
+                          ),
                   );
-                  return Padding(
-                    padding: EdgeInsets.symmetric(
-                      horizontal: size.width * .05,
-                      vertical: size.height * .04,
-                    ),
-                    child: Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Expanded(child: SingleChildScrollView(child: menu)),
-                        SizedBox(width: unit * 4),
-                        SingleChildScrollView(child: settings(width)),
-                      ],
+                  return Align(
+                    alignment: _showSettings
+                        ? Alignment.center
+                        : compact
+                        ? const Alignment(-.9, -.1)
+                        : const Alignment(-.82, 0),
+                    child: SingleChildScrollView(
+                      child: ConstrainedBox(
+                        constraints: BoxConstraints(
+                          maxWidth: _showSettings
+                              ? bounds.maxWidth
+                              : compact
+                              ? bounds.maxWidth
+                              : bounds.maxWidth * .62,
+                        ),
+                        child: content,
+                      ),
                     ),
                   );
                 },
@@ -178,39 +233,4 @@ class _PauseScreenState extends State<PauseScreen> {
       ),
     );
   }
-}
-
-/// A small italic word to press, lit amber under the pointer or focused.
-class _Small extends StatelessWidget {
-  const _Small(this.label, this.unit, this.onTap);
-  final String label;
-  final double unit;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) => TextButton(
-    onPressed: onTap,
-    style: ButtonStyle(
-      foregroundColor: WidgetStateProperty.resolveWith(
-        (states) =>
-            states.contains(WidgetState.hovered) ||
-                states.contains(WidgetState.focused)
-            ? Palette.lampAmber
-            : Palette.brandInk.withValues(alpha: .7),
-      ),
-      overlayColor: const WidgetStatePropertyAll(Colors.transparent),
-      minimumSize: const WidgetStatePropertyAll(Size(44, 44)),
-      padding: WidgetStatePropertyAll(
-        EdgeInsets.symmetric(horizontal: unit * 1.2),
-      ),
-      textStyle: WidgetStatePropertyAll(
-        TextStyle(
-          fontFamily: 'Cormorant',
-          fontStyle: FontStyle.italic,
-          fontSize: (unit * 3).clamp(15, 22),
-        ),
-      ),
-    ),
-    child: Text(label),
-  );
 }

@@ -105,7 +105,7 @@ void main() {
     await tap.up();
     expect(game.isGameplayPaused, isTrue);
     expect(find.text('PAUSED'), findsOneWidget);
-    await tester.tap(find.text('Resume'));
+    await tester.tap(find.text('RESUME'));
     await tester.pump(const Duration(milliseconds: 100));
     expect(game.isGameplayPaused, isFalse);
   });
@@ -128,7 +128,7 @@ void main() {
     game.settings.set('controlsScale', 1.2);
     game.settings.set('controlsOpacity', .4);
     await touch.up();
-    await tester.tap(find.text('Resume'));
+    await tester.tap(find.text('RESUME'));
     await advance(tester, 5);
     final resized = game.camera.viewport.children
         .whereType<HudButtonComponent>()
