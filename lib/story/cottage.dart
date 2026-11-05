@@ -7,8 +7,6 @@ import 'package:flame/flame.dart';
 import 'package:flame/game.dart' show FlameGame;
 
 import '../config/palette.dart';
-import '../render/mood.dart';
-import '../world/stage.dart';
 import 'figures.dart';
 
 /// The boy's home: the baked cottage silhouette with its lamp lit inside.
@@ -94,7 +92,6 @@ class Cottage extends Component {
 
   double _time = 0;
   Image? _art;
-  Stage? _stage;
   CameraComponent? _camera;
   final Paint _paint = Paint();
   final Paint _image = Paint()..filterQuality = FilterQuality.medium;
@@ -113,7 +110,6 @@ class Cottage extends Component {
     await mother.load();
     final game = findGame();
     if (game is FlameGame) _camera = game.camera;
-    _stage = ancestors().whereType<Stage>().firstOrNull;
     try {
       _art = await Flame.images.load(art);
     } catch (_) {}
@@ -162,16 +158,9 @@ class Cottage extends Component {
     // The lamp itself, on the sill of the right window.
     _lampOnSill(canvas, windows[2], flame);
 
-    // 2. The cottage, a little lighter than the boy.
+    // 2. Preserve the cottage artwork's original monochrome shading.
     final Image? art = _art;
     if (art != null) {
-      final Mood mood =
-          _stage?.moods.at(_camera?.viewfinder.position.x ?? centreX) ??
-          Mood.dusk;
-      _image.colorFilter = ColorFilter.mode(
-        Color.lerp(const Color(0xFF000000), mood.sky[2], 0.17)!,
-        BlendMode.srcIn,
-      );
       canvas.drawImageRect(
         art,
         Rect.fromLTWH(0, 0, art.width.toDouble(), art.height.toDouble()),
@@ -310,7 +299,7 @@ class Cottage extends Component {
     final double fx = hx + d.width * c;
     final double mid = d.center.dy;
     final double half = d.height / 2;
-    _paint.color = const Color(0xFF040302);
+    _paint.color = const Color(0xFF323435);
     canvas.drawPath(
       Path()
         ..moveTo(hx, d.top)

@@ -29,6 +29,16 @@ android {
         versionName = flutter.versionName
     }
 
+    signingConfigs {
+        getByName("debug") {
+            // Keep sideloaded builds installable on Android versions that only
+            // understand the original JAR signature, while retaining v2 for
+            // modern devices.
+            enableV1Signing = true
+            enableV2Signing = true
+        }
+    }
+
     buildTypes {
         release {
             // TODO: Add your own signing config for the release build.
