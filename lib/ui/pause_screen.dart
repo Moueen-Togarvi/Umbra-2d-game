@@ -20,6 +20,7 @@ class PauseScreen extends StatefulWidget {
 class _PauseScreenState extends State<PauseScreen> {
   bool _leaving = false;
   bool _showSettings = false;
+  bool _settingsRestored = false;
   int _selection = 0;
 
   void _back() {
@@ -38,8 +39,7 @@ class _PauseScreenState extends State<PauseScreen> {
 
     final actions = <(String, VoidCallback?)>[
       ('Resume', game.resumeGameplay),
-      ('Settings', () => setState(() => _showSettings = true)),
-      ('Reset puzzle', game.resetFromPause),
+      ('Restart', game.resetFromPause),
       if (game.campaign)
         (
           'Main menu',
@@ -50,6 +50,7 @@ class _PauseScreenState extends State<PauseScreen> {
                   await game.returnToTitle();
                 },
         ),
+      ('Settings', () => setState(() => _showSettings = true)),
     ];
 
     Widget title(String text) => Text(
@@ -59,13 +60,13 @@ class _PauseScreenState extends State<PauseScreen> {
         fontSize: (unit * 8.2).clamp(38, 72),
         fontWeight: FontWeight.w400,
         letterSpacing: (unit * 2).clamp(8, 17),
-        color: const Color(0xFFE1E0DE),
+        color: Palette.brandInk,
         shadows: const [Shadow(color: Color(0x99000000), blurRadius: 12)],
       ),
     );
 
     Widget choices() => Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+      crossAxisAlignment: CrossAxisAlignment.center,
       mainAxisSize: MainAxisSize.min,
       children: [
         for (final (i, action) in actions.indexed)
@@ -73,11 +74,13 @@ class _PauseScreenState extends State<PauseScreen> {
             label: action.$1,
             unit: unit,
             selected: i == _selection,
+            amberSelected: true,
             autofocus: i == 0,
             onHighlight: () {
               if (_selection != i) setState(() => _selection = i);
             },
             onTap: action.$2,
+            centered: true,
           ),
       ],
     );
@@ -111,32 +114,51 @@ class _PauseScreenState extends State<PauseScreen> {
         SizedBox(height: unit * 1.4),
         SizedBox(
           width: width,
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Transform.translate(
-                offset: Offset(unit * 4, 0),
-                child: MainMenuChoice(
-                  label: 'Reset settings',
-                  unit: unit * .72,
-                  selected: false,
-                  autofocus: false,
-                  onHighlight: () {},
-                  onTap: game.settings.reset,
-                  centered: true,
-                ),
-              ),
-              SizedBox(width: unit * 5.5),
-              MainMenuChoice(
+          child: LayoutBuilder(
+            builder: (context, actionsBounds) {
+              final reset = MainMenuChoice(
+                label: 'Reset settings',
+                wordSpacing: unit * 5.2,
+                minimumWidth: 0,
+                unit: unit * .72,
+                selected: false,
+                autofocus: false,
+                onHighlight: () {},
+                onTap: () async {
+                  await game.settings.reset();
+                  if (mounted) {
+                    setState(() => _settingsRestored = true);
+                  }
+                },
+                centered: true,
+              );
+              final back = MainMenuChoice(
                 label: 'Back',
+                minimumWidth: 0,
                 unit: unit * .72,
                 selected: true,
                 autofocus: false,
                 onHighlight: () {},
                 onTap: () => setState(() => _showSettings = false),
                 centered: true,
-              ),
-            ],
+              );
+              if (actionsBounds.maxWidth < 380) {
+                return Wrap(
+                  alignment: WrapAlignment.center,
+                  spacing: unit * 2,
+                  runSpacing: unit,
+                  children: [reset, back],
+                );
+              }
+              return Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  reset,
+                  SizedBox(width: unit * 4),
+                  back,
+                ],
+              );
+            },
           ),
         ),
       ],
@@ -161,6 +183,17 @@ class _PauseScreenState extends State<PauseScreen> {
               filter: ui.ImageFilter.blur(sigmaX: 8, sigmaY: 8),
               child: const ColoredBox(color: Color(0xA6080A0B)),
             ),
+            if (_settingsRestored && _showSettings)
+              const Positioned(
+                bottom: 20,
+                left: 20,
+                right: 20,
+                child: Text(
+                  'Settings restored',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(color: Palette.brandInk),
+                ),
+              ),
             SafeArea(
               minimum: const EdgeInsets.all(18),
               child: LayoutBuilder(
@@ -184,7 +217,7 @@ class _PauseScreenState extends State<PauseScreen> {
                         : KeyedSubtree(
                             key: const ValueKey('pause-menu'),
                             child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
+                              crossAxisAlignment: CrossAxisAlignment.center,
                               mainAxisSize: MainAxisSize.min,
                               children: [
                                 title('UMBRA'),
@@ -207,11 +240,7 @@ class _PauseScreenState extends State<PauseScreen> {
                           ),
                   );
                   return Align(
-                    alignment: _showSettings
-                        ? Alignment.center
-                        : compact
-                        ? const Alignment(-.9, -.1)
-                        : const Alignment(-.82, 0),
+                    alignment: Alignment.center,
                     child: SingleChildScrollView(
                       child: ConstrainedBox(
                         constraints: BoxConstraints(

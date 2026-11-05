@@ -124,16 +124,43 @@ class _SettingsPanelState extends State<SettingsPanel> {
     SettingsTab.display => [
       _SliderRow(s, 'Brightness', 'brightness', u, min: .8, max: 1.3),
       _SliderRow(s, 'Film grain', 'atmosphere', u),
+      _ToggleRow(
+        'Camera shake',
+        s.cameraShake,
+        u,
+        (on) => s.setFlag('cameraShake', on),
+        id: 'cameraShake',
+        compact: true,
+      ),
     ],
     SettingsTab.controls => [
       _SliderRow(s, 'Button size', 'controlsScale', u, min: .8, max: 1.3),
       _SliderRow(s, 'Button opacity', 'controlsOpacity', u, min: .3, max: 1),
-      _ToggleRow(
-        'Vibration',
-        s.vibration,
-        u,
-        (on) => s.setFlag('vibration', on),
-        id: 'vibration',
+      Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Flexible(
+            child: _ToggleRow(
+              'Left-handed',
+              s.leftHanded,
+              u,
+              (on) => s.setFlag('leftHanded', on),
+              id: 'leftHanded',
+              compact: true,
+            ),
+          ),
+          SizedBox(width: u * 3),
+          Flexible(
+            child: _ToggleRow(
+              'Vibration',
+              s.vibration,
+              u,
+              (on) => s.setFlag('vibration', on),
+              id: 'vibration',
+              compact: true,
+            ),
+          ),
+        ],
       ),
     ],
     SettingsTab.sound => [
@@ -283,13 +310,17 @@ class _SliderRow extends StatelessWidget {
       child: Row(
         children: [
           Expanded(
-            child: Text(
-              label,
-              textAlign: TextAlign.right,
-              maxLines: 1,
-              style: _italic(
-                (unit * 3.6).clamp(16, 28),
-                Palette.brandInk.withValues(alpha: .92),
+            child: FittedBox(
+              fit: BoxFit.scaleDown,
+              alignment: Alignment.centerRight,
+              child: Text(
+                label,
+                textAlign: TextAlign.right,
+                maxLines: 1,
+                style: _italic(
+                  (unit * 3.6).clamp(16, 28),
+                  Palette.brandInk.withValues(alpha: .92),
+                ),
               ),
             ),
           ),
@@ -331,8 +362,10 @@ class _ToggleRow extends StatelessWidget {
     this.unit,
     this.changed, {
     required this.id,
+    this.compact = false,
   });
   final String label, id;
+  final bool compact;
   final bool on;
   final double unit;
   final ValueChanged<bool> changed;
@@ -341,23 +374,28 @@ class _ToggleRow extends StatelessWidget {
   Widget build(BuildContext context) => SizedBox(
     height: (unit * 7.6).clamp(44, 64),
     child: Row(
-      mainAxisAlignment: MainAxisAlignment.end,
+      mainAxisAlignment: compact
+          ? MainAxisAlignment.center
+          : MainAxisAlignment.end,
+      mainAxisSize: compact ? MainAxisSize.min : MainAxisSize.max,
       children: [
-        Text(
-          label,
-          style: _italic(
-            (unit * 3.6).clamp(16, 28),
-            Palette.brandInk.withValues(alpha: .92),
+        Flexible(
+          child: Text(
+            label,
+            style: _italic(
+              (unit * 3.6).clamp(16, 28),
+              Palette.brandInk.withValues(alpha: .92),
+            ),
           ),
         ),
-        SizedBox(width: unit * 3.2),
+        SizedBox(width: compact ? unit * 1.4 : unit * 3.2),
         PillToggle(
           key: ValueKey('toggle-$id'),
           value: on,
           label: label,
           onChanged: changed,
         ),
-        SizedBox(width: unit * 6),
+        if (!compact) SizedBox(width: unit * 6),
       ],
     ),
   );

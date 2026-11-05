@@ -1,4 +1,5 @@
 import 'dart:math' as math;
+import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -124,7 +125,7 @@ class _TitleScreenState extends State<TitleScreen>
                 ),
         ),
       (
-        'Begin',
+        'New game',
         director == null
             ? null
             : progress.canContinue
@@ -151,18 +152,32 @@ class _TitleScreenState extends State<TitleScreen>
                 fontSize: (unit * 8.2).clamp(38, 72),
                 fontWeight: FontWeight.w400,
                 letterSpacing: (unit * 2).clamp(8, 17),
-                color: const Color(0xFFE1E0DE),
+                color: Palette.brandInk,
                 shadows: const [
                   Shadow(color: Color(0x66000000), blurRadius: 16),
                 ],
               ),
             ),
             SizedBox(height: (unit * 5.4).clamp(22, 48)),
+            if (progress.canContinue)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 8),
+                child: Text(
+                  'Continue: ${Chapters.all[progress.current].title}',
+                  style: const TextStyle(color: Palette.brandInk, fontSize: 14),
+                ),
+              ),
+            if (progress.saveFailed)
+              const Text(
+                'Progress could not be saved. Please check device storage.',
+                style: TextStyle(color: Palette.brandInk, fontSize: 14),
+              ),
             for (final (i, (label, onTap)) in choices.indexed)
               MainMenuChoice(
                 label: label,
                 unit: unit,
                 selected: i == _mainSelection,
+                amberSelected: true,
                 autofocus: i == 0,
                 onHighlight: () {
                   if (_mainSelection != i) {
@@ -248,6 +263,10 @@ class _TitleScreenState extends State<TitleScreen>
               ),
               child: const MenuScene(),
             ),
+            BackdropFilter(
+              filter: ui.ImageFilter.blur(sigmaX: 8, sigmaY: 8),
+              child: const ColoredBox(color: Color(0xA6080A0B)),
+            ),
             FadeTransition(
               opacity: CurvedAnimation(
                 parent: _fade,
@@ -260,7 +279,7 @@ class _TitleScreenState extends State<TitleScreen>
                   if (_page == _Page.confirmBegin)
                     words([
                       Text(
-                        'Begin again?',
+                        'Start a new game?',
                         style: TextStyle(
                           fontFamily: 'Cormorant',
                           fontStyle: FontStyle.italic,
@@ -290,7 +309,7 @@ class _TitleScreenState extends State<TitleScreen>
                       SizedBox(height: unit * 3),
                       MenuWord(
                         numeral: 'I',
-                        label: 'Begin again',
+                        label: 'New game',
                         unit: unit,
                         primary: true,
                         onTap: director == null

@@ -4,6 +4,19 @@ import 'package:umbra/config/game_settings.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
+  test('accessibility settings persist and reset', () async {
+    SharedPreferences.setMockInitialValues({});
+    final settings = await GameSettings.load();
+    settings.setFlag('cameraShake', false);
+    settings.setFlag('leftHanded', true);
+    await Future<void>.delayed(Duration.zero);
+    final loaded = await GameSettings.load();
+    expect(loaded.cameraShake, isFalse);
+    expect(loaded.leftHanded, isTrue);
+    await loaded.reset();
+    expect(loaded.cameraShake, isTrue);
+    expect(loaded.leftHanded, isFalse);
+  });
   test('settings survive reload without changing chapter progress', () async {
     SharedPreferences.setMockInitialValues({'umbra.reachedChapter': 4});
     final settings = await GameSettings.load();

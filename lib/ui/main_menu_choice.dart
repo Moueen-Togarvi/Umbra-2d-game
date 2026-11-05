@@ -13,12 +13,18 @@ class MainMenuChoice extends StatelessWidget {
     required this.onHighlight,
     required this.onTap,
     this.centered = false,
+    this.minimumWidth = 180,
+    this.wordSpacing = 0,
+    this.amberSelected = false,
   });
 
   final String label;
   final double unit;
   final bool selected, autofocus;
   final bool centered;
+  final double minimumWidth;
+  final double wordSpacing;
+  final bool amberSelected;
   final VoidCallback onHighlight;
   final VoidCallback? onTap;
 
@@ -37,7 +43,7 @@ class MainMenuChoice extends StatelessWidget {
           if (focused) onHighlight();
         },
         style: ButtonStyle(
-          minimumSize: const WidgetStatePropertyAll(Size(180, 46)),
+          minimumSize: WidgetStatePropertyAll(Size(minimumWidth, 46)),
           alignment: centered ? Alignment.center : Alignment.centerLeft,
           padding: WidgetStatePropertyAll(
             EdgeInsets.symmetric(
@@ -48,7 +54,7 @@ class MainMenuChoice extends StatelessWidget {
           overlayColor: const WidgetStatePropertyAll(Colors.transparent),
         ),
         child: CustomPaint(
-          painter: selected ? const _BrushMark() : null,
+          painter: selected ? _BrushMark(amber: amberSelected) : null,
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
             child: Text(
@@ -58,6 +64,7 @@ class MainMenuChoice extends StatelessWidget {
                 fontSize: fontSize,
                 fontWeight: FontWeight.w400,
                 letterSpacing: (unit * .72).clamp(3.5, 6),
+                wordSpacing: wordSpacing,
                 color: selected
                     ? const Color(0xFF171719)
                     : Palette.brandInk.withValues(alpha: .92),
@@ -74,11 +81,15 @@ class MainMenuChoice extends StatelessWidget {
 }
 
 class _BrushMark extends CustomPainter {
-  const _BrushMark();
+  const _BrushMark({this.amber = false});
+  final bool amber;
 
   @override
   void paint(Canvas canvas, Size size) {
-    final Paint paint = Paint()..color = const Color(0xE9E7E5E1);
+    final Paint paint = Paint()
+      ..color = amber
+          ? Palette.lampAmber.withValues(alpha: .92)
+          : const Color(0xE9E7E5E1);
     final Path stroke = Path()
       ..moveTo(-9, size.height * .22)
       ..quadraticBezierTo(size.width * .18, -2, size.width * .43, 1)
@@ -105,11 +116,17 @@ class _BrushMark extends CustomPainter {
     canvas.drawPath(stroke, paint);
     canvas.drawRect(
       Rect.fromLTWH(-14, size.height * .42, 10, 1.5),
-      paint..color = const Color(0x99E7E5E1),
+      paint
+        ..color = amber
+            ? Palette.lampAmber.withValues(alpha: .55)
+            : const Color(0x99E7E5E1),
     );
     canvas.drawRect(
       Rect.fromLTWH(size.width + 2, size.height * .58, 13, 1),
-      paint..color = const Color(0x88E7E5E1),
+      paint
+        ..color = amber
+            ? Palette.lampAmber.withValues(alpha: .48)
+            : const Color(0x88E7E5E1),
     );
   }
 

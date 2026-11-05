@@ -247,7 +247,14 @@ class TouchControls {
         opacity: () => settings.controlsOpacity,
         size: size,
       ),
-      margin: margin,
+      margin: settings.leftHanded && margin.bottom > 0
+          ? EdgeInsets.fromLTRB(
+              margin.right,
+              margin.top,
+              margin.left,
+              margin.bottom,
+            )
+          : margin,
       onPressed: () {
         if (settings.vibration) {
           unawaited(HapticFeedback.lightImpact().catchError((Object _) {}));
