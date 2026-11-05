@@ -21,6 +21,8 @@ class GameSettings extends ChangeNotifier {
     background = track is String ? track : defaultBackground;
     final vibrationFlag = _preferences?.get('umbra.settings.vibration');
     vibration = vibrationFlag is bool ? vibrationFlag : true;
+    cameraShake = _preferences?.getBool('umbra.settings.cameraShake') ?? true;
+    leftHanded = _preferences?.getBool('umbra.settings.leftHanded') ?? false;
   }
 
   /// The music under play until the player picks another.
@@ -32,6 +34,7 @@ class GameSettings extends ChangeNotifier {
 
   /// Music on or off, and all sound on or off (the speaker).
   late bool musicOn, soundOn, vibration;
+  late bool cameraShake, leftHanded;
 
   /// The music under play: one of the backgrounds in the sound bank.
   late String background;
@@ -92,6 +95,10 @@ class GameSettings extends ChangeNotifier {
         soundOn = value;
       case 'vibration':
         vibration = value;
+      case 'cameraShake':
+        cameraShake = value;
+      case 'leftHanded':
+        leftHanded = value;
       default:
         throw ArgumentError.value(key, 'key');
     }
@@ -128,6 +135,8 @@ class GameSettings extends ChangeNotifier {
     musicOn = defaults.musicOn;
     soundOn = defaults.soundOn;
     vibration = defaults.vibration;
+    cameraShake = defaults.cameraShake;
+    leftHanded = defaults.leftHanded;
     background = defaults.background;
     notifyListeners();
     for (final key in _preferences?.getKeys().toList() ?? <String>[]) {

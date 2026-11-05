@@ -381,6 +381,8 @@ class PuzzleRoom {
   int? movingCoverIndex;
   double hintPulse = 0;
   double idleSeconds = 0;
+  double _hintCooldown = 0;
+  double _highest = double.infinity;
   double _furthest = double.negativeInfinity;
   bool? _doorWasShut;
 
@@ -414,6 +416,8 @@ class PuzzleRoom {
     }
     if (hunter != null) hunter!.reset(hunterStart!);
     idleSeconds = 0;
+    _hintCooldown = 0;
+    _highest = double.infinity;
     hintPulse = 0;
     pulseTarget = null;
     _furthest = double.negativeInfinity;
@@ -2134,18 +2138,29 @@ class PuzzleRoute extends Component {
     final local = boy.body.position.x - room.x;
     if (local < 1 || local > room.length - 1) return;
 
-    if (local > room._furthest + .7) {
-      room._furthest = local;
+    room._hintCooldown = math.max(0, room._hintCooldown - dt);
+    final rising = boy.body.position.y < room._highest - .7;
+    final mechanismChanged =
+        room._doorWasShut != null &&
+        room.door != null &&
+        room._doorWasShut != room.door!.shut;
+    if (local > room._furthest + .7 || rising || mechanismChanged) {
+      room._furthest = math.max(room._furthest, local);
+      room._highest = math.min(room._highest, boy.body.position.y);
       room.idleSeconds = 0;
-    } else if (boy.velocity.length < 1.1) {
+      room._hintCooldown = 0;
+    } else {
       room.idleSeconds += dt;
     }
-    final threshold = room.idleSeconds > 36 ? 7.0 : 22.0;
-    if (room.idleSeconds >= threshold && room.hintPulse <= 0) {
+    if (room.idleSeconds >= 22 && room._hintCooldown <= 0) {
       room.hintPulse = 2.2;
-      room.idleSeconds = room.idleSeconds > 36 ? 29 : 0;
+      room._hintCooldown = room.idleSeconds >= 36 ? 7 : 14;
       room.pulseTarget = null;
-      stage.cue('tick', weight: .3, at: room.hintTarget);
+      stage.cue(
+        'tick',
+        weight: room.idleSeconds >= 36 ? .55 : .3,
+        at: room.hintTarget,
+      );
     }
 
     final door = room.door;
