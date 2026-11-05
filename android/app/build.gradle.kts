@@ -31,9 +31,7 @@ android {
 
     signingConfigs {
         getByName("debug") {
-            // Keep sideloaded builds installable on Android versions that only
-            // understand the original JAR signature, while retaining v2 for
-            // modern devices.
+            // Android 7+ validates v2; AGP may omit v1 when minSdk is 24.
             enableV1Signing = true
             enableV2Signing = true
         }
