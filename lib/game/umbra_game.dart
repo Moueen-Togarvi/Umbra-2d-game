@@ -103,6 +103,7 @@ class UmbraGame extends Forge2DGame with HasKeyboardHandlerComponents {
   );
   void unlockAudio() => _audio.unlock();
   double _controlScale = 1;
+  bool _leftHanded = false;
   int _heardLandings = 0, _heardSits = 0;
   double _interactionSoundCooldown = 0;
 
@@ -190,8 +191,10 @@ class UmbraGame extends Forge2DGame with HasKeyboardHandlerComponents {
 
   void _settingsChanged() {
     _audio.updateMix();
-    if (_controlScale != settings.controlsScale) {
+    if (_controlScale != settings.controlsScale ||
+        _leftHanded != settings.leftHanded) {
       _controlScale = settings.controlsScale;
+      _leftHanded = settings.leftHanded;
       _touchControls.removeButtons();
       camera.viewport.addAll(_touchControls.buildButtons());
     }
@@ -675,6 +678,11 @@ class UmbraGame extends Forge2DGame with HasKeyboardHandlerComponents {
   /// A hard landing jolts the view: mostly up and down, a little sideways,
   /// fading out fast.
   Vector2 _shake(Player player, double dt) {
+    if (!settings.cameraShake) {
+      _seenLandings = player.landings;
+      _trauma = 0;
+      return Vector2.zero();
+    }
     if (player.landings != _seenLandings) {
       _seenLandings = player.landings;
       final double impact = player.lastLandingImpact;

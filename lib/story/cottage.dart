@@ -25,10 +25,10 @@ class Cottage extends Component {
   Cottage({required this.centreX, required this.groundY, this.height = 8.6})
     : super(priority: -6);
 
-  static const String art = 'part1/ch1_cottage.png';
+  static const String art = 'part1/ch1_cottage_v2.png';
 
   /// The art's size in pixels, inside the transparent border the bake adds.
-  static const double artWidth = 1171, artHeight = 728, artPad = 4;
+  static const double artWidth = 1587, artHeight = 991, artPad = 0;
 
   /// The art's width over its height, border included.
   static const double aspect =
@@ -36,11 +36,11 @@ class Cottage extends Component {
 
   /// Openings, as fractions of the art (left, top, right, bottom); they
   /// match the cut rectangles in `tools/part1_bake.json`.
-  static const Rect doorFraction = Rect.fromLTRB(0.401, 0.742, 0.459, 0.953);
+  static const Rect doorFraction = Rect.fromLTRB(0.299, 0.704, 0.402, 0.965);
   static const List<Rect> windowFractions = [
-    Rect.fromLTRB(0.322, 0.452, 0.378, 0.548),
-    Rect.fromLTRB(0.557, 0.752, 0.598, 0.83),
-    Rect.fromLTRB(0.667, 0.752, 0.709, 0.83),
+    Rect.fromLTRB(0.252, 0.398, 0.319, 0.52),
+    Rect.fromLTRB(0.503, 0.701, 0.568, 0.82),
+    Rect.fromLTRB(0.628, 0.701, 0.694, 0.82),
   ];
 
   final double centreX, groundY, height;

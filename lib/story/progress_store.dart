@@ -10,6 +10,8 @@ class ProgressStore {
   ProgressStore._(this._prefs, this._reached, this._current, this.checkpoint);
   final SharedPreferences? _prefs;
   static const key = 'umbra.campaign.v2';
+  static const backupKey = 'umbra.campaign.v2.backup';
+  bool saveFailed = false;
   int _reached, _current;
   String? checkpoint;
   Future<void> _pending = Future.value();
@@ -20,25 +22,27 @@ class ProgressStore {
   static Future<ProgressStore> load() async {
     try {
       final prefs = await SharedPreferences.getInstance();
-      final raw = prefs.getString(key);
-      if (raw != null) {
-        try {
-          final data = jsonDecode(raw) as Map<String, dynamic>;
-          final reached = CampaignCatalog.indexOf(data['furthest'] as String);
-          final current = CampaignCatalog.indexOf(data['chapter'] as String);
-          if (data['version'] == 2 &&
-              reached >= 0 &&
-              current >= 0 &&
-              current <= reached) {
-            return ProgressStore._(
-              prefs,
-              reached,
-              current,
-              data['checkpoint'] as String?,
-            );
+      for (final recordKey in [key, backupKey]) {
+        final raw = prefs.getString(recordKey);
+        if (raw != null) {
+          try {
+            final data = jsonDecode(raw) as Map<String, dynamic>;
+            final reached = CampaignCatalog.indexOf(data['furthest'] as String);
+            final current = CampaignCatalog.indexOf(data['chapter'] as String);
+            if (data['version'] == 2 &&
+                reached >= 0 &&
+                current >= 0 &&
+                current <= reached) {
+              return ProgressStore._(
+                prefs,
+                reached,
+                current,
+                data['checkpoint'] as String?,
+              );
+            }
+          } catch (_) {
+            /* Recover using the untouched legacy record. */
           }
-        } catch (_) {
-          /* Recover using the untouched legacy record. */
         }
       }
       final old = prefs.getInt('umbra.reachedChapter') ?? 0;
@@ -59,10 +63,23 @@ class ProgressStore {
       'checkpoint': checkpoint,
     });
     _pending = _pending.then((_) async {
-      try {
-        await _prefs?.setString(key, value);
-      } catch (_) {
-        /* Keep this session playable. */
+      if (_prefs == null) return;
+      for (var attempt = 0; attempt < 3; attempt++) {
+        try {
+          if (!await _prefs.setString(key, value)) {
+            throw StateError('Progress write failed');
+          }
+          saveFailed = false;
+          await _prefs.setString(backupKey, value);
+          return;
+        } catch (_) {
+          saveFailed = true;
+          if (attempt < 2) {
+            await Future<void>.delayed(
+              Duration(milliseconds: 100 * (attempt + 1)),
+            );
+          }
+        }
       }
     });
     return _pending;
