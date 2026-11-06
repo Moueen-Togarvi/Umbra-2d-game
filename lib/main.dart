@@ -11,6 +11,7 @@ import 'game/umbra_game.dart';
 import 'story/chapter_director.dart';
 import 'story/progress_store.dart';
 import 'ui/title_screen.dart';
+import 'ui/startup_intro.dart';
 import 'ui/pause_screen.dart';
 import 'ui/chapter_complete_screen.dart';
 
@@ -65,27 +66,34 @@ Future<void> main() async {
     MaterialApp(
       debugShowCheckedModeBanner: false,
       theme: ThemeData.dark(useMaterial3: true),
-      home: PopScope(
-        // Back never closes the game by itself: see UmbraGame.backPressed.
-        canPop: false,
-        onPopInvokedWithResult: (didPop, _) {
-          if (!didPop) game.backPressed();
-        },
-        child: Listener(
-          onPointerDown: (_) => game.unlockAudio(),
-          child: GameWidget<UmbraGame>(
-            game: game,
-            loadingBuilder: (_) => const ColoredBox(color: Palette.brandBlack),
-            overlayBuilderMap: {
-              ChapterDirector.titleOverlay: (context, game) =>
-                  TitleScreen(game: game),
-              UmbraGame.pauseOverlay: (context, game) =>
-                  PauseScreen(game: game),
-              ChapterDirector.completeOverlay: (context, game) =>
-                  ChapterCompleteScreen(game: game),
+      home: Stack(
+        fit: StackFit.expand,
+        children: [
+          PopScope(
+            // Back never closes the game by itself: see UmbraGame.backPressed.
+            canPop: false,
+            onPopInvokedWithResult: (didPop, _) {
+              if (!didPop) game.backPressed();
             },
+            child: Listener(
+              onPointerDown: (_) => game.unlockAudio(),
+              child: GameWidget<UmbraGame>(
+                game: game,
+                loadingBuilder: (_) =>
+                    const ColoredBox(color: Palette.brandBlack),
+                overlayBuilderMap: {
+                  ChapterDirector.titleOverlay: (context, game) =>
+                      TitleScreen(game: game),
+                  UmbraGame.pauseOverlay: (context, game) =>
+                      PauseScreen(game: game),
+                  ChapterDirector.completeOverlay: (context, game) =>
+                      ChapterCompleteScreen(game: game),
+                },
+              ),
+            ),
           ),
-        ),
+          const StartupIntro(),
+        ],
       ),
     ),
   );
