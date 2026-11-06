@@ -1,3 +1,4 @@
+import 'dart:math' as math;
 import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
@@ -18,9 +19,20 @@ class ChapterCompleteScreen extends StatefulWidget {
   State<ChapterCompleteScreen> createState() => _ChapterCompleteScreenState();
 }
 
-class _ChapterCompleteScreenState extends State<ChapterCompleteScreen> {
+class _ChapterCompleteScreenState extends State<ChapterCompleteScreen>
+    with SingleTickerProviderStateMixin {
   int _selection = 0;
   bool _leaving = false;
+  late final AnimationController _confetti = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 2300),
+  )..forward();
+
+  @override
+  void dispose() {
+    _confetti.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -51,6 +63,16 @@ class _ChapterCompleteScreenState extends State<ChapterCompleteScreen> {
             filter: ui.ImageFilter.blur(sigmaX: 8, sigmaY: 8),
             child: const ColoredBox(color: Color(0xBF080A0B)),
           ),
+          if (!MediaQuery.disableAnimationsOf(context))
+            Positioned.fill(
+              child: IgnorePointer(
+                child: AnimatedBuilder(
+                  animation: _confetti,
+                  builder: (context, _) =>
+                      CustomPaint(painter: _ConfettiPainter(_confetti.value)),
+                ),
+              ),
+            ),
           SafeArea(
             minimum: const EdgeInsets.all(18),
             child: Center(
@@ -59,7 +81,7 @@ class _ChapterCompleteScreenState extends State<ChapterCompleteScreen> {
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     Text(
-                      'CHAPTER COMPLETE',
+                      'CHAPTER ${(director.index + 1).toString().padLeft(2, '0')} COMPLETE',
                       textAlign: TextAlign.center,
                       style: TextStyle(
                         fontFamily: 'Cinzel',
@@ -107,4 +129,39 @@ class _ChapterCompleteScreenState extends State<ChapterCompleteScreen> {
       ),
     );
   }
+}
+
+/// One short shower of fog-white and lamp-amber paper flecks.
+class _ConfettiPainter extends CustomPainter {
+  const _ConfettiPainter(this.progress);
+
+  final double progress;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final t = Curves.easeOutCubic.transform(progress);
+    final opacity = (1 - progress * progress).clamp(0.0, 1.0);
+    for (var i = 0; i < 36; i++) {
+      final a = ((i * 73) % 101) / 101.0;
+      final b = ((i * 47 + 19) % 97) / 97.0;
+      final x =
+          size.width * (.14 + .72 * a) + math.sin(progress * 5 + i * 1.7) * 12;
+      final y = size.height * (.04 + .15 * b + .53 * t);
+      final paint = Paint()
+        ..color = (i % 4 == 0 ? Palette.lampAmber : Palette.brandInk)
+            .withValues(alpha: opacity * (i % 4 == 0 ? .78 : .52));
+      canvas.save();
+      canvas.translate(x, y);
+      canvas.rotate(progress * (i.isEven ? 3 : -3) + a * math.pi);
+      canvas.drawRect(
+        Rect.fromCenter(center: Offset.zero, width: 3, height: 6),
+        paint,
+      );
+      canvas.restore();
+    }
+  }
+
+  @override
+  bool shouldRepaint(_ConfettiPainter oldDelegate) =>
+      oldDelegate.progress != progress;
 }

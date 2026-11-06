@@ -14,7 +14,7 @@ void main() {
     game.update(1 / 60);
     await tester.pump();
     expect(director.awaitingChoice, isTrue);
-    expect(find.text('CHAPTER COMPLETE'), findsOneWidget);
+    expect(find.text('CHAPTER 01 COMPLETE'), findsOneWidget);
     expect(find.text('NEXT CHAPTER'), findsOneWidget);
     expect(find.text('RESTART'), findsOneWidget);
     expect(find.text('MAIN MENU'), findsOneWidget);
@@ -44,6 +44,7 @@ void main() {
     director.chapter!.complete();
     game.update(1 / 60);
     await tester.pump();
+    expect(find.text('CHAPTER 02 COMPLETE'), findsOneWidget);
     await tester.tap(find.text('MAIN MENU'));
     await stepUntil(tester, game, () => director.showingTitle);
     expect(director.showingTitle, isTrue);
