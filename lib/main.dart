@@ -12,6 +12,7 @@ import 'story/chapter_director.dart';
 import 'story/progress_store.dart';
 import 'ui/title_screen.dart';
 import 'ui/pause_screen.dart';
+import 'ui/chapter_complete_screen.dart';
 
 Future<void> main() async {
   // Required before touching SystemChrome: those calls go over a platform
@@ -80,6 +81,8 @@ Future<void> main() async {
                   TitleScreen(game: game),
               UmbraGame.pauseOverlay: (context, game) =>
                   PauseScreen(game: game),
+              ChapterDirector.completeOverlay: (context, game) =>
+                  ChapterCompleteScreen(game: game),
             },
           ),
         ),

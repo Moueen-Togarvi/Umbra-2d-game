@@ -19,6 +19,7 @@ class ChapterDirector {
 
   /// The overlay the title screen is drawn in.
   static const String titleOverlay = 'title';
+  static const String completeOverlay = 'chapterComplete';
 
   /// The chapter being played (from 0).
   int index = 0;
@@ -34,6 +35,9 @@ class ChapterDirector {
 
   bool _playing = false;
   bool _showingTitle = false;
+  bool _awaitingChoice = false;
+  bool _pausedForChoice = false;
+  bool get awaitingChoice => _awaitingChoice;
 
   /// After the end: two red eyes opening in the dark, how far open
   /// (0–1), and the small line under them.
@@ -79,6 +83,7 @@ class ChapterDirector {
 
   /// Opens on the title: the first chapter's opening shot, waiting.
   Future<void> start() async {
+    _closeCompletion();
     _queue.clear();
     cardAlpha = 0;
     blackness = 1;
@@ -115,6 +120,7 @@ class ChapterDirector {
   /// "Continue", or a chapter picked from the list.
   void playChapter(int i, {bool resume = false}) {
     if (isBusy) return;
+    _closeCompletion();
     _showTitle(false);
     _playing = false;
     _then(_Fade((v) => blackness = v, blackness, 1, 0.9));
@@ -183,6 +189,50 @@ class ChapterDirector {
     _then(_Await(start));
   }
 
+  /// The player chooses when to leave the completed chapter.
+  void nextChapter() {
+    if (!_awaitingChoice) return;
+    _closeCompletion();
+    _next();
+  }
+
+  void restartChapter() {
+    if (!_awaitingChoice) return;
+    playChapter(index);
+  }
+
+  Future<void> completedToTitle() async {
+    if (!_awaitingChoice) return;
+    await game.returnToTitle();
+  }
+
+  void _completeChapter() {
+    _playing = false;
+    _awaitingChoice = true;
+    game.intent.clear();
+    if (index + 1 < Chapters.all.length) {
+      // A return to the title should continue from the newly unlocked chapter.
+      unawaited(progress.enter(index + 1));
+    }
+    if (!game.paused) {
+      game.pauseEngine();
+      _pausedForChoice = true;
+    }
+    if (game.overlays.registeredOverlays.contains(completeOverlay)) {
+      game.overlays.add(completeOverlay);
+    }
+  }
+
+  void _closeCompletion() {
+    if (!_awaitingChoice) return;
+    _awaitingChoice = false;
+    game.overlays.remove(completeOverlay);
+    if (_pausedForChoice) {
+      _pausedForChoice = false;
+      game.resumeEngine();
+    }
+  }
+
   /// The credits under the music; then, in the dark, a pair of eyes.
   static const endingSeconds = 60.0;
   static const endCardSeconds = 5.9;
@@ -237,7 +287,9 @@ class ChapterDirector {
       dt = op.unusedTime;
     }
     final Chapter? c = chapter;
-    if (_playing && !isBusy && c != null && c.isComplete) _next();
+    if (_playing && !isBusy && c != null && c.isComplete) {
+      _completeChapter();
+    }
   }
 
   void _then(_Op op) => _queue.add(op);

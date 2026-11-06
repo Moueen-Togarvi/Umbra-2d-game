@@ -11,6 +11,8 @@ void main() {
     final chapter = await enterChapter<Chapter>(tester, game, 39);
     chapter.complete();
     final director = game.director!;
+    game.update(1 / 60);
+    director.nextChapter();
     await stepUntil(tester, game, () => director.cardTitle == 'The End');
     for (var i = 0; i < 59 * 5; i++) {
       game.update(0.2);
@@ -37,6 +39,8 @@ void main() {
       final chapter = await enterChapter<Chapter>(tester, game, 39);
       chapter.complete();
       final director = game.director!;
+      game.update(1 / 60);
+      director.nextChapter();
       await stepUntil(tester, game, () => director.cardTitle == 'The End');
       expect(director.index, 39);
       for (var i = 0; i < 60 * 59; i++) {

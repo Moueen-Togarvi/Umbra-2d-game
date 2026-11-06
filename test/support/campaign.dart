@@ -1,12 +1,26 @@
 import 'package:flame/game.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:umbra/game/umbra_game.dart';
+import 'package:umbra/story/chapter_director.dart';
+import 'package:umbra/ui/chapter_complete_screen.dart';
 
 /// Boots the story (title first) with the engine paused, so the test steps
 /// time itself.
-Future<UmbraGame> bootCampaign(WidgetTester tester) async {
+Future<UmbraGame> bootCampaign(
+  WidgetTester tester, {
+  bool completionOverlay = false,
+}) async {
   final game = UmbraGame(campaign: true);
-  await tester.pumpWidget(GameWidget(game: game));
+  await tester.pumpWidget(
+    GameWidget<UmbraGame>(
+      game: game,
+      overlayBuilderMap: {
+        if (completionOverlay)
+          ChapterDirector.completeOverlay: (context, game) =>
+              ChapterCompleteScreen(game: game),
+      },
+    ),
+  );
   for (var i = 0; i < 60 && game.stage?.isLoaded != true; i++) {
     await tester.runAsync(
       () => Future<void>.delayed(const Duration(milliseconds: 50)),

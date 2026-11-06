@@ -14,6 +14,11 @@ void main() {
     // earn completion using movement controls in every chapter.
     for (var i = 0; i < 39; i++) {
       director.chapter!.complete();
+      game.update(1 / 60);
+      expect(director.awaitingChoice, isTrue);
+      expect(director.index, i);
+      expect(director.progress.reached, greaterThanOrEqualTo(i + 1));
+      director.nextChapter();
       await stepUntil(
         tester,
         game,
@@ -28,6 +33,9 @@ void main() {
     }
     expect(director.chapter!.id, 'dawn');
     director.chapter!.complete();
+    game.update(1 / 60);
+    expect(director.awaitingChoice, isTrue);
+    director.nextChapter();
     await stepUntil(tester, game, () => director.cardTitle == 'The End');
     expect(director.cardTitle, 'The End');
   });

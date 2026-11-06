@@ -145,6 +145,8 @@ class UmbraGame extends Forge2DGame with HasKeyboardHandlerComponents {
   void backPressed() {
     if (director?.showingTitle ?? false) {
       titleBack?.call();
+    } else if (director?.awaitingChoice ?? false) {
+      // The completed chapter stays put until one of its choices is made.
     } else if (isGameplayPaused) {
       resumeGameplay();
     } else {
