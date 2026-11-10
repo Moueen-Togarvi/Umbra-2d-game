@@ -5,6 +5,7 @@ import 'package:flame/components.dart' hide World;
 import 'package:flame_forge2d/flame_forge2d.dart';
 
 import '../config/game_config.dart';
+import '../config/palette.dart';
 import '../physics/collision_layers.dart';
 import '../render/culling.dart';
 import '../world/stage.dart';
@@ -442,7 +443,9 @@ class StrikingHammer extends Component with OffScreenCulling {
     }
   }
 
-  static final Paint _metal = Paint()..color = _iron;
+  static final Paint _metal = Paint()
+    ..color = Palette.trapRed
+    ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 2.2);
 
   @override
   void render(Canvas canvas) {

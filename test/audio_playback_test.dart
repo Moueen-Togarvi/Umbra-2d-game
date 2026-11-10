@@ -4,6 +4,7 @@ import 'package:audioplayers/audioplayers.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:umbra/audio/ambient_audio.dart';
+import 'package:umbra/audio/sound_bank.dart';
 import 'package:umbra/config/game_settings.dart';
 
 // Exercise the real audioplayers command path. Deliberately never send a
@@ -117,13 +118,13 @@ void main() {
     expect(calls.where((c) => c.method == 'getCurrentPosition'), isEmpty);
 
     // The music the game asks for comes in.
-    audio.score('bg_descent');
+    audio.score(SoundBank.gameplayTomb);
     audio.update(1 / 60);
     await drain();
     audio.update(1.0);
     await drain();
     final score = sources.entries.singleWhere(
-      (s) => s.value.contains('bg_descent'),
+      (s) => s.value.contains(SoundBank.gameplayTomb),
     );
     double lastVolume() =>
         (calls

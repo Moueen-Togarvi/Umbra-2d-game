@@ -19,6 +19,8 @@ class CheckpointService {
   Vector2 _activeCheckpoint;
   int _deathsHere = 0;
   int get deathsHere => _deathsHere;
+  final Map<DeathCause, int> _deathsByCause = {};
+  int deathsFor(DeathCause cause) => _deathsByCause[cause] ?? 0;
 
   /// The position the player will respawn at.
   ///
@@ -30,11 +32,17 @@ class CheckpointService {
   void setCheckpoint(Vector2 position) {
     _activeCheckpoint = position.clone();
     _deathsHere = 0;
+    _deathsByCause.clear();
+  }
+
+  void recordDeath(DeathCause cause) {
+    _deathsByCause[cause] = deathsFor(cause) + 1;
   }
 
   /// Sends the player back to the active checkpoint, at rest.
   void respawn(Player player) {
     _deathsHere++;
     player.teleportTo(_activeCheckpoint);
+    player.grantRespawnGrace();
   }
 }

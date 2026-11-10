@@ -61,6 +61,12 @@ void main() {
         ),
       ),
     );
+    await tester.runAsync(
+      () => precacheImage(
+        const AssetImage('assets/images/ui/menu_background_chase.png'),
+        tester.element(find.byType(TitleScreen)),
+      ),
+    );
     await tester.pump(const Duration(seconds: 4));
     await expectLater(
       find.byType(TitleScreen),

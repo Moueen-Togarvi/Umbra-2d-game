@@ -14,6 +14,7 @@ import 'ui/title_screen.dart';
 import 'ui/startup_intro.dart';
 import 'ui/pause_screen.dart';
 import 'ui/chapter_complete_screen.dart';
+import 'ui/weapon_overlays.dart';
 
 Future<void> main() async {
   // Required before touching SystemChrome: those calls go over a platform
@@ -65,7 +66,27 @@ Future<void> main() async {
   runApp(
     MaterialApp(
       debugShowCheckedModeBanner: false,
-      theme: ThemeData.dark(useMaterial3: true),
+      theme: ThemeData.dark(useMaterial3: true).copyWith(
+        colorScheme: const ColorScheme.dark(
+          primary: Colors.white,
+          onPrimary: Colors.black,
+          secondary: Colors.white,
+          onSecondary: Colors.black,
+          surface: Color(0xFF181818),
+          onSurface: Colors.white,
+        ),
+      ),
+      builder: (context, child) => ListenableBuilder(
+        listenable: game.settings,
+        builder: (context, _) => MediaQuery(
+          data: MediaQuery.of(context).copyWith(
+            disableAnimations:
+                MediaQuery.disableAnimationsOf(context) ||
+                game.settings.reducedMotion,
+          ),
+          child: child!,
+        ),
+      ),
       home: Stack(
         fit: StackFit.expand,
         children: [
@@ -86,13 +107,17 @@ Future<void> main() async {
                       TitleScreen(game: game),
                   UmbraGame.pauseOverlay: (context, game) =>
                       PauseScreen(game: game),
+                  UmbraGame.weaponRadialOverlay: (context, game) =>
+                      WeaponRadialOverlay(game: game),
+                  UmbraGame.weaponPickupOverlay: (context, game) =>
+                      WeaponPickupOverlay(game: game),
                   ChapterDirector.completeOverlay: (context, game) =>
                       ChapterCompleteScreen(game: game),
                 },
               ),
             ),
           ),
-          const StartupIntro(),
+          StartupIntro(settings: game.settings),
         ],
       ),
     ),

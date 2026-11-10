@@ -1,0 +1,160 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Umbra — Jump & Sit button samples</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --ink: #e7e5df;
+      --muted: #a8aaa7;
+      --line: #343837;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      padding: 42px 24px 64px;
+      background: #101211;
+      color: var(--ink);
+      font: 15px/1.55 system-ui, sans-serif;
+    }
+    main { width: min(1180px, 100%); margin: auto; }
+    .eyebrow { color: #c9ccc7; font-size: 11px; letter-spacing: .22em; }
+    h1 { margin: 12px 0 8px; font: 400 clamp(30px, 5vw, 48px)/1.15 Georgia, serif; }
+    .intro { max-width: 720px; color: var(--muted); }
+    .legend { display: flex; flex-wrap: wrap; gap: 9px; margin: 24px 0 34px; }
+    .legend span { border: 1px solid #414745; border-radius: 99px; padding: 6px 12px; color: #c2c4c0; font-size: 12px; }
+    .samples { display: grid; gap: 20px; }
+    article { border: 1px solid var(--line); background: #151817; padding: 20px; }
+    .heading { display: flex; align-items: baseline; justify-content: space-between; gap: 16px; margin-bottom: 14px; }
+    h2 { margin: 0; font: 400 23px Georgia, serif; }
+    .tag { color: #c4c7c2; font-size: 11px; letter-spacing: .12em; text-transform: uppercase; }
+    .description { color: var(--muted); font-size: 13px; margin: 5px 0 17px; }
+    .states { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .scene {
+      min-height: 176px;
+      position: relative;
+      overflow: hidden;
+      display: flex;
+      align-items: end;
+      justify-content: end;
+      padding: 14px 17px;
+      background-color: #080a09;
+      background-image: radial-gradient(ellipse at 30% 65%, #343a36 0, #171b19 37%, #090b0a 77%);
+    }
+    .scene::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      opacity: .28;
+      background: repeating-linear-gradient(0deg, transparent 0 31px, #8f958e 32px, transparent 33px);
+      mask-image: linear-gradient(transparent 35%, #000 100%);
+    }
+    .scene.fog {
+      background-color: #b8bab6;
+      background-image: radial-gradient(ellipse at 34% 52%, #f2f0e9, #c6c8c3 54%, #878b87 110%);
+    }
+    .scene.fog::before { opacity: .17; background-image: repeating-linear-gradient(0deg, transparent 0 31px, #343936 32px, transparent 33px); }
+    .state-label { position: absolute; left: 12px; top: 10px; z-index: 2; color: #c4c7c2; font-size: 10px; letter-spacing: .16em; text-transform: uppercase; }
+    .fog .state-label { color: #444943; }
+    .horizon { position: absolute; bottom: 22px; left: 0; right: 0; height: 1px; background: #90968f55; }
+    .fog .horizon { background: #43494366; }
+    .cluster { z-index: 1; display: flex; align-items: end; gap: 13px; }
+    .control {
+      --size: 68px;
+      width: var(--size);
+      height: var(--size);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+      color: #f3f2ed;
+      transition: transform .12s ease, background .12s ease, box-shadow .12s ease;
+    }
+    .pose {
+      width: 29px;
+      height: 37px;
+      display: block;
+      background: currentColor;
+      -webkit-mask: center / contain no-repeat;
+      mask: center / contain no-repeat;
+    }
+    .jump .pose { -webkit-mask-image: url('../../assets/images/ui/ui_jump.png'); mask-image: url('../../assets/images/ui/ui_jump.png'); }
+    .sit .pose { -webkit-mask-image: url('../../assets/images/ui/ui_sit.png'); mask-image: url('../../assets/images/ui/ui_sit.png'); }
+    .control::before {
+      position: absolute;
+      bottom: 4px;
+      font: 700 8px/1 system-ui, sans-serif;
+      letter-spacing: .13em;
+      text-shadow: 0 1px 4px #000;
+    }
+    .jump::before { content: 'JUMP'; }
+    .sit::before { content: 'SIT'; }
+    .pressed { transform: scale(.92); }
+    .a .control { border: 1px solid #f3f2ed48; border-radius: 50%; background: #0b0d0c4d; box-shadow: inset 0 0 0 3px #ffffff08; }
+    .a .pressed { background: #f3f2ed35; border-color: #f3f2edaa; }
+    .a .fog .control { color: #272b28; border-color: #20262252; background: #ffffff24; }
+    .a .fog .pressed { background: #ffffff99; }
+    .b .control { width: 72px; height: 76px; border: 1px solid #f3f2ed28; border-radius: 50%; background: #0b0d0c24; }
+    .b .pose { width: 33px; height: 42px; filter: drop-shadow(0 2px 4px #000a); }
+    .b .pressed { transform: translateY(4px) scale(.92); filter: drop-shadow(0 0 7px #fff8); }
+    .b .fog .control { color: #272b28; border-color: #20262235; background: #ffffff16; }
+    .b .fog .pose { filter: drop-shadow(0 2px 3px #fff9); }
+    .b .fog .pressed { filter: drop-shadow(0 0 7px #fff); }
+    .c .control { border-radius: 50%; background: #c9cfca16; box-shadow: inset 0 0 0 1px #f5f5ed28, 0 0 16px #e8ece018; }
+    .c .control::before { content: ""; position: absolute; inset: -4px; border: 1px solid #f4f1e240; border-radius: inherit; }
+    .c .pose { filter: drop-shadow(0 0 4px #fff8); }
+    .c .pressed { background: #e8e4d540; box-shadow: inset 0 0 18px #fff8, 0 0 20px #f6f2e899; }
+    .c .fog .control { color: #292d2a; background: #ffffff2b; box-shadow: inset 0 0 0 1px #252b283d, 0 0 15px #fff8; }
+    .c .fog .control::before { border-color: #20262255; }
+    .c .fog .pose { filter: drop-shadow(0 0 3px #fff); }
+    .c .fog .pressed { background: #ffffffa6; box-shadow: inset 0 0 18px #fff, 0 0 18px #fff; }
+    footer { margin-top: 30px; padding-top: 18px; border-top: 1px solid var(--line); color: #999e99; font-size: 12px; }
+    @media (max-width: 620px) {
+      body { padding: 28px 14px 42px; }
+      article { padding: 14px; }
+      .heading { display: block; }
+      .tag { display: block; margin-top: 5px; }
+      .states { grid-template-columns: 1fr; }
+      .scene { min-height: 148px; }
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <div class="eyebrow">UMBRA / TOUCH CONTROL STUDIES</div>
+    <h1>Jump &amp; Sit</h1>
+    <p class="intro">Three character-led button treatments for the right thumb. Each uses the boy’s actual in-game pose artwork. Compare the resting and pressed states over a dark scene and pale fog.</p>
+    <div class="legend"><span>72 px touch target</span><span>Character silhouette</span><span>Hand button removed</span></div>
+    <section class="samples">
+      <article class="a">
+        <div class="heading"><h2>01 / Quiet ring</h2><span class="tag">Most familiar · strongest tap target</span></div>
+        <p class="description">A faint circular outline gives each pose a clear thumb-sized home without filling the play scene.</p>
+        <div class="states">
+          <div class="scene"><span class="state-label">Resting · dark</span><i class="horizon"></i><div class="cluster"><div class="control jump"><i class="pose"></i></div><div class="control sit"><i class="pose"></i></div></div></div>
+          <div class="scene fog"><span class="state-label">Pressed · fog</span><i class="horizon"></i><div class="cluster"><div class="control jump pressed"><i class="pose"></i></div><div class="control sit pressed"><i class="pose"></i></div></div></div>
+        </div>
+      </article>
+      <article class="b">
+        <div class="heading"><h2>02 / Floating poses</h2><span class="tag">Most atmospheric · least UI</span></div>
+        <p class="description">The boy’s poses stand on their own; a small sink and glow show when a thumb is holding a control.</p>
+        <div class="states">
+          <div class="scene"><span class="state-label">Resting · dark</span><i class="horizon"></i><div class="cluster"><div class="control jump"><i class="pose"></i></div><div class="control sit"><i class="pose"></i></div></div></div>
+          <div class="scene fog"><span class="state-label">Pressed · fog</span><i class="horizon"></i><div class="cluster"><div class="control jump pressed"><i class="pose"></i></div><div class="control sit pressed"><i class="pose"></i></div></div></div>
+        </div>
+      </article>
+      <article class="c">
+        <div class="heading"><h2>03 / Fog halo</h2><span class="tag">Most visible · soft light edge</span></div>
+        <p class="description">A restrained double halo keeps the silhouette readable over both deep shadow and bright mist.</p>
+        <div class="states">
+          <div class="scene"><span class="state-label">Resting · dark</span><i class="horizon"></i><div class="cluster"><div class="control jump"><i class="pose"></i></div><div class="control sit"><i class="pose"></i></div></div></div>
+          <div class="scene fog"><span class="state-label">Pressed · fog</span><i class="horizon"></i><div class="cluster"><div class="control jump pressed"><i class="pose"></i></div><div class="control sit pressed"><i class="pose"></i></div></div></div>
+        </div>
+      </article>
+    </section>
+    <footer>Concept preview only. No button style has been applied to gameplay. The pose masks are sourced from the game’s existing Jump and Sit character artwork.</footer>
+  </main>
+</body>
+</html>

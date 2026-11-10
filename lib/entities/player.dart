@@ -6,11 +6,12 @@ import 'package:flutter/foundation.dart';
 
 import '../character/character_interactions.dart';
 import '../character/character_ragdoll.dart';
-import '../character/character_rig.dart' show Gait;
+import '../character/character_rig.dart' show CharacterRigPose, Gait, RigJoint;
 import '../character/character_state.dart';
 import '../character/foot_placement.dart';
 import '../character/ground_probe.dart';
 import '../character/limb_physics.dart';
+import '../combat/weapons.dart';
 import '../config/game_config.dart';
 import '../config/palette.dart';
 import '../input/player_intent.dart';
@@ -92,8 +93,14 @@ class Player extends BodyComponent {
   bool _dead = false;
   DeathCause _deathCause = DeathCause.impact;
   DeathCause get deathCause => _deathCause;
+  double _respawnGrace = 0;
+  bool get isRespawnProtected => _respawnGrace > 0;
   Vector2? _deathPush;
   bool _grounded = false;
+  int _enemyWounds = 0;
+  double _enemyInvulnerability = 0;
+
+  int get dangerMarks => 2 - _enemyWounds;
 
   /// Down low: crouched or sitting, on a capsule shortened from the top.
   bool _low = false;
@@ -178,6 +185,8 @@ class Player extends BodyComponent {
   double _blinkRemaining = 0;
   double _actualSpeed = 0;
   double _gripWeight = 0;
+  WeaponFamily? _combatWeapon;
+  double _combatProgress = 0;
 
   // Idle life: after standing still a while, now and then he looks up,
   // looks round at the camera, or shifts his feet.
@@ -457,6 +466,8 @@ class Player extends BodyComponent {
   @override
   void update(double dt) {
     super.update(dt);
+    _respawnGrace = math.max(0, _respawnGrace - dt);
+    _enemyInvulnerability = math.max(0, _enemyInvulnerability - dt);
     if (!body.isValid) {
       if (kDebugMode) debugPrint('Umbra physics: invalid player body handle');
       return;
@@ -1268,7 +1279,34 @@ class Player extends BodyComponent {
     final rope = interactions.ropeHands;
     if (rope != null) return rope;
     final grip = interactions.gripWorld;
-    return grip == null ? null : [grip, grip + Vector2(0, 0.02)];
+    if (grip != null) return [grip, grip + Vector2(0, 0.02)];
+    if (_combatWeapon != null) {
+      final swing = math.sin(_combatProgress.clamp(0.0, 1.0) * math.pi);
+      final front =
+          body.position +
+          Vector2(_facing * (.45 + .22 * swing), -.24 - .22 * swing);
+      return [front, front + Vector2(-_facing * .12, .08)];
+    }
+    return null;
+  }
+
+  void setCombatAttack(WeaponFamily? weapon, double progress) {
+    _combatWeapon = weapon;
+    _combatProgress = progress.clamp(0.0, 1.0);
+  }
+
+  /// Enemy contact gives one recoverable wound; hazards still call [die].
+  bool receiveEnemyHit({double direction = 0}) {
+    if (_dead || _respawnGrace > 0 || _enemyInvulnerability > 0) return false;
+    _enemyWounds++;
+    if (_enemyWounds >= 2) {
+      die(push: Vector2(direction * 4, -1.2), cause: DeathCause.vampire);
+    } else {
+      _enemyInvulnerability = 1.1;
+      body.linearVelocity += Vector2(direction * 2.4, -.6);
+      knockDown();
+    }
+    return true;
   }
 
   CharacterPose get _pose =>
@@ -1382,7 +1420,7 @@ class Player extends BodyComponent {
   /// A blow ([push], metres a second) throws the body the way it came: an
   /// arrow knocks him back, a boulder carries him off his feet.
   void die({Vector2? push, DeathCause cause = DeathCause.impact}) {
-    if (_dead) return;
+    if (_dead || _respawnGrace > 0) return;
     _dead = true;
     _deathCause = cause;
     _deathPush = push;
@@ -1471,6 +1509,10 @@ class Player extends BodyComponent {
     _ragdoll = null;
     _recoveryPose = null;
     _dead = false;
+    _enemyWounds = 0;
+    _enemyInvulnerability = 0;
+    _combatWeapon = null;
+    _combatProgress = 0;
     _resetLow();
     body.isEnabled = true;
     body.setTransform(position, const Rot.identity());
@@ -1519,6 +1561,11 @@ class Player extends BodyComponent {
     state = CharacterState.idle;
   }
 
+  /// Checkpoint respawns are protected; scripted teleports remain immediate.
+  void grantRespawnGrace() {
+    _respawnGrace = GameConfig.respawnGraceSeconds;
+  }
+
   @override
   void render(Canvas canvas) {
     if (hidden) return;
@@ -1553,12 +1600,83 @@ class Player extends BodyComponent {
         // the body.
         canvas.translate(-body.position.x, -body.position.y);
         _figure.drawRig(canvas, drawn, hairSway: _hairSway);
+        _drawCombatWeapon(canvas, drawn);
       } else {
-        _figure.drawRig(canvas, _figure.solve(_pose), hairSway: _hairSway);
+        final pose = _figure.solve(_pose);
+        _figure.drawRig(canvas, pose, hairSway: _hairSway);
+        _drawCombatWeapon(canvas, pose);
       }
       canvas.restore();
     }
     if (debugEnabled) renderDebug(canvas);
+  }
+
+  void _drawCombatWeapon(Canvas canvas, CharacterRigPose pose) {
+    final family = _combatWeapon;
+    if (family == null || _dead || _ragdoll != null) return;
+    final hand = pose[RigJoint.frontHand];
+    final direction = pose.side;
+    final length = switch (family) {
+      WeaponFamily.spear => 1.15,
+      WeaponFamily.kusarigama => .82,
+      WeaponFamily.katana => .72,
+      WeaponFamily.bow => .64,
+      _ => .38,
+    };
+    final angle = -.55 + _combatProgress * 1.2;
+    final tip =
+        hand +
+        Vector2(direction * math.cos(angle) * length, math.sin(angle) * length);
+    final stroke = Paint()
+      ..color = const Color(0xFFF7F7F4)
+      ..strokeWidth = .055
+      ..strokeCap = StrokeCap.round
+      ..style = PaintingStyle.stroke;
+    switch (family) {
+      case WeaponFamily.smokeBomb || WeaponFamily.bombs:
+        canvas.drawCircle(Offset(hand.x, hand.y), .12, stroke);
+      case WeaponFamily.shuriken:
+        final center = Offset(tip.x, tip.y);
+        final path = Path();
+        for (var i = 0; i < 8; i++) {
+          final a = i * math.pi / 4;
+          final r = i.isEven ? .14 : .045;
+          final p = center + Offset(math.cos(a) * r, math.sin(a) * r);
+          i == 0 ? path.moveTo(p.dx, p.dy) : path.lineTo(p.dx, p.dy);
+        }
+        canvas.drawPath(path..close(), stroke);
+      case WeaponFamily.claws:
+        for (var i = -1; i <= 1; i++) {
+          canvas.drawLine(
+            Offset(hand.x, hand.y + i * .06),
+            Offset(tip.x, tip.y + i * .06),
+            stroke,
+          );
+        }
+      case WeaponFamily.bow:
+        canvas.drawArc(
+          Rect.fromCenter(
+            center: Offset(hand.x, hand.y),
+            width: .6,
+            height: .9,
+          ),
+          -math.pi / 2,
+          math.pi,
+          false,
+          stroke,
+        );
+      case _:
+        canvas.drawLine(Offset(hand.x, hand.y), Offset(tip.x, tip.y), stroke);
+        if (family == WeaponFamily.katana ||
+            family == WeaponFamily.kunai ||
+            family == WeaponFamily.twinDaggers) {
+          canvas.drawLine(
+            Offset(tip.x, tip.y),
+            Offset(tip.x - direction * .12, tip.y + .03),
+            stroke..strokeWidth = .09,
+          );
+        }
+    }
   }
 
   void renderDebug(Canvas canvas) {

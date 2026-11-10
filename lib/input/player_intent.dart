@@ -13,12 +13,14 @@ class PlayerIntent {
   /// True after this run has received a real touch control. Timed puzzles use
   /// it to leave a little room for a thumb covering part of the screen.
   bool touchUsed = false;
+  int actionAttempts = 0;
   double _keyboardAxis = 0, _touchAxis = 0;
   bool _keyboardJump = false, _touchJump = false;
   bool _keyboardInteract = false, _touchInteract = false;
   bool _keyboardDown = false, _touchDown = false;
   bool _keyboardUp = false, _touchUp = false;
   bool _keyboardSit = false, _touchSit = false;
+  bool _keyboardAttack = false, _touchAttack = false;
   bool _scripted = false;
   double _scriptAxis = 0;
   bool _scriptJump = false, _scriptInteract = false;
@@ -35,6 +37,7 @@ class PlayerIntent {
   bool get isDownHeld => _scripted ? _scriptDown : _keyboardDown || _touchDown;
   bool get isUpHeld => _scripted ? _scriptUp : _keyboardUp || _touchUp;
   bool get isSitHeld => _scripted ? _scriptSit : _keyboardSit || _touchSit;
+  bool get isAttackHeld => !_scripted && (_keyboardAttack || _touchAttack);
   bool _jumpRequested = false;
   bool _jumpFromUp = false;
 
@@ -45,6 +48,8 @@ class PlayerIntent {
   bool _resetRequested = false, _debugRequested = false;
   bool _knockdownRequested = false;
   bool _audioRequested = false;
+  bool _attackRequested = false, _cycleWeaponRequested = false;
+  int? _weaponSlotRequested;
 
   void setKeyboardState({
     double? axis,
@@ -53,6 +58,7 @@ class PlayerIntent {
     bool? down,
     bool? up,
     bool? sit,
+    bool? attack,
   }) {
     final wasInteracting = isInteractHeld;
     if (axis != null) _keyboardAxis = axis;
@@ -61,6 +67,7 @@ class PlayerIntent {
     if (down != null) _keyboardDown = down;
     if (up != null) _keyboardUp = up;
     if (sit != null) _keyboardSit = sit;
+    if (attack != null) _keyboardAttack = attack;
     if (!_scripted) _interactionEdge(wasInteracting);
   }
 
@@ -71,13 +78,15 @@ class PlayerIntent {
     bool? down,
     bool? up,
     bool? sit,
+    bool? attack,
   }) {
     if ((axis?.abs() ?? 0) > 0 ||
         jump == true ||
         interact == true ||
         down == true ||
         up == true ||
-        sit == true) {
+        sit == true ||
+        attack == true) {
       touchUsed = true;
     }
     final wasInteracting = isInteractHeld;
@@ -87,6 +96,7 @@ class PlayerIntent {
     if (down != null) _touchDown = down;
     if (up != null) _touchUp = up;
     if (sit != null) _touchSit = sit;
+    if (attack != null) _touchAttack = attack;
     if (!_scripted) _interactionEdge(wasInteracting);
   }
 
@@ -99,6 +109,8 @@ class PlayerIntent {
     _scriptJump = _scriptInteract = _scriptDown = _scriptUp = false;
     _scriptSit = false;
     _jumpRequested = _interactRequested = false;
+    _attackRequested = _cycleWeaponRequested = false;
+    _weaponSlotRequested = null;
     _interactionEdge(wasInteracting);
   }
 
@@ -137,7 +149,11 @@ class PlayerIntent {
     if (wasHeld && !isInteractHeld) requestInteractRelease();
   }
 
-  void requestInteract() => _interactRequested = true;
+  void requestInteract() {
+    _interactRequested = true;
+    actionAttempts++;
+  }
+
   void requestInteractRelease() => _interactReleaseRequested = true;
   void requestReset() {
     if (!_scripted) _resetRequested = true;
@@ -150,10 +166,25 @@ class PlayerIntent {
 
   void requestAudioToggle() => _audioRequested = true;
 
+  void requestAttack() {
+    if (_scripted) return;
+    _attackRequested = true;
+    actionAttempts++;
+  }
+
+  void requestCycleWeapon() {
+    if (!_scripted) _cycleWeaponRequested = true;
+  }
+
+  void requestWeaponSlot(int slot) {
+    if (!_scripted && slot >= 0 && slot < 3) _weaponSlotRequested = slot;
+  }
+
   void requestJump({bool fromUp = false}) {
     if (_scripted) return;
     _jumpRequested = true;
     _jumpFromUp = fromUp;
+    actionAttempts++;
   }
 
   bool consumeJumpRequest() {
@@ -198,6 +229,24 @@ class PlayerIntent {
     return value;
   }
 
+  bool consumeAttackRequest() {
+    final value = _attackRequested;
+    _attackRequested = false;
+    return value;
+  }
+
+  bool consumeCycleWeaponRequest() {
+    final value = _cycleWeaponRequested;
+    _cycleWeaponRequested = false;
+    return value;
+  }
+
+  int? consumeWeaponSlotRequest() {
+    final value = _weaponSlotRequested;
+    _weaponSlotRequested = null;
+    return value;
+  }
+
   /// Focus loss clears held controls; an active grab still receives a release.
   void clear() {
     final release = isInteractHeld || _interactReleaseRequested;
@@ -207,10 +256,13 @@ class PlayerIntent {
     _keyboardDown = _touchDown = false;
     _keyboardUp = _touchUp = false;
     _keyboardSit = _touchSit = false;
+    _keyboardAttack = _touchAttack = false;
     _jumpRequested = _interactRequested = false;
     _jumpFromUp = false;
     _resetRequested = _debugRequested = _knockdownRequested = false;
     _audioRequested = false;
+    _attackRequested = _cycleWeaponRequested = false;
+    _weaponSlotRequested = null;
     _interactReleaseRequested = release;
   }
 }

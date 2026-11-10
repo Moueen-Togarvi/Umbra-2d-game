@@ -4,6 +4,7 @@ import 'package:flame/components.dart' show Component;
 import 'package:flame_forge2d/flame_forge2d.dart';
 
 import '../config/game_config.dart';
+import '../combat/combat_target.dart';
 import '../entities/player.dart';
 import '../physics/collision_layers.dart';
 import '../world/stage.dart';
@@ -95,6 +96,7 @@ class Pursuer {
   bool _air = false;
   double _vx = 0, _vy = 0;
   _Footing? _footing;
+  double _attackWindup = 0;
 
   /// Starts the chase from where he stands.
   void start() {
@@ -110,6 +112,12 @@ class Pursuer {
 
   void update(double dt) {
     if (!active || vampire.gone || dt <= 0) return;
+    if (stage.combatThreatLocked) return;
+    if (vampire.isCombatStunned) {
+      vampire.combatTelegraph = false;
+      _attackWindup = 0;
+      return;
+    }
     final Player boy = stage.player;
     if (!boy.isMounted) return;
     final footing = _footing ??= _Footing(boy.body.world);
@@ -217,13 +225,37 @@ class Pursuer {
     }
     final double gap = (boy.body.position.x - x).abs();
     vampire.reachGoal = blocked || gap < 2.6 ? 1 : 0.25;
+    if (_attackWindup < 0) {
+      _attackWindup = math.min(0, _attackWindup + dt);
+      vampire.combatTelegraph = false;
+      return;
+    }
     if (!boy.isDead && !caught) {
       final double boyFeet = boy.body.position.y + GameConfig.playerHeight / 2;
       if (gap < catchReach && (boyFeet - _feet).abs() < 1.3) {
-        caught = true;
-        active = false;
-        vampire.seize();
-        boy.die(cause: DeathCause.vampire);
+        _attackWindup += dt;
+        vampire.combatTelegraph = true;
+        vampire.reachGoal = 1;
+        if (_attackWindup >= .24 &&
+            !boy.isRagdoll &&
+            (boy.isLow || !boy.isOnGround)) {
+          vampire.receiveCombatHit(
+            CombatHit(posture: 1.1, direction: -dir, stunSeconds: 1.05),
+          );
+          _attackWindup = -.6;
+          stage.cue('parry', weight: .45, at: boy.body.position);
+        } else if (_attackWindup >= .42) {
+          vampire.seize();
+          final hit = boy.receiveEnemyHit(direction: dir);
+          _attackWindup = -.9;
+          if (hit && boy.isDead) {
+            caught = true;
+            active = false;
+          }
+        }
+      } else {
+        _attackWindup = 0;
+        vampire.combatTelegraph = false;
       }
     }
   }
@@ -342,6 +374,7 @@ class Stalker {
   double _searchTime = 0;
   bool caught = false;
   double _lit = 0;
+  double _attackWindup = 0;
 
   bool get burning =>
       vampire.mode == VampireMode.burn ||
@@ -375,6 +408,11 @@ class Stalker {
 
   void update(double dt) {
     if (burning || dt <= 0) return;
+    if (vampire.isCombatStunned) {
+      vampire.combatTelegraph = false;
+      _attackWindup = 0;
+      return;
+    }
     final Player boy = stage.player;
     if (!boy.isMounted) return;
     final double x = vampire.x;
@@ -465,9 +503,26 @@ class Stalker {
         !boyLit &&
         (b.x - vampire.x).abs() < 0.8 &&
         (boyFeet - vampire.groundY).abs() < 1.3) {
-      caught = true;
-      vampire.seize();
-      boy.die(cause: DeathCause.vampire);
+      _attackWindup += dt;
+      vampire.combatTelegraph = true;
+      if (_attackWindup >= .24 &&
+          !boy.isRagdoll &&
+          (boy.isLow || !boy.isOnGround)) {
+        vampire.receiveCombatHit(
+          CombatHit(posture: 1, direction: -vampire.facing, stunSeconds: 1),
+        );
+        _attackWindup = 0;
+      } else if (_attackWindup >= .42) {
+        vampire.seize();
+        final hit = boy.receiveEnemyHit(direction: vampire.facing);
+        _attackWindup = -.9;
+        caught = hit && boy.isDead;
+      }
+    } else if (_attackWindup > 0) {
+      _attackWindup = 0;
+      vampire.combatTelegraph = false;
+    } else if (_attackWindup < 0) {
+      _attackWindup = math.min(0, _attackWindup + dt);
     }
   }
 
@@ -485,6 +540,7 @@ class Stalker {
     _searchTime = 0;
     caught = false;
     _lit = 0;
+    _attackWindup = 0;
     _goal = null;
     vampire
       ..revive()

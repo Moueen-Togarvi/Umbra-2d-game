@@ -7,6 +7,8 @@ import '../config/palette.dart';
 import '../game/umbra_game.dart';
 import 'main_menu_choice.dart';
 import 'settings_panel.dart';
+import 'control_layout_editor.dart';
+import 'weapon_overlays.dart';
 
 /// Pause menu styled to match the quiet, brush-highlighted title menu.
 class PauseScreen extends StatefulWidget {
@@ -20,12 +22,15 @@ class PauseScreen extends StatefulWidget {
 class _PauseScreenState extends State<PauseScreen> {
   bool _leaving = false;
   bool _showSettings = false;
-  bool _settingsRestored = false;
+  bool _showArmory = false;
+
   int _selection = 0;
 
   void _back() {
     if (_showSettings) {
       setState(() => _showSettings = false);
+    } else if (_showArmory) {
+      setState(() => _showArmory = false);
     } else {
       widget.game.resumeGameplay();
     }
@@ -40,6 +45,7 @@ class _PauseScreenState extends State<PauseScreen> {
     final actions = <(String, VoidCallback?)>[
       ('Resume', game.resumeGameplay),
       ('Restart', game.resetFromPause),
+      ('Armory', () => setState(() => _showArmory = true)),
       if (game.campaign)
         (
           'Main menu',
@@ -85,83 +91,13 @@ class _PauseScreenState extends State<PauseScreen> {
       ],
     );
 
-    Widget settings(double width) => Column(
-      crossAxisAlignment: CrossAxisAlignment.center,
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Text(
-          'SETTINGS',
-          style: TextStyle(
-            fontFamily: 'Cinzel',
-            fontSize: (unit * 4).clamp(16, 28),
-            letterSpacing: unit * .8,
-            color: Palette.brandInk,
-          ),
-        ),
-        SizedBox(height: unit * 1.4),
-        Container(
-          width: unit * 5,
-          height: 1,
-          color: Palette.lampAmber.withValues(alpha: .7),
-        ),
-        SizedBox(height: unit * 2),
-        SettingsPanel(
-          settings: game.settings,
-          unit: unit,
-          width: width,
-          centered: true,
-        ),
-        SizedBox(height: unit * 1.4),
-        SizedBox(
-          width: width,
-          child: LayoutBuilder(
-            builder: (context, actionsBounds) {
-              final reset = MainMenuChoice(
-                label: 'Reset settings',
-                wordSpacing: unit * 5.2,
-                minimumWidth: 0,
-                unit: unit * .72,
-                selected: false,
-                autofocus: false,
-                onHighlight: () {},
-                onTap: () async {
-                  await game.settings.reset();
-                  if (mounted) {
-                    setState(() => _settingsRestored = true);
-                  }
-                },
-                centered: true,
-              );
-              final back = MainMenuChoice(
-                label: 'Back',
-                minimumWidth: 0,
-                unit: unit * .72,
-                selected: true,
-                autofocus: false,
-                onHighlight: () {},
-                onTap: () => setState(() => _showSettings = false),
-                centered: true,
-              );
-              if (actionsBounds.maxWidth < 380) {
-                return Wrap(
-                  alignment: WrapAlignment.center,
-                  spacing: unit * 2,
-                  runSpacing: unit,
-                  children: [reset, back],
-                );
-              }
-              return Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  reset,
-                  SizedBox(width: unit * 4),
-                  back,
-                ],
-              );
-            },
-          ),
-        ),
-      ],
+    Widget settings(double width) => SettingsPanel(
+      settings: game.settings,
+      unit: unit,
+      width: width,
+      centered: true,
+      onBack: () => setState(() => _showSettings = false),
+      onCustomize: () => showControlLayoutEditor(context, game.settings),
     );
 
     return Focus(
@@ -183,24 +119,15 @@ class _PauseScreenState extends State<PauseScreen> {
               filter: ui.ImageFilter.blur(sigmaX: 8, sigmaY: 8),
               child: const ColoredBox(color: Color(0xA6080A0B)),
             ),
-            if (_settingsRestored && _showSettings)
-              const Positioned(
-                bottom: 20,
-                left: 20,
-                right: 20,
-                child: Text(
-                  'Settings restored',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(color: Palette.brandInk),
-                ),
-              ),
             SafeArea(
               minimum: const EdgeInsets.all(18),
               child: LayoutBuilder(
                 builder: (context, bounds) {
                   final compact = bounds.maxWidth < 620;
                   final content = AnimatedSwitcher(
-                    duration: const Duration(milliseconds: 220),
+                    duration: MediaQuery.disableAnimationsOf(context)
+                        ? Duration.zero
+                        : const Duration(milliseconds: 220),
                     switchInCurve: Curves.easeOut,
                     switchOutCurve: Curves.easeIn,
                     child: _showSettings
@@ -212,6 +139,14 @@ class _PauseScreenState extends State<PauseScreen> {
                                   : (unit * 64)
                                         .clamp(400, bounds.maxWidth * .9)
                                         .toDouble(),
+                            ),
+                          )
+                        : _showArmory
+                        ? KeyedSubtree(
+                            key: const ValueKey('armory'),
+                            child: ArmoryPanel(
+                              game: game,
+                              onBack: () => setState(() => _showArmory = false),
                             ),
                           )
                         : KeyedSubtree(
@@ -244,7 +179,7 @@ class _PauseScreenState extends State<PauseScreen> {
                     child: SingleChildScrollView(
                       child: ConstrainedBox(
                         constraints: BoxConstraints(
-                          maxWidth: _showSettings
+                          maxWidth: _showSettings || _showArmory
                               ? bounds.maxWidth
                               : compact
                               ? bounds.maxWidth

@@ -464,7 +464,9 @@ class Portcullis extends Hoisted {
     }
   }
 
-  static final Paint _bars = Paint()..color = _iron;
+  static final Paint _bars = Paint()
+    ..color = Palette.trapRed
+    ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 2.2);
 
   @override
   void render(Canvas canvas) {

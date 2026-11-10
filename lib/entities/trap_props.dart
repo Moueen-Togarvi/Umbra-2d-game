@@ -4,6 +4,7 @@ import 'dart:ui';
 import 'package:flame/components.dart' hide World;
 import 'package:flame_forge2d/flame_forge2d.dart';
 
+import '../config/palette.dart';
 import '../physics/collision_layers.dart';
 import '../render/culling.dart';
 import '../world/footprint.dart';
@@ -76,9 +77,11 @@ class BearTrap extends Component with OffScreenCulling implements HasFootprint {
     }
   }
 
-  static final Paint _iron = Paint()..color = const Color(0xFF0B0B0B);
+  static final Paint _iron = Paint()
+    ..color = Palette.trapRed
+    ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 2.2);
   static final Paint _glint = Paint()
-    ..color = const Color(0x70C8CCC6)
+    ..color = Palette.trapEdge
     ..style = PaintingStyle.stroke
     ..strokeWidth = 0.016;
 
@@ -241,7 +244,9 @@ class StakeRow extends Component with OffScreenCulling implements HasFootprint {
     }
   }
 
-  static final Paint _wood = Paint()..color = const Color(0xFF070707);
+  static final Paint _wood = Paint()
+    ..color = Palette.trapRed
+    ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 2.2);
 
   @override
   void render(Canvas canvas) {

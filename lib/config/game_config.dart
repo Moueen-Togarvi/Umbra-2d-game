@@ -232,14 +232,14 @@ abstract final class GameConfig {
   /// How quickly the player reaches [moveSpeedMetersPerSecond] on the
   /// ground, in m/s². Reaches full speed in about 0.18 seconds, giving the
   /// first step a visible push-off. Braking uses a stronger rate below.
-  static const double groundAcceleration = 18.0;
+  static const double groundAcceleration = 21.0;
 
   /// Braking is stronger than acceleration, but still takes a few frames.
-  static const double groundDeceleration = 26.0;
+  static const double groundDeceleration = 30.0;
 
   /// Acceleration while airborne. Lower than on the ground: you can steer a
   /// jump, but not reverse it outright.
-  static const double airAcceleration = 3.5;
+  static const double airAcceleration = 4.2;
 
   /// Extra gravity on the way *down*, as a multiple of [gravity]. Rising at
   /// 1x and falling at 1.2x is the classic platformer trick: the jump still
@@ -249,11 +249,18 @@ abstract final class GameConfig {
   /// How long after walking off an edge a jump is still allowed, in seconds.
   /// Without this, pressing jump on the last pixel of a ledge — which is
   /// exactly where people press it — fails, and the game feels unfair.
-  static const double coyoteTimeSeconds = 0.12;
+  static const double coyoteTimeSeconds = 0.15;
 
   /// How long before landing a jump press is remembered, in seconds. Pressing
   /// slightly early then lands and jumps in one motion instead of being lost.
-  static const double jumpBufferSeconds = 0.12;
+  static const double jumpBufferSeconds = 0.15;
+
+  /// Brief protection after a checkpoint respawn. This prevents a restored
+  /// trap or moving body from killing the player before the first input frame.
+  static const double respawnGraceSeconds = 0.7;
+
+  /// Screen-space guidance starts warning while there is still time to react.
+  static const double dangerWarningMeters = 3.4;
 
   /// How high the player's jump peaks, in metres, measured from the take-off
   /// point. Like LIMBO's, the jump is always this height: holding or

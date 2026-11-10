@@ -592,7 +592,9 @@ class RockFall extends Component {
     super.onRemove();
   }
 
-  static final Paint _stone = Paint()..color = const Color(0xFF060606);
+  static final Paint _stone = Paint()
+    ..color = Palette.trapRed
+    ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 2.2);
 
   @override
   void render(Canvas canvas) {

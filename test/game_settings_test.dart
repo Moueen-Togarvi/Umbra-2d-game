@@ -56,22 +56,37 @@ void main() {
     final settings = await GameSettings.load();
     expect(settings.musicOn, isTrue);
     expect(settings.soundOn, isTrue);
-    expect(settings.background, GameSettings.defaultBackground);
     expect(settings.music, .6);
     var heard = 0;
     settings.addListener(() => heard++);
     settings
       ..set('music', .25)
       ..setFlag('musicOn', false)
-      ..setFlag('soundOn', false)
-      ..setBackground('bg_solitude');
-    expect(heard, 4);
+      ..setFlag('soundOn', false);
+    expect(heard, 3);
     await Future<void>.delayed(Duration.zero);
     final reloaded = await GameSettings.load();
     expect(reloaded.music, .25);
     expect(reloaded.musicOn, isFalse);
     expect(reloaded.soundOn, isFalse);
-    expect(reloaded.background, 'bg_solitude');
     expect(() => settings.setFlag('nonsense', true), throwsArgumentError);
+  });
+
+  test('custom control positions persist and reset independently', () async {
+    SharedPreferences.setMockInitialValues({});
+    final settings = await GameSettings.load();
+    final layout = {
+      'left': const Offset(.12, .78),
+      'jump': const Offset(.88, .72),
+    };
+    await settings.saveControlPositions(layout);
+    settings.setFlag('leftHanded', true);
+    final reloaded = await GameSettings.load();
+    expect(reloaded.controlPositions, layout);
+    expect(reloaded.leftHanded, isTrue);
+
+    await reloaded.resetControlPositions();
+    expect(reloaded.controlPositions, isEmpty);
+    expect((await GameSettings.load()).controlPositions, isEmpty);
   });
 }

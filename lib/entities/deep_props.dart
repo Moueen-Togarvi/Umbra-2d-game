@@ -5,6 +5,7 @@ import 'package:flame/components.dart' hide World;
 import 'package:flame_forge2d/flame_forge2d.dart';
 
 import '../config/game_config.dart';
+import '../config/palette.dart';
 import '../physics/collision_layers.dart';
 import '../render/culling.dart';
 import '../world/footprint.dart';
@@ -186,7 +187,9 @@ class StalactiteRow extends Component
     }
   }
 
-  static final Paint _stone = Paint()..color = _black;
+  static final Paint _stone = Paint()
+    ..color = Palette.trapRed
+    ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 2.2);
 
   @override
   void render(Canvas canvas) {
@@ -311,10 +314,14 @@ class Collapse extends Component with OffScreenCulling implements HasFootprint {
     if (front >= to) active = false;
   }
 
-  static final Paint _stone = Paint()..color = _black;
+  static final Paint _stone = Paint()
+    ..color = Palette.trapRed
+    ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 2.2);
 
-  static final Paint _flameOuter = Paint()..color = const Color(0xA8E07A30);
-  static final Paint _flameInner = Paint()..color = const Color(0xE0FFD890);
+  static final Paint _flameOuter = Paint()
+    ..color = Palette.trapGlow
+    ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 3.5);
+  static final Paint _flameInner = Paint()..color = Palette.trapEdge;
   static final Paint _char = Paint()..color = const Color(0xFF050404);
 
   void _renderFire(Canvas canvas) {

@@ -51,13 +51,8 @@ class ChapterDirector {
     ('SOUND', 'Kenney · rubberduck · and the OpenGameArt community, CC0'),
     ('FOOTSTEPS', 'Generated with ElevenLabs'),
     ('BACKGROUND PAINTINGS', 'Generated with OpenAI'),
-    ('MUSIC BY SCOTT BUCKLEY · CC-BY 4.0', 'Eyes In The Void · Decoherence'),
-    ('MUSIC BY SCOTT BUCKLEY · CC-BY 4.0', 'Descent · In Search Of Solitude'),
     ('MUSIC BY SCOTT BUCKLEY · CC-BY 4.0', 'The Distant Sun'),
-    (
-      'MUSIC, CC0',
-      'HaelDB · cynicmusic · Juhani Junkala · kindland · cinameng',
-    ),
+    ('MUSIC, CC0', 'Juhani Junkala · kindland · cynicmusic'),
     ('IN THE SHADOW OF', 'LIMBO'),
     ('THANK YOU', 'for playing'),
   ];

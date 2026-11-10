@@ -151,7 +151,7 @@ class Fire extends Component with StageLight implements GlowingLight {
       canvas,
       Offset(mid, floorY - 0.6),
       (w / 2 + 2.8) * (1 + 0.04 * f),
-      Palette.lampAmber,
+      Palette.trapRed,
       0.5 * s,
     );
   }
@@ -178,9 +178,9 @@ class Fire extends Component with StageLight implements GlowingLight {
         Offset(0, floorY),
         Offset(0, floorY - 0.9),
         [
-          const Color(0xFFFFE0A0).withValues(alpha: 0.95 * s),
-          Palette.lampAmber.withValues(alpha: 0.85 * s),
-          const Color(0xFFC0401A).withValues(alpha: 0),
+          Palette.trapEdge.withValues(alpha: 0.98 * s),
+          Palette.trapRed.withValues(alpha: 0.92 * s),
+          Palette.trapGlow.withValues(alpha: 0),
         ],
         const [0, 0.45, 1],
       );

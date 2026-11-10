@@ -1,3 +1,6 @@
+import 'dart:convert';
+import 'dart:ui' show Offset;
+
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -15,18 +18,18 @@ class GameSettings extends ChangeNotifier {
     music = _read('music', 0.6, 0, 1);
     final Object? musicFlag = _preferences?.get('umbra.settings.musicOn');
     final Object? soundFlag = _preferences?.get('umbra.settings.soundOn');
-    final Object? track = _preferences?.get('umbra.settings.background');
     musicOn = musicFlag is bool ? musicFlag : true;
     soundOn = soundFlag is bool ? soundFlag : true;
-    background = track is String ? track : defaultBackground;
     final vibrationFlag = _preferences?.get('umbra.settings.vibration');
     vibration = vibrationFlag is bool ? vibrationFlag : true;
     cameraShake = _preferences?.getBool('umbra.settings.cameraShake') ?? true;
     leftHanded = _preferences?.getBool('umbra.settings.leftHanded') ?? false;
+    reducedMotion =
+        _preferences?.getBool('umbra.settings.reducedMotion') ?? false;
+    tutorialComplete =
+        _preferences?.getBool('umbra.tutorial.complete') ?? false;
+    controlPositions = _readControlPositions();
   }
-
-  /// The music under play until the player picks another.
-  static const String defaultBackground = 'bg_descent';
 
   final SharedPreferences? _preferences;
   late double brightness, atmosphere, controlsScale, controlsOpacity;
@@ -35,9 +38,64 @@ class GameSettings extends ChangeNotifier {
   /// Music on or off, and all sound on or off (the speaker).
   late bool musicOn, soundOn, vibration;
   late bool cameraShake, leftHanded;
+  late bool reducedMotion;
+  late bool tutorialComplete;
 
-  /// The music under play: one of the backgrounds in the sound bank.
-  late String background;
+  late Map<String, Offset> controlPositions;
+
+  static const _controlPositionsKey = 'umbra.settings.controlPositions';
+
+  Map<String, Offset> _readControlPositions() {
+    final raw = _preferences?.getString(_controlPositionsKey);
+    if (raw == null) return {};
+    try {
+      final values = jsonDecode(raw) as Map<String, dynamic>;
+      return {
+        for (final entry in values.entries)
+          if (entry.value is List &&
+              (entry.value as List).length == 2 &&
+              entry.value[0] is num &&
+              entry.value[1] is num &&
+              (entry.value[0] as num).isFinite &&
+              (entry.value[1] as num).isFinite)
+            entry.key: Offset(
+              (entry.value[0] as num).toDouble().clamp(0.0, 1.0),
+              (entry.value[1] as num).toDouble().clamp(0.0, 1.0),
+            ),
+      };
+    } catch (_) {
+      return {};
+    }
+  }
+
+  Future<void> saveControlPositions(Map<String, Offset> positions) async {
+    controlPositions = {
+      for (final entry in positions.entries)
+        entry.key: Offset(
+          entry.value.dx.clamp(0.0, 1.0),
+          entry.value.dy.clamp(0.0, 1.0),
+        ),
+    };
+    final value = jsonEncode({
+      for (final entry in controlPositions.entries)
+        entry.key: [entry.value.dx, entry.value.dy],
+    });
+    await _store(() => _preferences?.setString(_controlPositionsKey, value));
+    notifyListeners();
+  }
+
+  Future<void> resetControlPositions() async {
+    controlPositions = {};
+    await _store(() => _preferences?.remove(_controlPositionsKey));
+    notifyListeners();
+  }
+
+  Future<void> completeTutorial() async {
+    if (tutorialComplete) return;
+    tutorialComplete = true;
+    await _store(() => _preferences?.setBool('umbra.tutorial.complete', true));
+    notifyListeners();
+  }
 
   double _read(String key, double fallback, double min, double max) {
     final value = _preferences?.get('umbra.settings.$key');
@@ -99,18 +157,12 @@ class GameSettings extends ChangeNotifier {
         cameraShake = value;
       case 'leftHanded':
         leftHanded = value;
+      case 'reducedMotion':
+        reducedMotion = value;
       default:
         throw ArgumentError.value(key, 'key');
     }
     _store(() => _preferences?.setBool('umbra.settings.$key', value));
-    notifyListeners();
-  }
-
-  /// Picks the music under play.
-  void setBackground(String id) {
-    if (id == background) return;
-    background = id;
-    _store(() => _preferences?.setString('umbra.settings.background', id));
     notifyListeners();
   }
 
@@ -137,7 +189,8 @@ class GameSettings extends ChangeNotifier {
     vibration = defaults.vibration;
     cameraShake = defaults.cameraShake;
     leftHanded = defaults.leftHanded;
-    background = defaults.background;
+    reducedMotion = defaults.reducedMotion;
+    controlPositions = {};
     notifyListeners();
     for (final key in _preferences?.getKeys().toList() ?? <String>[]) {
       if (key.startsWith('umbra.settings.')) {

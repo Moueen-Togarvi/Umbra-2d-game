@@ -45,28 +45,19 @@ They play at their own pitch, levelled to -24 dB, on grass and in the caves.
 
 ## Music
 
-Chosen by the user from previews. The menu, chase and ending pieces are
-fixed; the player picks the music under play from the backgrounds, in the
-main menu's Music panel. Each loop is about three minutes cut from the body
-of the piece and crossfaded end into start; rebuild with
+Chosen by the user from previews. The menu plays The Distant Sun; chapters
+alternate Forgotten Tomb (odd numbered) and Post Apocalyptic Wastelands
+(even numbered). The ending plays November Snow. Each gameplay loop is about
+three minutes cut from the body of the piece and crossfaded end into start; rebuild with
 `python3 tool/audio/build_sounds.py --music <folder of the downloads>`.
 
 | In the game | Piece | Author | Licence | Source |
 |---|---|---|---|---|
-| Main menu; background (default) | Tragic ambient main menu | HaelDB | CC0 | https://opengameart.org/content/tragic-ambient-main-menu |
-| Chase | Eyes In The Void | Scott Buckley | CC-BY 4.0 | https://www.scottbuckley.com.au/library/eyes-in-the-void/ |
+| Main menu | The Distant Sun | Scott Buckley | CC-BY 4.0 | https://www.scottbuckley.com.au/library/the-distant-sun/ |
 | Ending | November Snow | cynicmusic | CC0 | https://opengameart.org/content/november-snow |
-| Background | Decoherence | Scott Buckley | CC-BY 4.0 | https://www.scottbuckley.com.au/library/decoherence/ |
-| Background | Descent | Scott Buckley | CC-BY 4.0 | https://www.scottbuckley.com.au/library/descent/ |
-| Background | In Search Of Solitude | Scott Buckley | CC-BY 4.0 | https://www.scottbuckley.com.au/library/in-search-of-solitude/ |
-| Background | The Distant Sun | Scott Buckley | CC-BY 4.0 | https://www.scottbuckley.com.au/library/the-distant-sun/ |
-| Background | Creepy Forest | HaelDB | CC0 | https://opengameart.org/content/creepy-forest-f |
-| Background | Post Apocalyptic Wastelands | Juhani Junkala | CC0 | https://opengameart.org/content/horror-atmosphere |
-| Background | Forgotten tomb ambience | kindland | CC0 | https://opengameart.org/content/forgoten-tomb-ambience |
-| Background | Overshadow | cinameng | CC0 | https://opengameart.org/content/overshadow |
+| Even numbered chapters | Post Apocalyptic Wastelands | Juhani Junkala | CC0 | https://opengameart.org/content/horror-atmosphere |
+| Odd numbered chapters | Forgotten tomb ambience | kindland | CC0 | https://opengameart.org/content/forgoten-tomb-ambience |
 
-Scott Buckley's pieces are released under Creative Commons Attribution 4.0
-(https://creativecommons.org/licenses/by/4.0/) and are credited in the
-game's closing credits: "'Eyes In The Void', 'Decoherence', 'Descent',
-'In Search Of Solitude' and 'The Distant Sun' by Scott Buckley — released
-under CC-BY 4.0. www.scottbuckley.com.au".
+The Distant Sun by Scott Buckley is released under Creative Commons
+Attribution 4.0 (https://creativecommons.org/licenses/by/4.0/) and is
+credited in the game's closing credits.

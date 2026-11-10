@@ -284,10 +284,7 @@ class JourneyChapter extends Chapter {
   @override
   Vector2 get spawn => Vector2(2, 7 - GameConfig.playerHeight / 2);
   @override
-  List<double> get checkpointXs => [
-    for (final (i, room) in rooms.indexed)
-      if (i.isEven) room.x + 2,
-  ];
+  List<double> get checkpointXs => [for (final room in rooms) room.x + 2];
   @override
   String get footing => number < 6 || number > 33 ? 'grass' : 'stone';
   @override

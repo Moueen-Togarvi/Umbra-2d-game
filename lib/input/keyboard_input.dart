@@ -55,6 +55,8 @@ class KeyboardInput extends Component with KeyboardHandler {
     LogicalKeyboardKey.arrowDown,
   };
 
+  static final Set<LogicalKeyboardKey> _attackKeys = {LogicalKeyboardKey.keyF};
+
   @override
   bool onKeyEvent(KeyEvent event, Set<LogicalKeyboardKey> keysPressed) {
     // Horizontal movement is read from the full set of currently-held keys
@@ -70,6 +72,7 @@ class KeyboardInput extends Component with KeyboardHandler {
       down: keysPressed.any(_downKeys.contains),
       sit: keysPressed.any(_downKeys.contains),
       up: keysPressed.any(_upKeys.contains),
+      attack: keysPressed.any(_attackKeys.contains),
     );
 
     // Jump is edge-triggered, so only a genuine key-down counts. Checking for
@@ -77,6 +80,9 @@ class KeyboardInput extends Component with KeyboardHandler {
     // fires while a key is held and which would otherwise machine-gun jumps.
     if (event is KeyDownEvent && _jumpKeys.contains(event.logicalKey)) {
       _intent.requestJump(fromUp: _upKeys.contains(event.logicalKey));
+    }
+    if (event is KeyDownEvent && _attackKeys.contains(event.logicalKey)) {
+      _intent.requestAttack();
     }
     if (event is KeyDownEvent) {
       onActivity?.call();
@@ -89,6 +95,14 @@ class KeyboardInput extends Component with KeyboardHandler {
           _intent.requestKnockdown();
         case LogicalKeyboardKey.keyM:
           _intent.requestAudioToggle();
+        case LogicalKeyboardKey.keyQ:
+          _intent.requestCycleWeapon();
+        case LogicalKeyboardKey.digit1:
+          _intent.requestWeaponSlot(0);
+        case LogicalKeyboardKey.digit2:
+          _intent.requestWeaponSlot(1);
+        case LogicalKeyboardKey.digit3:
+          _intent.requestWeaponSlot(2);
         case LogicalKeyboardKey.escape:
           onPause?.call();
       }

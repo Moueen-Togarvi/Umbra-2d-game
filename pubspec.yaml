@@ -39,6 +39,7 @@ flutter:
     - assets/images/part3/
     - assets/images/part4/
     - assets/images/backgrounds/
+    - assets/images/chapter_cards/
     - assets/images/characters/
     - assets/images/exits/
     - assets/images/ui/

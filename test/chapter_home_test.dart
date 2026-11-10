@@ -4,7 +4,9 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:umbra/chapters/home.dart';
 import 'package:umbra/character/character_interactions.dart';
 import 'package:umbra/config/game_config.dart';
+import 'package:umbra/entities/weapon_pickup.dart';
 import 'package:umbra/game/umbra_game.dart';
+import 'package:umbra/story/vampire.dart';
 
 void main() {
   Future<UmbraGame> boot(WidgetTester tester) async {
@@ -40,6 +42,9 @@ void main() {
     final game = await boot(tester);
     step(game, 3);
     final home = game.stage! as HomeChapter;
+    expect(home.descendants().whereType<WeaponPickup>(), hasLength(1));
+    expect(home.descendants().whereType<TrainingEffigy>(), hasLength(1));
+    expect(home.descendants().whereType<Vampire>(), hasLength(2));
     expect(game.director!.showingTitle, isTrue);
     expect(home.player.hidden, isTrue);
     expect(game.intent.isScripted, isTrue);
@@ -98,6 +103,7 @@ void main() {
     var climbedWall = false, swung = false, rodePlank = false;
     double reached = 0;
     double releaseCooldown = 0;
+    double attackCooldown = 0;
 
     void jump(String what) {
       jumped.add(what);
@@ -107,11 +113,17 @@ void main() {
     for (var i = 0; i < 60 * 900 && !home.isComplete; i++) {
       intent.setKeyboardState(axis: 1);
       releaseCooldown -= 1 / 60;
+      attackCooldown -= 1 / 60;
       final double x = player.body.position.x;
       final double feet = player.body.position.y + GameConfig.playerHeight / 2;
       final bool grounded = player.isOnGround;
       final mode = player.interactions.mode;
       if (!intent.isScripted) {
+        if (((x > 23 && x < 25.2) || (x > 37.5 && x < 61)) &&
+            attackCooldown <= 0) {
+          intent.requestAttack();
+          attackCooldown = .75;
+        }
         if (grounded && x > 27.5 && x < 28.4 && !jumped.contains('fence')) {
           jump('fence');
         }

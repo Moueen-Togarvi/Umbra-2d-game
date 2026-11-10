@@ -6,7 +6,8 @@ import 'package:flame/flame.dart';
 import 'package:flame/components.dart' show Component;
 import 'package:flame/input.dart' show HasKeyboardHandlerComponents;
 import 'package:flame_forge2d/flame_forge2d.dart';
-import 'package:flutter/foundation.dart' show kIsWeb, visibleForTesting;
+import 'package:flutter/foundation.dart'
+    show kIsWeb, mapEquals, visibleForTesting;
 import 'package:flutter/services.dart' show HapticFeedback;
 
 import '../config/game_config.dart';
@@ -15,7 +16,10 @@ import '../character/character_interactions.dart';
 import '../audio/ambient_audio.dart';
 import '../audio/sound_bank.dart';
 import '../config/palette.dart';
+import '../combat/combat_controller.dart';
+import '../combat/weapons.dart';
 import '../entities/player.dart';
+import '../entities/weapon_pickup.dart';
 import '../input/keyboard_input.dart';
 import '../input/player_intent.dart';
 import '../input/touch_controls.dart';
@@ -25,6 +29,8 @@ import '../render/fog_backdrop.dart';
 import '../render/chapter_backdrop.dart';
 import '../render/npc_atlas.dart';
 import '../render/foreground_overlay.dart';
+import '../render/gameplay_guidance.dart';
+import '../render/weapon_hud.dart';
 import '../story/chapter_card.dart';
 import '../story/chapter_director.dart';
 import '../chapters/chapter.dart';
@@ -91,6 +97,13 @@ class UmbraGame extends Forge2DGame with HasKeyboardHandlerComponents {
   /// The furthest chapter reached, kept between runs.
   final ProgressStore progress;
 
+  late final WeaponInventory weapons = WeaponInventory.fromProgress(progress);
+  late final CombatController combat = CombatController(
+    inventory: weapons,
+    intent: _intent,
+    onCue: _combatCue,
+  );
+
   /// Runs the story when [campaign] is set.
   ChapterDirector? director;
 
@@ -104,8 +117,15 @@ class UmbraGame extends Forge2DGame with HasKeyboardHandlerComponents {
   void unlockAudio() => _audio.unlock();
   double _controlScale = 1;
   bool _leftHanded = false;
+  Map<String, Offset> _controlPositions = {};
   int _heardLandings = 0, _heardSits = 0;
+  bool _combatWasDead = false;
   double _interactionSoundCooldown = 0;
+  bool _controlsMounted = false;
+  late final GameplayGuidance _guidance;
+  bool _performanceReduced = false;
+  double _lowFpsSeconds = 0, _highFpsSeconds = 0;
+  bool get performanceReduced => _performanceReduced;
 
   /// Owns the held-state of the on-screen walk buttons. Held as a field because
   /// the button callbacks close over it and it has to outlive [onLoad].
@@ -121,11 +141,19 @@ class UmbraGame extends Forge2DGame with HasKeyboardHandlerComponents {
         (_stage?.controlsHidden ?? false) ||
         (director?.hidesControls ?? false),
     onPause: pauseGameplay,
+    onWeaponMenu: openWeaponRadial,
+    attackReadiness: () => combat.readiness,
     debugTools: debugTools,
   );
 
   static const String pauseOverlay = 'pause';
+  static const String weaponRadialOverlay = 'weaponRadial';
+  static const String weaponPickupOverlay = 'weaponPickup';
   bool get isGameplayPaused => overlays.isActive(pauseOverlay);
+  bool get isWeaponRadialOpen => overlays.isActive(weaponRadialOverlay);
+  WeaponDefinition? pendingWeaponPickup;
+  int? _pendingPickupChapter;
+  bool _pausedForWeaponPickup = false;
 
   /// The main menu covers the whole screen: nothing of the world shows, so
   /// none of it is drawn (the stage behind it keeps its sound).
@@ -147,6 +175,8 @@ class UmbraGame extends Forge2DGame with HasKeyboardHandlerComponents {
       titleBack?.call();
     } else if (director?.awaitingChoice ?? false) {
       // The completed chapter stays put until one of its choices is made.
+    } else if (isWeaponRadialOpen) {
+      closeWeaponRadial();
     } else if (isGameplayPaused) {
       resumeGameplay();
     } else {
@@ -154,9 +184,38 @@ class UmbraGame extends Forge2DGame with HasKeyboardHandlerComponents {
     }
   }
 
+  void openWeaponRadial() {
+    if (isGameplayPaused ||
+        isWeaponRadialOpen ||
+        !weapons.hasAny ||
+        (_player?.isDead ?? true) ||
+        (director?.hidesControls ?? false)) {
+      return;
+    }
+    _touchControls.clear();
+    overlays.add(weaponRadialOverlay);
+  }
+
+  void closeWeaponRadial() {
+    if (isWeaponRadialOpen) overlays.remove(weaponRadialOverlay);
+  }
+
+  void selectWeapon(int slot) {
+    weapons.select(slot);
+    unawaited(weapons.save(progress));
+    sound('tick', .35);
+    closeWeaponRadial();
+  }
+
+  Future<void> equipWeapon(WeaponFamily family, int slot) async {
+    weapons.equip(family, slot);
+    await weapons.save(progress);
+  }
+
   void pauseGameplay() {
     if (isGameplayPaused || (director?.hidesControls ?? false)) return;
     _touchControls.clear();
+    closeWeaponRadial();
     _intent.clear();
     pauseEngine();
     overlays.add(pauseOverlay);
@@ -194,11 +253,15 @@ class UmbraGame extends Forge2DGame with HasKeyboardHandlerComponents {
   void _settingsChanged() {
     _audio.updateMix();
     if (_controlScale != settings.controlsScale ||
-        _leftHanded != settings.leftHanded) {
+        _leftHanded != settings.leftHanded ||
+        !mapEquals(_controlPositions, settings.controlPositions)) {
       _controlScale = settings.controlsScale;
       _leftHanded = settings.leftHanded;
+      _controlPositions = Map.of(settings.controlPositions);
       _touchControls.removeButtons();
-      camera.viewport.addAll(_touchControls.buildButtons());
+      camera.viewport.addAll(
+        _touchControls.buildButtons(camera.viewport.virtualSize),
+      );
     }
   }
 
@@ -268,6 +331,7 @@ class UmbraGame extends Forge2DGame with HasKeyboardHandlerComponents {
     // menu's music starts as the game opens.
     if (!kIsWeb) unawaited(_audio.unlock());
     _controlScale = settings.controlsScale;
+    _controlPositions = Map.of(settings.controlPositions);
     settings.addListener(_settingsChanged);
 
     // Frame a 16 x 9 m window on the world, in metres. Flame fits it to the
@@ -282,9 +346,37 @@ class UmbraGame extends Forge2DGame with HasKeyboardHandlerComponents {
     // black the picture fades to when he dies or a scene ends.
     await camera.viewport.addAll([
       if (!campaign) ForegroundFog(camera: camera),
-      ForegroundOverlay(camera: camera, settings: settings),
+      ForegroundOverlay(
+        camera: camera,
+        settings: settings,
+        reducedEffects: () => _performanceReduced,
+      ),
       ScreenFade(camera: camera, blackness: () => blackness),
-      DeathFeedback(camera: camera, player: () => _player),
+      DeathFeedback(
+        camera: camera,
+        player: () => _player,
+        checkpoints: () => checkpoints,
+      ),
+      WeaponHud(
+        inventory: weapons,
+        combat: combat,
+        player: () => _player,
+        hidden: () =>
+            _stage == null ||
+            coveredByMenu ||
+            isGameplayPaused ||
+            (director?.hidesControls ?? false) ||
+            (_stage?.controlsHidden ?? false),
+      ),
+      _guidance = GameplayGuidance(
+        camera: camera,
+        player: () => _player,
+        stage: () => _stage,
+        intent: _intent,
+        settings: settings,
+        chapterIndex: () => director?.index ?? 0,
+        tutorialEnabled: () => campaign && (director?.index ?? -1) == 0,
+      ),
     ]);
 
     // The keyboard listener lives on the game, not in the world: it is not a
@@ -302,9 +394,12 @@ class UmbraGame extends Forge2DGame with HasKeyboardHandlerComponents {
     // Touch controls go in the camera's *viewport*, not in the world. The
     // viewport is screen space, so the buttons keep a constant thumb-sized
     // footprint in pixels and never scale or pan with the camera. They must be
-    // added directly to it, because Flame positions them by a margin measured
-    // against their immediate parent's size.
-    await camera.viewport.addAll(_touchControls.buildButtons());
+    // added directly to it so Flame can calculate resize margins against its
+    // immediate parent's size.
+    await camera.viewport.addAll(
+      _touchControls.buildButtons(camera.viewport.virtualSize),
+    );
+    _controlsMounted = true;
 
     await world.add(
       PhysicsDebugOverlay(world: world, isVisible: () => _debugVisible),
@@ -370,7 +465,15 @@ class UmbraGame extends Forge2DGame with HasKeyboardHandlerComponents {
     // A scene in the old stage may have held the controls.
     _intent.endScript();
     _intent.clear();
+    closeWeaponRadial();
+    if (pendingWeaponPickup != null) {
+      overlays.remove(weaponPickupOverlay);
+      pendingWeaponPickup = null;
+      _pendingPickupChapter = null;
+      _pausedForWeaponPickup = false;
+    }
     _simulationAccumulator = 0;
+    combat.reset();
     _stage = stage;
     checkpoints = stage.checkpoints;
     deathSequence = DeathSequence(checkpoints: checkpoints);
@@ -401,6 +504,7 @@ class UmbraGame extends Forge2DGame with HasKeyboardHandlerComponents {
     player.drainFootContacts();
     _heardLandings = player.landings;
     _heardSits = player.sitDowns;
+    await _mountChapterPickup(stage, player);
 
     // Start the camera on the boy so the first frame is not a pan.
     _lookAhead = 0;
@@ -412,6 +516,80 @@ class UmbraGame extends Forge2DGame with HasKeyboardHandlerComponents {
     );
     camera.viewfinder.position = _cameraTarget.clone();
     _cameraBase.setFrom(_cameraTarget);
+  }
+
+  Future<void> _mountChapterPickup(Stage stage, Player player) async {
+    if (!campaign) return;
+    final chapter = director?.index ?? 0;
+    if (progress.weaponPickups.contains(chapter)) return;
+    final weapon = WeaponCatalog.forChapter(chapter);
+    stage.combatLocked = true;
+    // Chapter 1's opening runs the boy away from the cottage before control is
+    // handed back. Put its mandatory lesson directly on the path after that
+    // cutscene instead of beside the now-abandoned spawn point.
+    final pickupPosition = chapter == 0 && stage is Chapter
+        ? Vector2(20.4, stage.groundAt(20.4) - .42)
+        : player.body.position +
+              Vector2(player.facing * 2.5, GameConfig.playerHeight * .42);
+    stage.combatLockCenter = pickupPosition;
+    await stage.add(
+      WeaponPickup(
+        weapon: weapon,
+        stage: stage,
+        enabled: () => director?.isPlaying ?? false,
+        onCollected: (value) => _collectWeapon(value, chapter),
+        approachDirection: player.facing,
+        position: pickupPosition,
+      ),
+    );
+    if (chapter == 0) {
+      await stage.add(
+        TrainingEffigy(
+          position: Vector2(
+            24.2,
+            stage is Chapter ? stage.groundAt(24.2) : player.body.position.y,
+          ),
+        ),
+      );
+    }
+  }
+
+  void _collectWeapon(WeaponDefinition weapon, int chapter) {
+    if (pendingWeaponPickup != null) return;
+    weapons.unlock(weapon);
+    if (_stage != null) {
+      _stage!
+        ..combatLocked = false
+        ..combatLockCenter = null;
+    }
+    pendingWeaponPickup = weapon;
+    _pendingPickupChapter = chapter;
+    unawaited(weapons.save(progress, collectedChapter: chapter));
+    sound('checkpoint', .7);
+    _feel(.45);
+    if (overlays.registeredOverlays.contains(weaponPickupOverlay)) {
+      _pausedForWeaponPickup = !paused;
+      if (_pausedForWeaponPickup) pauseEngine();
+      overlays.add(weaponPickupOverlay);
+    } else {
+      pendingWeaponPickup = null;
+      _pendingPickupChapter = null;
+    }
+  }
+
+  void finishWeaponPickup({int? replaceSlot}) {
+    final weapon = pendingWeaponPickup;
+    if (weapon == null) return;
+    if (replaceSlot != null) weapons.equip(weapon.family, replaceSlot);
+    unawaited(weapons.save(progress, collectedChapter: _pendingPickupChapter));
+    overlays.remove(weaponPickupOverlay);
+    pendingWeaponPickup = null;
+    _pendingPickupChapter = null;
+    if (_pausedForWeaponPickup) {
+      _pausedForWeaponPickup = false;
+      _simulationAccumulator = 0;
+      resumeEngine();
+    }
   }
 
   /// Shared film grain. Chapter artwork is owned by its backdrop.
@@ -449,6 +627,19 @@ class UmbraGame extends Forge2DGame with HasKeyboardHandlerComponents {
       _displayFrames++;
       if (_frameElapsed >= 0.5) {
         _fps = _displayFrames / _frameElapsed;
+        if (_fps < 42) {
+          _lowFpsSeconds += _frameElapsed;
+          _highFpsSeconds = 0;
+        } else if (_fps > 55) {
+          _highFpsSeconds += _frameElapsed;
+          _lowFpsSeconds = 0;
+        } else {
+          _lowFpsSeconds = _highFpsSeconds = 0;
+        }
+        if (_lowFpsSeconds >= 3) _performanceReduced = true;
+        if (_performanceReduced && _highFpsSeconds >= 10) {
+          _performanceReduced = false;
+        }
         _frameElapsed = 0;
         _displayFrames = 0;
       }
@@ -468,11 +659,18 @@ class UmbraGame extends Forge2DGame with HasKeyboardHandlerComponents {
         _simulationAccumulator = 0;
       }
     }
-    _simulationAccumulator += frameDt;
+    final simulationFrameDt = frameDt * (isWeaponRadialOpen ? .2 : 1);
+    _simulationAccumulator += simulationFrameDt;
     while (_simulationAccumulator + 1e-10 >= _simulationStep) {
       super.update(_simulationStep);
       final player = _player;
       if (player != null && player.isMounted) {
+        final oldSlot = weapons.activeSlot;
+        combat.update(_simulationStep, player, _stage);
+        if (weapons.activeSlot != oldSlot) {
+          unawaited(weapons.save(progress));
+          sound('tick', .3);
+        }
         // Consume after every physics tick: a slow render frame can contain
         // more than one foot contact. Each contact gets its own sound.
         for (final contact in player.drainFootContacts()) {
@@ -491,13 +689,15 @@ class UmbraGame extends Forge2DGame with HasKeyboardHandlerComponents {
     if (place != null) {
       _audio.bed(place.ambience);
     }
-    _audio.score(_scoreNow(place));
+    _audio.score(_scoreNow());
     _audio.update(frameDt);
     final Player? player = _player;
     if (player == null || !player.isMounted) {
       return;
     }
     deathSequence.update(frameDt, player);
+    if (_combatWasDead && !player.isDead) combat.reset();
+    _combatWasDead = player.isDead;
     _hapticRest -= frameDt;
     if (player.isDead && !_feltDeath) _feel(1);
     _feltDeath = player.isDead;
@@ -506,7 +706,11 @@ class UmbraGame extends Forge2DGame with HasKeyboardHandlerComponents {
     if (stage != null) {
       for (final (name, weight, pan) in stage.cues) {
         _audio.effect(name, weight, pan);
-        if (name == 'checkpoint') _tap(HapticFeedback.selectionClick);
+        if (name == 'checkpoint') {
+          weapons.refill();
+          _tap(HapticFeedback.selectionClick);
+          _guidance.checkpointReached();
+        }
       }
       stage.cues.clear();
       if (stage.shake > 0) {
@@ -557,12 +761,17 @@ class UmbraGame extends Forge2DGame with HasKeyboardHandlerComponents {
     final double lead = player.isDead
         ? 0
         : player.facing * running * GameConfig.cameraLookAhead;
-    final double maxLeadChange = 3.0 * frameDt;
+    final bool reversing =
+        lead != 0 && _lookAhead != 0 && lead.sign != _lookAhead.sign;
+    final double maxLeadChange = (reversing ? 5.5 : 3.0) * frameDt;
     _lookAhead += (lead - _lookAhead).clamp(-maxLeadChange, maxLeadChange);
 
     final Vector2? focus = _stage?.cameraFocus;
     final Vector2 ideal =
         focus?.clone() ?? _idealCameraFor(player.cameraPosition, _lookAhead);
+    if (focus == null && !player.isOnGround && player.velocity.y > 2.5) {
+      ideal.y += ((player.velocity.y - 2.5) / 7).clamp(0.0, 1.15);
+    }
     final current = _cameraBase;
     // Ignore small vertical landing corrections and idle motion.
     if (focus == null && (ideal.y - current.y).abs() < 0.35) {
@@ -596,33 +805,16 @@ class UmbraGame extends Forge2DGame with HasKeyboardHandlerComponents {
 
   double _zoom = 1;
 
-  /// The music while a vampire is near.
-  static const String dreadMusic = 'bg_tomb';
-
-  /// A background the music menu is trying out, played while the menu
-  /// is open; null otherwise.
-  String? previewBackground;
-
-  /// The music for now: the main menu's own on the title (or the one being
-  /// tried out there), the chase's while a keeper is after him, dread while
-  /// one is near, and otherwise the one the player picked for play, never
-  /// the menu's.
+  /// The menu has its own score. Gameplay alternates its two scores by
+  /// chapter, beginning with Tomb in chapter one.
   @visibleForTesting
-  String get musicNow => _scoreNow(_stage);
+  String get musicNow => _scoreNow();
 
-  String _scoreNow(Stage? place) {
-    if (director?.showingTitle ?? false) {
-      return previewBackground ?? SoundBank.menu;
-    }
-    if (place?.threat == ThreatLevel.chase) {
-      return SoundBank.chase;
-    }
-    // A vampire close by, not yet after him: dread under the scene.
-    if (place?.threat == ThreatLevel.tension) return dreadMusic;
-    final String picked = previewBackground ?? settings.background;
-    return SoundBank.backgrounds.any((b) => b.$1 == picked)
-        ? picked
-        : GameSettings.defaultBackground;
+  String _scoreNow() {
+    if (director?.showingTitle ?? false) return SoundBank.menu;
+    return (director?.index ?? 0).isEven
+        ? SoundBank.gameplayTomb
+        : SoundBank.gameplayWastelands;
   }
 
   /// What his feet fall on: water, something that moves (wood), or the
@@ -654,6 +846,19 @@ class UmbraGame extends Forge2DGame with HasKeyboardHandlerComponents {
 
   /// Plays one effect now, from outside a stage (a card, the credits).
   void sound(String name, [double weight = 1]) => _audio.effect(name, weight);
+
+  void _combatCue(String name, double strength) {
+    final effect = switch (name) {
+      'slash' => 'chain',
+      'throw' => 'rope',
+      'parry' => 'hammer',
+      'empty' => 'tick',
+      'smoke' => 'fire',
+      _ => 'rumble',
+    };
+    sound(effect, .35 + strength * .45);
+    _feel(strength);
+  }
 
   double _hapticRest = 0;
   bool _feltDeath = false;
@@ -734,6 +939,16 @@ class UmbraGame extends Forge2DGame with HasKeyboardHandlerComponents {
       _audio.resume();
     }
     super.lifecycleStateChange(state);
+  }
+
+  @override
+  void onGameResize(Vector2 size) {
+    super.onGameResize(size);
+    if (!_controlsMounted) return;
+    _touchControls.removeButtons();
+    camera.viewport.addAll(
+      _touchControls.buildButtons(camera.viewport.virtualSize),
+    );
   }
 
   @override

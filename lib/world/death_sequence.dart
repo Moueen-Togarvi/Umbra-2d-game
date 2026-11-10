@@ -21,6 +21,7 @@ class DeathSequence {
 
   double _clock = -1;
   bool _respawned = false;
+  bool _recorded = false;
 
   double get _retrySpeed => checkpoints.deathsHere >= 2
       ? .58
@@ -40,6 +41,11 @@ class DeathSequence {
       }
       _clock = 0;
       _respawned = false;
+      _recorded = false;
+    }
+    if (!_recorded) {
+      checkpoints.recordDeath(player.deathCause);
+      _recorded = true;
     }
     // Brought back some other way (a reset) before the fade finished.
     if (!_respawned && !player.isDead) {

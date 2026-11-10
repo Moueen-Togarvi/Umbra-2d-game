@@ -5,6 +5,7 @@ import 'package:flame/components.dart' hide World;
 import 'package:flame_forge2d/flame_forge2d.dart';
 
 import '../config/game_config.dart';
+import '../config/palette.dart';
 import '../physics/collision_layers.dart';
 import '../render/culling.dart';
 import '../world/footprint.dart';
@@ -152,12 +153,17 @@ class TimedHazardRow extends Component
     }
   }
 
-  static final Paint _stone = Paint()..color = _black;
+  static final Paint _stone = Paint()
+    ..color = Palette.trapRed
+    ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 2.2);
   static final Paint _chain = Paint()
-    ..color = _black
+    ..color = Palette.trapRed
+    ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 2.2)
     ..strokeWidth = 0.05;
-  static final Paint _fireOuter = Paint()..color = const Color(0xB0E8A040);
-  static final Paint _fireInner = Paint()..color = const Color(0xE8FFE8B0);
+  static final Paint _fireOuter = Paint()
+    ..color = Palette.trapGlow
+    ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 3.5);
+  static final Paint _fireInner = Paint()..color = Palette.trapEdge;
 
   @override
   void render(Canvas canvas) {
@@ -635,7 +641,7 @@ class WatchEye extends Component with OffScreenCulling implements HasFootprint {
       _caught += dt;
       if (_caught > 0.25) {
         stage.cue('shriek', at: at);
-        boy.die(cause: DeathCause.vampire);
+        boy.receiveEnemyHit(direction: (boy.body.position.x - at.x).sign);
       }
     } else {
       _caught = 0;
@@ -713,7 +719,8 @@ class ArrowTrap extends Component
   void _fire() {
     stage.cue('chain', weight: 0.6, at: Vector2(slotX, floor - height));
     for (var i = 0; i < 3; i++) {
-      _wait.add(i * 0.22);
+      // The first arrow waits for the slot click and wire movement to read.
+      _wait.add(0.18 + i * 0.22);
     }
   }
 
@@ -761,9 +768,12 @@ class ArrowTrap extends Component
   }
 
   static final Paint _wire = Paint()
-    ..color = const Color(0x90C8C4B8)
+    ..color = Palette.trapEdge
+    ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 1.8)
     ..strokeWidth = 0.015;
-  static final Paint _iron = Paint()..color = _black;
+  static final Paint _iron = Paint()
+    ..color = Palette.trapRed
+    ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 2.2);
 
   @override
   void render(Canvas canvas) {

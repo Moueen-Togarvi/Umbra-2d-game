@@ -7,7 +7,7 @@ import 'package:flame/components.dart';
 import 'package:flame/flame.dart';
 import 'package:flame/input.dart';
 import 'package:flutter/widgets.dart'
-    show EdgeInsets, TextPainter, TextSpan, TextStyle, VoidCallback;
+    show TextPainter, TextSpan, TextStyle, VoidCallback;
 
 import '../config/game_config.dart';
 import '../config/palette.dart';
@@ -15,7 +15,7 @@ import '../config/game_settings.dart';
 import 'player_intent.dart';
 
 /// On-screen controls for phones: walk left and right under the left thumb;
-/// jump, the action hand and sit under the right.
+/// jump and sit under the right.
 ///
 /// This is the second input source in the game, and it was added without
 /// touching a single line of physics, entity or checkpoint code. That is
@@ -36,12 +36,84 @@ import 'player_intent.dart';
 /// the top: physics overlay, checkpoint reset, ragdoll knockdown and sound.
 /// Release builds have no text on screen at all.
 class TouchControls {
+  static const layoutIds = [
+    'left',
+    'right',
+    'jump',
+    'sit',
+    'attack',
+    'weaponSlot',
+    'climbUp',
+    'climbDown',
+    'pause',
+  ];
+
+  static Map<String, Offset> defaultLayout({
+    required Size viewport,
+    required double scale,
+    required bool leftHanded,
+  }) {
+    const edge = GameConfig.controlEdgeMarginPx;
+    const gap = GameConfig.controlGapPx;
+    final diameter = GameConfig.controlButtonDiameterPx * scale;
+    const small = 46.0;
+    final climb = diameter * .78;
+    final attack = diameter * 1.12;
+    final positions = <String, Offset>{
+      'left': Offset(
+        edge + diameter / 2,
+        viewport.height - edge - diameter / 2,
+      ),
+      'right': Offset(
+        edge + diameter + gap + diameter / 2,
+        viewport.height - edge - diameter / 2,
+      ),
+      'jump': Offset(
+        viewport.width - edge - diameter / 2,
+        viewport.height - edge - attack - gap - diameter / 2,
+      ),
+      'sit': Offset(
+        viewport.width - edge - attack - gap - diameter / 2,
+        viewport.height - edge - attack / 2,
+      ),
+      'attack': Offset(
+        viewport.width - edge - attack / 2,
+        viewport.height - edge - attack / 2,
+      ),
+      'weaponSlot': Offset(edge + 29, edge + 29),
+      'climbUp': Offset(
+        edge + diameter / 2,
+        viewport.height - edge - diameter - gap - climb / 2,
+      ),
+      'climbDown': Offset(
+        edge + diameter + gap + diameter / 2,
+        viewport.height - edge - diameter - gap - climb / 2,
+      ),
+      'pause': Offset(viewport.width - edge - small / 2, edge + small / 2),
+    };
+    if (leftHanded) {
+      for (final id in layoutIds.where((id) => id != 'pause')) {
+        final p = positions[id]!;
+        positions[id] = Offset(viewport.width - p.dx, p.dy);
+      }
+    }
+    return {
+      for (final entry in positions.entries)
+        entry.key: Offset(
+          entry.value.dx / viewport.width,
+          entry.value.dy / viewport.height,
+        ),
+    };
+  }
+
   TouchControls(
     this._intent, {
     bool Function()? debugVisible,
     bool Function()? onRope,
     bool Function()? hidden,
     this.onPause,
+    this.onWeaponMenu,
+    this.attackReadiness,
     this.debugTools = false,
     GameSettings? settings,
   }) : _debugVisible = debugVisible ?? (() => false),
@@ -65,6 +137,8 @@ class TouchControls {
   final bool debugTools;
   final GameSettings settings;
   final VoidCallback? onPause;
+  final VoidCallback? onWeaponMenu;
+  final double Function()? attackReadiness;
 
   // Which walk buttons are currently held. Tracked as two booleans rather than
   // writing the axis directly on each press, for the same reason
@@ -77,21 +151,40 @@ class TouchControls {
   List<HudButtonComponent> _buttons = [];
 
   /// The HUD components to add to `camera.viewport`: left, right, jump,
-  /// action and sit first, then climb up and down, then pause, then the
+  /// sit first, then climb up and down, then pause, then the
   /// development buttons when [debugTools] is set.
-  List<HudButtonComponent> buildButtons() {
+  List<HudButtonComponent> buildButtons(Vector2 viewportSize) {
     final double diameter =
         GameConfig.controlButtonDiameterPx * settings.controlsScale;
-    const double edge = GameConfig.controlEdgeMarginPx;
-    const double gap = GameConfig.controlGapPx;
     const double small = 46;
     final double climb = diameter * 0.78;
+    final double attack = diameter * 1.12;
+    final viewport = Size(viewportSize.x, viewportSize.y);
+    final positions = {
+      ...defaultLayout(
+        viewport: viewport,
+        scale: settings.controlsScale,
+        leftHanded: settings.leftHanded,
+      ),
+      ...settings.controlPositions,
+    };
+    Vector2 at(String id) => Vector2(
+      positions[id]!.dx * viewport.width,
+      positions[id]!.dy * viewport.height,
+    );
+    Vector2 debugAt(int index) => Vector2(
+      viewport.width -
+          GameConfig.controlEdgeMarginPx -
+          small / 2 -
+          (small + 8) * index,
+      GameConfig.controlEdgeMarginPx + small / 2,
+    );
 
     _buttons = [
       // Walk left — bottom-left corner.
       _controlButton(
         glyph: _Glyph.left,
-        margin: const EdgeInsets.only(left: edge, bottom: edge),
+        position: at('left'),
         onPress: () => _setHoldingLeft(true),
         onRelease: () => _setHoldingLeft(false),
       ),
@@ -99,18 +192,17 @@ class TouchControls {
       // Walk right — immediately to the right of the left button.
       _controlButton(
         glyph: _Glyph.right,
-        margin: EdgeInsets.only(left: edge + diameter + gap, bottom: edge),
+        position: at('right'),
         onPress: () => _setHoldingRight(true),
         onRelease: () => _setHoldingRight(false),
       ),
 
       // Jump — bottom-right, under the other thumb.
       //
-      // Leaving `left` and `top` at zero is what tells Flame to anchor this to
-      // the right and bottom edges instead of the left and top.
+      // Position is stored relative to the viewport so custom layouts scale.
       _controlButton(
         glyph: _Glyph.jump,
-        margin: const EdgeInsets.only(right: edge, bottom: edge),
+        position: at('jump'),
         onPress: () {
           _intent.setTouchState(jump: true);
           _intent.requestJump();
@@ -118,24 +210,34 @@ class TouchControls {
         onRelease: () => _intent.setTouchState(jump: false),
       ),
 
-      // The action hand — grab and pull. Held, like the key.
-      _controlButton(
-        glyph: _Glyph.hand,
-        margin: EdgeInsets.only(right: edge + diameter + gap, bottom: edge),
-        onPress: () => _intent.setTouchState(interact: true),
-        onRelease: () => _intent.setTouchState(interact: false),
-      ),
-
-      // Sit — left of the hand. Held still he sits down; held with a walk
-      // button he crouches and creeps.
+      // Sit. Held still he sits down; held with a walk button he crouches
+      // and creeps. It moves into the former action button's inner position,
+      // keeping the two useful right-thumb actions grouped together.
       _controlButton(
         glyph: _Glyph.sit,
-        margin: EdgeInsets.only(
-          right: edge + (diameter + gap) * 2,
-          bottom: edge,
-        ),
+        position: at('sit'),
         onPress: () => _intent.setTouchState(sit: true),
         onRelease: () => _intent.setTouchState(sit: false),
+      ),
+
+      _controlButton(
+        glyph: _Glyph.attack,
+        diameter: attack,
+        position: at('attack'),
+        progress: attackReadiness,
+        onPress: () {
+          _intent.setTouchState(attack: true);
+          _intent.requestAttack();
+        },
+        onRelease: () => _intent.setTouchState(attack: false),
+      ),
+
+      _controlButton(
+        glyph: _Glyph.weapon,
+        diameter: 58,
+        position: at('weaponSlot'),
+        onPress: () => onWeaponMenu?.call(),
+        onRelease: () {},
       ),
 
       // Climb up and down a rope: only there while he holds one, above the
@@ -144,10 +246,7 @@ class TouchControls {
         glyph: _Glyph.up,
         diameter: climb,
         visible: _onRope,
-        margin: EdgeInsets.only(
-          left: edge + (diameter - climb) / 2,
-          bottom: edge + diameter + gap,
-        ),
+        position: at('climbUp'),
         onPress: () => _intent.setTouchState(up: true),
         onRelease: () => _intent.setTouchState(up: false),
       ),
@@ -155,10 +254,7 @@ class TouchControls {
         glyph: _Glyph.down,
         diameter: climb,
         visible: _onRope,
-        margin: EdgeInsets.only(
-          left: edge + diameter + gap + (diameter - climb) / 2,
-          bottom: edge + diameter + gap,
-        ),
+        position: at('climbDown'),
         onPress: () => _intent.setTouchState(down: true),
         onRelease: () => _intent.setTouchState(down: false),
       ),
@@ -166,7 +262,7 @@ class TouchControls {
       _controlButton(
         glyph: _Glyph.pause,
         diameter: small,
-        margin: const EdgeInsets.only(right: edge, top: edge),
+        position: at('pause'),
         onPress: () => onPause?.call(),
         onRelease: () {},
       ),
@@ -175,7 +271,7 @@ class TouchControls {
         _controlButton(
           label: 'DBG',
           diameter: small,
-          margin: const EdgeInsets.only(right: edge + small + 8, top: edge),
+          position: debugAt(1),
           onPress: _intent.requestDebugToggle,
           onRelease: () {},
         ),
@@ -183,10 +279,7 @@ class TouchControls {
           label: 'RESET',
           diameter: small,
           visible: _debugVisible,
-          margin: const EdgeInsets.only(
-            right: edge + (small + 8) * 2,
-            top: edge,
-          ),
+          position: debugAt(2),
           onPress: _intent.requestReset,
           onRelease: () {},
         ),
@@ -194,20 +287,14 @@ class TouchControls {
           label: 'FALL',
           diameter: small,
           visible: _debugVisible,
-          margin: const EdgeInsets.only(
-            right: edge + (small + 8) * 3,
-            top: edge,
-          ),
+          position: debugAt(3),
           onPress: _intent.requestKnockdown,
           onRelease: () {},
         ),
         _controlButton(
           label: 'SOUND',
           diameter: small,
-          margin: const EdgeInsets.only(
-            right: edge + (small + 8) * 4,
-            top: edge,
-          ),
+          position: debugAt(4),
           onPress: _intent.requestAudioToggle,
           onRelease: () {},
         ),
@@ -221,7 +308,8 @@ class TouchControls {
     String? label,
     bool Function()? visible,
     double? diameter,
-    required EdgeInsets margin,
+    double Function()? progress,
+    required Vector2 position,
     required void Function() onPress,
     required void Function() onRelease,
   }) {
@@ -233,12 +321,15 @@ class TouchControls {
       // The development buttons stay usable in a cutscene.
       visible: label != null ? shown : () => !_hidden() && shown(),
       size: size,
+      position: position,
+      anchor: Anchor.center,
       button: _ControlFace(
         glyph: glyph,
         label: label,
         isPressed: false,
         opacity: () => settings.controlsOpacity,
         size: size,
+        progress: progress,
       ),
       buttonDown: _ControlFace(
         glyph: glyph,
@@ -246,15 +337,8 @@ class TouchControls {
         isPressed: true,
         opacity: () => settings.controlsOpacity,
         size: size,
+        progress: progress,
       ),
-      margin: settings.leftHanded && margin.bottom > 0
-          ? EdgeInsets.fromLTRB(
-              margin.right,
-              margin.top,
-              margin.left,
-              margin.bottom,
-            )
-          : margin,
       onPressed: () {
         if (settings.vibration) {
           unawaited(HapticFeedback.lightImpact().catchError((Object _) {}));
@@ -297,6 +381,7 @@ class TouchControls {
       up: false,
       down: false,
       sit: false,
+      attack: false,
     );
     for (final button in _buttons) {
       if (button.buttonDown?.parent == button) {
@@ -315,7 +400,7 @@ class TouchControls {
   }
 }
 
-enum _Glyph { left, right, jump, hand, sit, up, down, pause }
+enum _Glyph { left, right, jump, sit, attack, weapon, up, down, pause }
 
 /// A hidden development action neither draws nor receives a stray tap.
 class _VisibilityButton extends HudButtonComponent {
@@ -324,7 +409,8 @@ class _VisibilityButton extends HudButtonComponent {
     required super.size,
     required super.button,
     required super.buttonDown,
-    required super.margin,
+    required super.position,
+    required super.anchor,
     required super.onPressed,
     required super.onReleased,
     required super.onCancelled,
@@ -339,10 +425,9 @@ class _VisibilityButton extends HudButtonComponent {
   }
 }
 
-/// The visual of a single control button: a bold white cut-paper icon
-/// (see `assets/images/ui`) with a soft shadow under it so it reads on
-/// bright fog as well as on black, and no disc behind it. The development
-/// buttons keep a small disc with a text label.
+/// White cut-paper icons (see `assets/images/ui`) with a soft shadow. Jump
+/// and Sit add a faint circle and a small action label; other play controls
+/// remain icon-only. Development buttons use a small labelled disc.
 ///
 /// Until the icons are loaded (and in a bare test binding) the glyphs are
 /// drawn by hand instead.
@@ -353,22 +438,25 @@ class _ControlFace extends PositionComponent {
     required this.isPressed,
     required this.opacity,
     required Vector2 size,
+    this.progress,
   }) : super(size: size);
 
   final _Glyph? glyph;
   final String? label;
   TextPainter? _labelPainter;
+  TextPainter? _actionPainter;
+  double? _actionAlpha;
 
   /// Whether to draw the held-down state.
   final bool isPressed;
   final double Function() opacity;
+  final double Function()? progress;
 
   /// The icon drawn for each glyph that has one, under `assets/images/`.
   static const Map<_Glyph, String> _art = {
     _Glyph.left: 'ui/ui_arrow.png',
     _Glyph.right: 'ui/ui_arrow.png',
     _Glyph.jump: 'ui/ui_jump.png',
-    _Glyph.hand: 'ui/ui_hand.png',
     _Glyph.sit: 'ui/ui_sit.png',
     _Glyph.up: 'ui/ui_arrow.png',
     _Glyph.down: 'ui/ui_arrow.png',
@@ -413,7 +501,7 @@ class _ControlFace extends PositionComponent {
           style: const TextStyle(
             fontFamily: 'Roboto',
             color: Palette.controlGlyph,
-            fontSize: 9,
+            fontSize: 11,
           ),
         ),
         textDirection: TextDirection.ltr,
@@ -423,6 +511,34 @@ class _ControlFace extends PositionComponent {
         center - Offset(painter.width / 2, painter.height / 2),
       );
       return;
+    }
+    final labeled =
+        glyph == _Glyph.jump ||
+        glyph == _Glyph.sit ||
+        glyph == _Glyph.attack ||
+        glyph == _Glyph.weapon;
+    if (labeled) {
+      final fill = isPressed ? Palette.controlPressed : Palette.control;
+      _fill.color = fill.withValues(alpha: fill.a * alpha);
+      _ring.color = Palette.controlRing.withValues(
+        alpha: Palette.controlRing.a * alpha,
+      );
+      canvas
+        ..drawCircle(center, radius - 1, _fill)
+        ..drawCircle(center, radius - 1, _ring);
+      if (glyph == _Glyph.attack && progress != null) {
+        final ready = progress!().clamp(0.0, 1.0);
+        canvas.drawArc(
+          Rect.fromCircle(center: center, radius: radius - 3),
+          -math.pi / 2,
+          math.pi * 2 * ready,
+          false,
+          _ring
+            ..strokeWidth = 3
+            ..color = Palette.controlGlyph.withValues(alpha: alpha),
+        );
+        _ring.strokeWidth = 1.2;
+      }
     }
     // Held, the icon sinks a little under the thumb.
     canvas.save();
@@ -434,7 +550,14 @@ class _ControlFace extends PositionComponent {
     }
     final String? name = _art[glyph];
     if (name != null && Flame.images.containsKey(name)) {
-      _drawIcon(canvas, Flame.images.fromCache(name), center, radius, alpha);
+      _drawIcon(
+        canvas,
+        Flame.images.fromCache(name),
+        labeled ? center.translate(0, -radius * .13) : center,
+        radius,
+        alpha,
+        fill: labeled ? .59 : _iconFill,
+      );
     } else {
       // The shadow first: the same shape, dark and a little below.
       _glyphPaint
@@ -452,6 +575,36 @@ class _ControlFace extends PositionComponent {
         ..maskFilter = null;
       _drawGlyph(canvas, center, radius);
     }
+    if (labeled) {
+      final double actionAlpha = Palette.controlGlyph.a * alpha;
+      if (_actionPainter == null || _actionAlpha != actionAlpha) {
+        _actionAlpha = actionAlpha;
+        _actionPainter = TextPainter(
+          text: TextSpan(
+            text: switch (glyph) {
+              _Glyph.jump => 'JUMP',
+              _Glyph.sit => 'SIT',
+              _Glyph.attack => 'ATTACK',
+              _Glyph.weapon => 'WEAPON',
+              _ => '',
+            },
+            style: TextStyle(
+              fontFamily: 'Roboto',
+              fontWeight: FontWeight.w700,
+              color: Palette.controlGlyph.withValues(alpha: actionAlpha),
+              fontSize: 10,
+              letterSpacing: 1,
+            ),
+          ),
+          textDirection: TextDirection.ltr,
+        )..layout();
+      }
+      final painter = _actionPainter!;
+      painter.paint(
+        canvas,
+        Offset(center.dx - painter.width / 2, center.dy + radius * .58),
+      );
+    }
     canvas.restore();
   }
 
@@ -462,9 +615,10 @@ class _ControlFace extends PositionComponent {
     Image image,
     Offset center,
     double radius,
-    double alpha,
-  ) {
-    final double box = radius * 2 * _iconFill;
+    double alpha, {
+    double fill = _iconFill,
+  }) {
+    final double box = radius * 2 * fill;
     final double scale = math.min(box / image.width, box / image.height);
     final Rect source = Rect.fromLTWH(
       0,
@@ -520,8 +674,23 @@ class _ControlFace extends PositionComponent {
         _triangle(canvas, center, r, -math.pi / 2);
       case _Glyph.sit:
         _triangle(canvas, center, r, math.pi / 2);
-      case _Glyph.hand:
-        _hand(canvas, center, r);
+      case _Glyph.attack:
+        canvas.drawLine(
+          center + Offset(-r * .7, r * .65),
+          center + Offset(r * .72, -r * .7),
+          _strokeGlyph..strokeWidth = r * .32,
+        );
+        _triangle(canvas, center + Offset(r * .62, -r * .62), r * .32, -.8);
+      case _Glyph.weapon:
+        canvas.drawPath(
+          Path()
+            ..moveTo(center.dx, center.dy - r)
+            ..lineTo(center.dx + r, center.dy)
+            ..lineTo(center.dx, center.dy + r)
+            ..lineTo(center.dx - r, center.dy)
+            ..close(),
+          _strokeGlyph..strokeWidth = r * .2,
+        );
       case _Glyph.up:
         _chevron(canvas, center, r, -1);
       case _Glyph.down:
@@ -566,44 +735,5 @@ class _ControlFace extends PositionComponent {
       ..lineTo(center.dx, center.dy + direction * r * 0.45)
       ..lineTo(center.dx + r * 0.75, center.dy - direction * r * 0.35);
     canvas.drawPath(path, _strokeGlyph..strokeWidth = r * 0.28);
-  }
-
-  /// An open hand: a rounded palm and four fingers, with the thumb out.
-  void _hand(Canvas canvas, Offset center, double r) {
-    final palm = Rect.fromCenter(
-      center: center + Offset(0, r * 0.28),
-      width: r * 1.05,
-      height: r * 0.85,
-    );
-    canvas.drawRRect(
-      RRect.fromRectAndRadius(palm, Radius.circular(r * 0.3)),
-      _glyphPaint,
-    );
-    for (var i = 0; i < 4; i++) {
-      final x = palm.left + r * (0.16 + i * 0.245);
-      canvas.drawRRect(
-        RRect.fromRectAndRadius(
-          Rect.fromLTWH(
-            x - r * 0.09,
-            palm.top - r * (0.62 - (i - 1.5).abs() * 0.1),
-            r * 0.18,
-            r * 0.8,
-          ),
-          Radius.circular(r * 0.09),
-        ),
-        _glyphPaint,
-      );
-    }
-    canvas.save();
-    canvas.translate(palm.left + r * 0.05, palm.center.dy);
-    canvas.rotate(-0.7);
-    canvas.drawRRect(
-      RRect.fromRectAndRadius(
-        Rect.fromLTWH(-r * 0.09, -r * 0.55, r * 0.18, r * 0.6),
-        Radius.circular(r * 0.09),
-      ),
-      _glyphPaint,
-    );
-    canvas.restore();
   }
 }

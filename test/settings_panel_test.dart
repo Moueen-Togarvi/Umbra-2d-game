@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:umbra/config/game_settings.dart';
+import 'package:umbra/input/touch_controls.dart';
+import 'package:umbra/ui/control_layout_editor.dart';
 import 'package:umbra/ui/settings_panel.dart';
 
 void main() {
@@ -78,5 +80,66 @@ void main() {
     await tester.tap(find.byKey(const ValueKey('toggle-vibration')));
     await tester.pump();
     expect(settings.vibration, was);
+  });
+
+  testWidgets('customize layout drags and saves the gameplay controls', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(800, 360);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(() {
+      tester.view.resetPhysicalSize();
+      tester.view.resetDevicePixelRatio();
+    });
+    final settings = GameSettings();
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: Builder(
+            builder: (context) => SettingsPanel(
+              settings: settings,
+              unit: 3.6,
+              initialTab: SettingsTab.controls,
+              onCustomize: () => showControlLayoutEditor(context, settings),
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.ensureVisible(find.text('Customize Layout'));
+    await tester.tap(find.text('Customize Layout'));
+    await tester.pumpAndSettle();
+    final left = find.byKey(const ValueKey('control-layout-left'));
+    expect(left, findsOneWidget);
+    await tester.drag(left, const Offset(90, -28));
+    await tester.pump();
+    final draggedCenter = tester.getCenter(left);
+    await tester.tap(find.text('Save layout'));
+    await tester.pumpAndSettle();
+    expect(settings.controlPositions, isNotEmpty);
+    expect(
+      settings.controlPositions['left'],
+      isNot(
+        TouchControls.defaultLayout(
+          viewport: const Size(800, 360),
+          scale: 1,
+          leftHanded: false,
+        )['left'],
+      ),
+    );
+    await tester.ensureVisible(find.text('Customize Layout'));
+    await tester.tap(find.text('Customize Layout'));
+    await tester.pumpAndSettle();
+    expect(tester.getCenter(left).dx, closeTo(draggedCenter.dx, 1));
+    expect(tester.getCenter(left).dy, closeTo(draggedCenter.dy, 1));
+    await tester.tap(find.text('Cancel'));
+    await tester.pumpAndSettle();
+    await tester.ensureVisible(find.text('Customize Layout'));
+    await tester.tap(find.text('Customize Layout'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Reset layout'));
+    await tester.tap(find.text('Save layout'));
+    await tester.pumpAndSettle();
+    expect(settings.controlPositions, isEmpty);
   });
 }

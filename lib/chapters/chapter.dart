@@ -40,6 +40,8 @@ abstract class Chapter extends Stage {
   final PlayerIntent intent;
   @override
   bool get touchControlsUsed => intent.touchUsed;
+  @override
+  int get inputAttempts => intent.actionAttempts;
 
   /// Its place in the story, from 1, and its name on the card.
   int get number;

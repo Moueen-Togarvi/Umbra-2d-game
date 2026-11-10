@@ -19,23 +19,38 @@ import 'checkpoint_service.dart';
 enum ThreatLevel { calm, tension, chase }
 
 abstract class Stage extends Component {
+  bool combatLocked = false;
+  Vector2? combatLockCenter;
+  bool get combatThreatLocked =>
+      combatLocked &&
+      player.isMounted &&
+      combatLockCenter != null &&
+      (player.body.position - combatLockCenter!).length < 4.5;
   ThreatLevel _threat = ThreatLevel.calm;
   double _threatHold = 0;
   ThreatLevel get threat => _threat;
   final List<Rect> hidingPlaces = [];
+  double combatConcealment = 0;
 
   bool get playerHidden =>
       player.isMounted &&
-      player.isLow &&
-      player.isOnGround &&
-      player.velocity.x.abs() <= 0.9 &&
-      hidingPlaces.any(
-        (r) =>
-            r.contains(Offset(player.body.position.x, player.body.position.y)),
-      );
+      (combatConcealment > 0 ||
+          (player.isLow &&
+              player.isOnGround &&
+              player.velocity.x.abs() <= 0.9 &&
+              hidingPlaces.any(
+                (r) => r.contains(
+                  Offset(player.body.position.x, player.body.position.y),
+                ),
+              )));
 
   bool seesPlayer(Vector2 from, {double? facing, double range = 9}) {
-    if (!player.isMounted || player.isDead || playerHidden) return false;
+    if (combatThreatLocked ||
+        !player.isMounted ||
+        player.isDead ||
+        playerHidden) {
+      return false;
+    }
     final to = player.body.position;
     final delta = to - from;
     if (delta.length > range || delta.y.abs() > 1.5) return false;
@@ -50,6 +65,7 @@ abstract class Stage extends Component {
   }
 
   void reportThreat(ThreatLevel value) {
+    if (combatThreatLocked) return;
     if (value.index >= _threat.index) {
       _threat = value;
       _threatHold = value == ThreatLevel.chase ? 1.5 : 3;
@@ -59,6 +75,7 @@ abstract class Stage extends Component {
   @override
   void update(double dt) {
     super.update(dt);
+    combatConcealment = (combatConcealment - dt).clamp(0, double.infinity);
     _threatHold -= dt;
     if (_threatHold <= 0) _threat = ThreatLevel.calm;
   }
@@ -152,6 +169,9 @@ abstract class Stage extends Component {
 
   /// Whether this run is being driven by on-screen controls.
   bool get touchControlsUsed => false;
+
+  /// Jump/action attempts let puzzle guidance react to repeated failed ideas.
+  int get inputAttempts => 0;
 
   /// Set once the boy has reached the stage's end.
   bool get isComplete => false;

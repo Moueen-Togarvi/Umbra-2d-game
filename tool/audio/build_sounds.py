@@ -303,30 +303,17 @@ LOOPS = {
     'birds': ('birds-isaiah658_0.ogg', 0, 28, -28, None),
 }
 
-# The music. The menu, the chase and the ending are fixed; the player picks
-# the music under play from BACKGROUNDS (never the menu's own). Each loop is cut from the body of
-# the piece (from [start] of the way in) and crossfaded end into start.
+# The menu and ending have their own pieces. Gameplay alternates the two
+# backgrounds by chapter. Each loop is cut from the body of the piece and
+# crossfaded end into start.
 # (id, file, title, artist, licence, start)
 BACKGROUNDS = [
-    ('bg_decoherence', 'sb_decoherence.mp3', 'Decoherence', 'Scott Buckley',
-     'CC-BY 4.0', 0.2),
-    ('bg_descent', 'descent.mp3', 'Descent', 'Scott Buckley', 'CC-BY 4.0', 0.1),
-    ('bg_solitude', 'sb_insearchofsolitude.mp3', 'In Search Of Solitude',
-     'Scott Buckley', 'CC-BY 4.0', 0.2),
-    ('bg_distant_sun', 'sb_monomyth_1_thedistantsun.mp3', 'The Distant Sun',
-     'Scott Buckley', 'CC-BY 4.0', 0.15),
-    ('bg_creepy_forest', 'forest.ogg', 'Creepy Forest', 'HaelDB', 'CC0', 0.1),
-    # (saved under a name without brackets, which a search would read as a pattern)
     ('bg_wastelands', 'post_apocalyptic_wastelands.ogg',
      'Post Apocalyptic Wastelands', 'Juhani Junkala', 'CC0', 0.1),
     ('bg_tomb', 'Forgoten_tombs_1.mp3', 'Forgotten tomb ambience', 'kindland',
      'CC0', 0.1),
-    ('bg_overshadow', 'overshadow_0.mp3', 'Overshadow', 'cinameng', 'CC0', 0),
 ]
-# The menu, the chase and the ending each have their own.
-# (Tragic ambient main menu, HaelDB, CC0)
-MENU = ('bg_tragic', 'ambientmain_0.ogg', 0)
-CHASE = ('chase', 'EyesInTheVoid.mp3', 0.45)
+MENU = ('bg_distant_sun', 'sb_monomyth_1_thedistantsun.mp3', 0.15)
 ENDING = ('ending', '155 November_snow-33_tape_leveled.mp3', 0.08, 60)
 LOOP_SECONDS = 180
 MUSIC_LOUDNESS = -20
@@ -400,9 +387,9 @@ def build_music(src, out):
     for name, file, _, _, _, start in BACKGROUNDS:
         save(music_loop(src, file, start), out / f'music/{name}.ogg', 'bgm')
         print(f'music {name}')
-    for name, file, start in (MENU, CHASE):
-        save(music_loop(src, file, start), out / f'music/{name}.ogg', 'bgm')
-        print(f'music {name}')
+    name, file, start = MENU
+    save(music_loop(src, file, start), out / f'music/{name}.ogg', 'bgm')
+    print(f'music {name}')
     name, file, start, seconds = ENDING
     x = load(find(src, file), channels=2)
     x = cut(x, x.shape[-1] / SR * start, x.shape[-1] / SR * start + seconds)
@@ -477,8 +464,6 @@ def write_bank(counts):
     effects = '\n'.join(f"    '{k}': {v}," for k, v in counts.items())
     long = ', '.join(f"'{k}'" for k in LONG)
     loops = ', '.join(f"'{k}'" for k in LOOPS)
-    backgrounds = '\n'.join(
-        f"    ('{i}', '{title}', '{artist}')," for i, _, title, artist, _, _ in BACKGROUNDS)
     (ROOT / 'lib/audio/sound_bank.dart').write_text(f"""// Written by tool/audio/build_sounds.py; do not edit by hand.
 
 /// Every sound the game has, under assets/audio/.
@@ -494,14 +479,11 @@ abstract final class SoundBank {{
   /// The loops: the beds under a place.
   static const List<String> loops = [{loops}];
 
-  /// The music the player can pick to play under the game: id, title and
-  /// who made it.
-  static const List<(String, String, String)> backgrounds = [
-{backgrounds}
-  ];
-
-  /// The fixed music: on the main menu, in a chase, under the credits.
-  static const String menu = '{MENU[0]}', chase = '{CHASE[0]}', ending = '{ENDING[0]}';
+  /// Fixed menu, alternating gameplay, and credits music.
+  static const String menu = '{MENU[0]}';
+  static const String gameplayTomb = '{BACKGROUNDS[1][0]}';
+  static const String gameplayWastelands = '{BACKGROUNDS[0][0]}';
+  static const String ending = '{ENDING[0]}';
 
   static String effect(String name, int take) =>
       'audio/sfx/${{name}}_$take.${{long.contains(name) ? 'ogg' : 'wav'}}';

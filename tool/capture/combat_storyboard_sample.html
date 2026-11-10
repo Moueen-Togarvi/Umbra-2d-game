@@ -1,0 +1,222 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="icon" href="data:,">
+  <title>Umbra — Combat Storyboard</title>
+  <style>
+    @font-face{font-family:Cinzel;src:url('../../assets/fonts/Cinzel-Variable.ttf');font-display:swap}
+    @font-face{font-family:Cormorant;src:url('../../assets/fonts/CormorantGaramond-Italic.ttf');font-style:italic;font-display:swap}
+    :root{color-scheme:dark;--ink:#050607;--surface:#0b0d0f;--paper:#fff;--muted:#c7c9ca;--faint:#ffffff1f;--line:#ffffff45}
+    *{box-sizing:border-box}
+    html{background:var(--ink);scroll-behavior:smooth}
+    body{margin:0;background:radial-gradient(circle at 50% -20%,#30353a 0,#121519 34%,#060708 72%);color:var(--paper);font:16px/1.5 system-ui,-apple-system,sans-serif;min-height:100vh}
+    button{font:inherit;color:inherit;cursor:pointer;touch-action:manipulation}
+    button:focus-visible{outline:2px solid #fff;outline-offset:3px}
+    .shell{width:min(1500px,100%);margin:auto;padding:28px clamp(16px,4vw,56px) 44px}
+    .eyebrow,.micro{font:600 11px/1.2 Cinzel,Georgia,serif;letter-spacing:.18em;text-transform:uppercase}
+    .eyebrow{color:#fff;margin-bottom:10px}.micro{font-size:9px;color:var(--muted)}
+    .hero-head{display:flex;align-items:flex-end;justify-content:space-between;gap:28px;margin-bottom:22px}
+    h1{font:400 clamp(34px,5vw,66px)/1.02 Cinzel,Georgia,serif;letter-spacing:.05em;margin:0}
+    .lead{max-width:690px;margin:12px 0 0;color:var(--muted);font-size:15px}
+    .sample-badge{border:1px solid var(--line);padding:10px 14px;white-space:nowrap;font:600 10px Cinzel,serif;letter-spacing:.14em;text-transform:uppercase}
+
+    .combat-loop{display:grid;grid-template-columns:repeat(6,1fr);border:1px solid var(--line);background:#07090bd9;margin-bottom:16px}
+    .loop-step{position:relative;min-height:70px;padding:13px 24px 12px 14px;border-right:1px solid var(--faint);display:flex;flex-direction:column;justify-content:center}
+    .loop-step:last-child{border-right:0}.loop-step:not(:last-child)::after{content:'›';position:absolute;right:8px;top:50%;transform:translateY(-54%);font:30px Cormorant,serif;color:#fff}
+    .loop-step b{font:500 12px Cinzel,serif;letter-spacing:.08em}.loop-step span{font-size:11px;color:var(--muted);margin-top:3px}
+
+    .tabs{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:12px}
+    .tab{min-height:52px;border:1px solid var(--line);background:#0b0d0f;text-align:left;padding:10px 14px;transition:background .18s,color .18s,border-color .18s}
+    .tab:hover{border-color:#fff}.tab.active{background:#fff;color:#08090a;border-color:#fff}
+    .tab b{display:block;font:500 12px Cinzel,serif;letter-spacing:.08em}.tab span{display:block;font-size:10px;margin-top:2px;opacity:.75}
+
+    .workspace{display:grid;grid-template-columns:280px minmax(0,1fr);min-height:680px;border:1px solid var(--line);background:#090b0d;box-shadow:0 28px 80px #000b}
+    .encounter-rail{border-right:1px solid var(--line);padding:12px;overflow:auto;background:#070809}
+    .rail-title{display:flex;justify-content:space-between;align-items:center;padding:6px 4px 12px;color:var(--muted)}
+    .encounter-list{display:grid;gap:7px}
+    .encounter-card{min-height:74px;border:1px solid var(--faint);background:#101316;text-align:left;padding:11px 12px;transition:background .18s,border-color .18s}
+    .encounter-card:hover{border-color:#fff}.encounter-card.active{background:#fff;color:#08090a;border-color:#fff}
+    .encounter-card .number{font:500 10px Cinzel,serif;letter-spacing:.14em;opacity:.72}.encounter-card strong{display:block;font:500 14px Cinzel,serif;letter-spacing:.04em;margin:3px 0}.encounter-card small{display:block;font-size:10px;opacity:.72;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
+    .detail{position:relative;min-width:0;overflow:hidden}
+    .detail::before{content:'';position:absolute;inset:0;background:linear-gradient(180deg,#080a0bb0,#080a0be8),var(--backdrop,none) center/cover;filter:grayscale(1);opacity:.42}
+    .detail-inner{position:relative;padding:clamp(18px,3vw,38px);min-height:100%}
+    .detail-head{display:flex;justify-content:space-between;align-items:flex-start;gap:24px;margin-bottom:18px}
+    .detail-head h2{font:400 clamp(27px,4vw,45px)/1.08 Cinzel,serif;letter-spacing:.05em;margin:5px 0 8px}
+    .detail-head p{color:var(--muted);margin:0;max-width:720px;font-size:14px}
+    .type-badge{border:1px solid #fff;padding:9px 12px;white-space:nowrap;font:600 9px Cinzel,serif;letter-spacing:.14em;text-transform:uppercase;background:#080a0bcc}
+    .beat-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+    .beat-grid.four{grid-template-columns:repeat(4,minmax(0,1fr))}
+    .beat{min-width:0;background:#090b0de8;border:1px solid var(--line);animation:beat-in .28s ease both}
+    .scene{height:clamp(190px,25vw,295px);position:relative;overflow:hidden;background:linear-gradient(180deg,#a8adb23b,#11141680 52%,#050607 92%),var(--scene-bg) center/cover;filter:grayscale(1)}
+    .scene::before{content:'';position:absolute;inset:0;background:linear-gradient(90deg,#0506075c,transparent 25%,transparent 70%,#05060762),linear-gradient(0deg,#020304 0 10%,transparent 30%);z-index:1}
+    .scene::after{content:'';position:absolute;left:-10%;right:-10%;bottom:7%;height:12%;background:radial-gradient(ellipse,#cdd1d233,transparent 68%);filter:blur(7px);z-index:6;animation:fog 6s ease-in-out infinite alternate}
+    .beat-copy{padding:13px 14px 15px;min-height:120px}.beat-index{display:flex;justify-content:space-between;gap:8px;font:600 9px Cinzel,serif;letter-spacing:.15em;text-transform:uppercase;color:var(--muted)}
+    .beat h3{font:500 15px Cinzel,serif;margin:7px 0 5px}.beat p{font-size:12px;color:var(--muted);margin:0}
+    .control{position:absolute;z-index:12;right:10px;top:10px;min-width:52px;min-height:44px;padding:9px;border:1px solid #fff;background:#07090bcf;color:#fff;display:grid;place-items:center;font:600 9px Cinzel,serif;letter-spacing:.12em}
+    .actor{position:absolute;z-index:5;bottom:7%;left:calc(var(--x) * 1%);height:72%;max-width:38%;object-fit:contain;object-position:center bottom;transform:translateX(-50%) scaleX(var(--flip,1));transform-origin:center bottom;filter:grayscale(1) contrast(1.15) drop-shadow(0 5px 5px #000)}
+    .actor.hero{height:64%;z-index:5}.actor.enemy{height:79%;z-index:4}.actor.down{transform:translateX(-50%) rotate(80deg) scaleX(var(--flip,1));height:58%;bottom:-2%}.actor.faded{opacity:.32;filter:grayscale(1) blur(1px)}
+    .motion{position:absolute;z-index:8;height:1px;background:#fff9;transform-origin:left}.motion::after{content:'';position:absolute;right:-2px;top:-3px;border-left:7px solid #fff;border-top:3px solid transparent;border-bottom:3px solid transparent}
+
+    .prop{position:absolute;z-index:4;color:#fff}.crate{width:25%;aspect-ratio:1;bottom:10%;left:var(--left,52%);border:3px solid #0b0c0d;background:linear-gradient(45deg,transparent 46%,#050607 47% 53%,transparent 54%),linear-gradient(-45deg,transparent 46%,#050607 47% 53%,transparent 54%),#5f6261;box-shadow:inset 0 0 0 4px #c5c8c344}
+    .trap{width:25%;height:8%;bottom:8%;left:var(--left,56%);border-bottom:4px solid #030405}.trap::before,.trap::after{content:'';position:absolute;bottom:2px;width:52%;height:100%;background:repeating-linear-gradient(65deg,#08090a 0 5px,transparent 6px 14px)}.trap::before{left:0}.trap::after{right:0;transform:scaleX(-1)}
+    .rope{width:2px;height:85%;top:0;left:var(--left,50%);background:#e7e7e7;transform:rotate(var(--turn,0deg));transform-origin:top}.rope::after{content:'';position:absolute;width:10px;height:10px;border:2px solid #fff;border-radius:50%;bottom:-4px;left:-5px}
+    .lantern{width:26px;height:34px;bottom:18%;left:var(--left,49%);border:2px solid #fff;background:#fff;box-shadow:0 0 18px 8px #fff9}.lantern::before{content:'';position:absolute;left:5px;right:5px;top:-10px;height:9px;border:2px solid #fff;border-bottom:0;border-radius:8px 8px 0 0}
+    .stone{width:12px;height:12px;border-radius:50%;background:#fff;left:var(--left,53%);bottom:var(--bottom,18%);box-shadow:0 0 0 2px #0005}
+    .light-cone{width:50%;height:70%;bottom:8%;left:var(--left,43%);background:linear-gradient(90deg,#fff9,transparent);clip-path:polygon(0 45%,100% 0,100% 100%);filter:blur(2px);opacity:.7}
+    .gate{width:16%;height:80%;right:var(--right,8%);bottom:8%;border:4px solid #050607;background:repeating-linear-gradient(90deg,#16191b 0 8px,#aeb1ae 9px 12px)}
+    .saw{width:78px;height:78px;border-radius:50%;left:var(--left,55%);bottom:8%;background:repeating-conic-gradient(#d6d8d8 0 10deg,#08090a 11deg 19deg);border:8px solid #08090a;animation:spin 2s linear infinite}.saw::after{content:'';position:absolute;inset:23%;border-radius:50%;background:#111;border:3px solid #ddd}
+    .switch{width:16px;height:44px;left:var(--left,47%);bottom:13%;border:2px solid #fff}.switch::after{content:'';position:absolute;width:28px;height:3px;background:#fff;left:5px;top:5px;transform:rotate(-55deg);transform-origin:left}
+    .water{left:0;right:0;bottom:0;height:var(--height,30%);background:linear-gradient(#d9dedc66,#1a2023cc);border-top:2px solid #fff9;z-index:3}.water::after{content:'';position:absolute;inset:0;background:repeating-radial-gradient(ellipse at top,transparent 0 18px,#fff2 19px 20px)}
+    .dagger{width:60px;height:5px;background:#fff;left:var(--left,49%);bottom:var(--bottom,38%);transform:rotate(var(--turn,-15deg));box-shadow:0 0 8px #fff}.dagger::after{content:'';position:absolute;right:-12px;top:-5px;border-left:14px solid #fff;border-top:7px solid transparent;border-bottom:7px solid transparent}
+    .chandelier{width:40%;height:6px;top:22%;left:var(--left,30%);background:#070809;box-shadow:0 0 0 2px #fff5}.chandelier::before{content:'';position:absolute;left:50%;bottom:0;width:2px;height:95px;background:#fff7}.chandelier::after{content:'';position:absolute;left:10%;right:10%;top:5px;height:42px;border:3px solid #070809;border-top:0;border-radius:0 0 50% 50%}
+    .crawler{width:25%;height:20%;left:var(--left,55%);top:8%;background:#060708;border-radius:55% 30% 40% 30%;box-shadow:22px 18px 0 -17px #050607,-19px 23px 0 -17px #050607}.crawler::after{content:'';position:absolute;left:12%;right:12%;bottom:-26px;height:32px;background:repeating-linear-gradient(105deg,transparent 0 14px,#050607 15px 19px,transparent 20px 30px)}
+    .machine{width:26%;height:34%;right:5%;bottom:9%;border:4px solid #050607;background:repeating-linear-gradient(45deg,#313537 0 7px,#141719 8px 16px)}.machine::before,.machine::after{content:'';position:absolute;border:5px solid #d4d6d5;border-radius:50%}.machine::before{width:42px;height:42px;left:10%;top:15%}.machine::after{width:28px;height:28px;right:10%;bottom:15%}
+    .spikes{left:var(--left,54%);bottom:8%;width:35%;height:18%;background:repeating-linear-gradient(72deg,transparent 0 16px,#050607 17px 28px,transparent 29px 36px)}
+    .enemy-pack{position:absolute;z-index:4;inset:12% 0 5%}.enemy-pack img{position:absolute;bottom:0;height:80%;filter:grayscale(1) contrast(1.2)}.enemy-pack img:nth-child(1){left:34%;opacity:.45;transform:scale(.8)}.enemy-pack img:nth-child(2){left:55%;opacity:.68;transform:scale(.92)}.enemy-pack img:nth-child(3){left:72%}
+    .pulse{position:absolute;z-index:7;width:30%;aspect-ratio:1;border:2px solid #fff;border-radius:50%;left:var(--left,55%);bottom:var(--bottom,20%);animation:pulse 1.3s ease-out infinite}
+    .note-strip{display:grid;grid-template-columns:repeat(3,1fr);border:1px solid var(--line);border-top:0}.note-strip div{padding:11px 14px;border-right:1px solid var(--faint);font-size:11px;color:var(--muted)}.note-strip div:last-child{border-right:0}.note-strip b{font:600 10px Cinzel,serif;color:#fff;letter-spacing:.09em;margin-right:6px}
+    @keyframes beat-in{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+    @keyframes fog{to{transform:translateX(12%) scaleX(1.08)}}
+    @keyframes spin{to{transform:rotate(360deg)}}
+    @keyframes pulse{from{transform:scale(.5);opacity:.9}to{transform:scale(1.5);opacity:0}}
+    @media(max-width:1080px){.beat-grid.four{grid-template-columns:repeat(2,1fr)}.beat-grid{grid-template-columns:repeat(2,1fr)}.workspace{grid-template-columns:235px minmax(0,1fr)}.combat-loop{grid-template-columns:repeat(3,1fr)}.loop-step:nth-child(3){border-right:0}.loop-step:nth-child(-n+3){border-bottom:1px solid var(--faint)}}
+    @media(max-width:720px){.shell{padding:18px 12px 30px}.hero-head{align-items:flex-start;flex-direction:column;gap:12px}.sample-badge{display:none}.lead{font-size:14px}.combat-loop{grid-template-columns:repeat(2,1fr)}.loop-step{min-height:62px;padding:10px 22px 10px 11px}.loop-step:nth-child(3){border-right:1px solid var(--faint)}.loop-step:nth-child(even){border-right:0}.loop-step:nth-child(-n+4){border-bottom:1px solid var(--faint)}.tabs{display:flex;overflow:auto;scroll-snap-type:x mandatory}.tab{flex:0 0 78%;scroll-snap-align:start;min-height:58px}.workspace{display:block;min-height:0}.encounter-rail{border:0;border-bottom:1px solid var(--line);padding:10px}.encounter-list{display:flex;overflow:auto;gap:7px;scroll-snap-type:x mandatory}.encounter-card{flex:0 0 72%;scroll-snap-align:start}.detail-inner{padding:17px 11px}.detail-head{display:block}.type-badge{display:inline-block;margin-top:13px}.beat-grid,.beat-grid.four{grid-template-columns:1fr}.scene{height:270px}.beat-copy{min-height:0}.note-strip{grid-template-columns:1fr}.note-strip div{border-right:0;border-bottom:1px solid var(--faint)}.note-strip div:last-child{border-bottom:0}.actor.hero{height:67%}.actor.enemy{height:82%}}
+    @media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}*,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}}
+
+    /* Cinematic direction: one readable gameplay frame at a time. */
+    body{background:#030405}
+    .shell{width:min(1320px,100%);padding:22px clamp(12px,3vw,38px) 38px}
+    .hero-head{align-items:center;margin-bottom:14px}.hero-head h1{font-size:clamp(25px,3.8vw,48px)}.hero-head .lead{max-width:760px;margin-top:7px}.sample-badge{background:#fff;color:#050607;border-color:#fff}
+    .combat-loop,.workspace,.note-strip{display:none}
+    .tabs{margin:0 0 8px;gap:6px}.tab{min-height:48px;background:#080a0b}.tab.active{background:#fff}
+    .encounter-strip{border:1px solid var(--line);background:#060708;padding:8px;margin-bottom:10px}
+    .encounter-strip-head{display:flex;justify-content:space-between;padding:2px 4px 8px}.encounter-list{display:flex;gap:6px;overflow:auto;scroll-snap-type:x mandatory;padding-bottom:2px}
+    .encounter-card{flex:0 0 178px;min-height:58px;padding:8px 10px;scroll-snap-align:start}.encounter-card strong{font-size:12px;margin:2px 0}.encounter-card small{font-size:9px}
+    .cinematic{border:1px solid var(--line);background:#020303;box-shadow:0 28px 80px #000;overflow:hidden}
+    .cinematic-scene{position:relative;isolation:isolate;aspect-ratio:16/7.15;min-height:390px;overflow:hidden;background:linear-gradient(180deg,#eef2f052,#929a9a22 48%,#060708 83%),var(--scene-bg) center 55%/cover;filter:grayscale(1);transition:opacity .18s ease}
+    .cinematic-scene::before{content:'';position:absolute;inset:0;background:radial-gradient(ellipse at 68% 14%,#fff8 0,transparent 29%),linear-gradient(90deg,#000b 0,transparent 35%,transparent 68%,#0008 100%),linear-gradient(0deg,#000 0 8%,transparent 34%);z-index:1}
+    .cinematic-scene::after{content:'';position:absolute;left:-12%;right:-12%;bottom:7%;height:32%;background:radial-gradient(ellipse at center,#e4e8e55c 0,transparent 66%);filter:blur(13px);z-index:6;animation:fog 7s ease-in-out infinite alternate}
+    .cinematic-scene .actor{bottom:8%;max-width:none}.cinematic-scene .actor.hero{height:34%;z-index:8}.cinematic-scene .actor.enemy{height:58%;z-index:5}.cinematic-scene .actor.down{height:45%;bottom:1%}.cinematic-scene .enemy-pack{z-index:5}
+    .cinematic-scene .crate{width:13%;bottom:9%}.cinematic-scene .trap{width:14%}.cinematic-scene .rope{height:92%}.cinematic-scene .gate{width:10%;height:74%}.cinematic-scene .machine{width:18%;height:38%}.cinematic-scene .light-cone{height:82%}.cinematic-scene .saw{width:104px;height:104px}.cinematic-scene .chandelier{width:28%}
+    .ground-slope{position:absolute;z-index:3;left:-8%;right:-8%;height:32%;bottom:-17%;background:#020303;transform:rotate(-2deg);box-shadow:0 -10px 24px #0009}
+    .giant-crawler{position:absolute;z-index:5;left:var(--left,8%);top:-15%;width:31%;height:36%;border-radius:42% 58% 44% 56%;background:#020303;filter:drop-shadow(0 14px 10px #000)}
+    .giant-crawler::before{content:'';position:absolute;right:-18%;bottom:-7%;width:42%;height:46%;border-radius:50%;background:#020303}
+    .giant-crawler .leg{position:absolute;width:15px;height:115%;top:56%;background:#020303;transform-origin:top center;border-radius:12px}
+    .giant-crawler .leg::after{content:'';position:absolute;width:14px;height:90%;left:0;top:88%;background:#020303;transform:rotate(var(--knee));transform-origin:top center;border-radius:12px}
+    .giant-crawler .l1{left:11%;transform:rotate(47deg);--knee:39deg}.giant-crawler .l2{left:34%;transform:rotate(30deg);--knee:54deg}.giant-crawler .l3{right:28%;transform:rotate(-25deg);--knee:-54deg}.giant-crawler .l4{right:4%;transform:rotate(-44deg);--knee:-39deg}
+    .dust{position:absolute;z-index:8;left:48%;top:18%;width:4px;height:4px;border-radius:50%;background:#fff;box-shadow:31px 24px #fff8,-19px 41px #fff7,45px 61px #fff5,-8px 78px #fff5;animation:dust-fall 2.2s linear infinite}
+    .cinematic-control{position:absolute;z-index:15;right:18px;top:18px;min-width:76px;min-height:44px;display:grid;place-items:center;border:1px solid #fff;background:#050607c9;font:600 10px Cinzel,serif;letter-spacing:.14em}
+    .scene-caption{display:grid;grid-template-columns:1fr auto;align-items:center;gap:22px;padding:16px 18px;background:#050607;border-top:1px solid var(--line)}
+    .scene-caption .micro{color:#fff}.scene-caption h2{font:400 clamp(23px,3vw,38px)/1.05 Cinzel,serif;margin:4px 0}.scene-caption p{margin:0;color:var(--muted);font-size:13px}.step-count{font:400 34px Cinzel,serif;white-space:nowrap}.step-count span{font-size:13px;color:var(--muted)}
+    .step-nav{display:grid;grid-template-columns:54px 1fr 54px;border-top:1px solid var(--line);background:#050607}
+    .arrow{border:0;background:#0a0c0e;min-height:58px;font-size:26px}.arrow:hover:not(:disabled){background:#fff;color:#050607}.arrow:disabled{opacity:.25;cursor:not-allowed}
+    .timeline{display:grid;grid-template-columns:repeat(4,minmax(0,1fr))}.timeline button{min-height:58px;border:0;border-left:1px solid var(--faint);background:#07090a;text-align:left;padding:9px 12px}.timeline button:last-child{border-right:1px solid var(--faint)}.timeline button.active{background:#fff;color:#050607}.timeline b{display:block;font:500 11px Cinzel,serif;letter-spacing:.06em}.timeline span{font-size:9px;opacity:.7}
+    @keyframes dust-fall{to{transform:translateY(90px);opacity:0}}
+    @media(max-width:720px){.hero-head{display:block}.hero-head .lead{font-size:12px}.tabs{display:flex}.tab{flex-basis:74%}.encounter-card{flex-basis:155px}.cinematic-scene{aspect-ratio:16/9;min-height:260px}.cinematic-scene .actor.hero{height:38%}.cinematic-scene .actor.enemy{height:61%}.giant-crawler{width:40%;height:34%;top:-9%;left:var(--left,2%)}.giant-crawler .leg{width:10px}.giant-crawler .leg::after{width:9px}.scene-caption{grid-template-columns:1fr;padding:13px}.step-count{display:none}.timeline{display:flex;overflow:auto}.timeline button{flex:1 0 135px}.step-nav{grid-template-columns:48px minmax(0,1fr) 48px}.cinematic-control{right:10px;top:10px}}
+  </style>
+</head>
+<body>
+  <main class="shell">
+    <header class="hero-head">
+      <div><div class="eyebrow">UMBRA / CINEMATIC COMBAT SAMPLE</div><h1>See the danger. Find the escape.</h1><p class="lead">One large gameplay frame at a time—tiny hero, overwhelming enemy, fog, silhouette and a readable survival action.</p></div>
+      <div class="sample-badge">Exact game hero</div>
+    </header>
+    <nav class="tabs" aria-label="Combat encounter groups"></nav>
+    <section class="encounter-strip">
+      <div class="encounter-strip-head"><span class="micro">Choose encounter</span><span class="micro" id="encounter-count"></span></div>
+      <div class="encounter-list"></div>
+    </section>
+    <section class="cinematic" aria-live="polite">
+      <div class="cinematic-scene"></div>
+      <div class="scene-caption"></div>
+      <div class="step-nav"><button class="arrow previous" aria-label="Previous storyboard step">‹</button><div class="timeline"></div><button class="arrow next" aria-label="Next storyboard step">›</button></div>
+    </section>
+  </main>
+  <script>
+    const A='combat_storyboard_assets/';
+    const B='../../assets/images/backgrounds/';
+    const groups=[
+      {id:'environment',title:'Environment & Escape',note:'6 encounters · the world is the weapon'},
+      {id:'stealth',title:'Stealth & Limited Force',note:'5 encounters · distract, stun, survive'},
+      {id:'boss',title:'Creatures & Bosses',note:'3 encounters · cinematic puzzle sequences'}
+    ];
+    const encounters=[
+      {id:1,group:'environment',title:'Crate Trap',type:'Environment',bg:'hunters_road.webp',summary:'Turn a straight chase into a positioning puzzle: push the crate only after the vampire commits.',beats:[
+        ['Setup','The vampire enters while the crate blocks the safe path','run',22,'reach',78,['crate:48'],null],
+        ['Bait','Let the vampire cross the warning mark, then move to the crate','brace',34,'reach',68,['crate:48','trap:78'],'MOVE'],
+        ['Result','Push once. The crate forces the vampire into the open trap','push',48,'down',80,['crate:59','trap:76'],'INTERACT'] ]},
+      {id:2,group:'environment',title:'Rope Kick',type:'Environment',bg:'caves.webp',summary:'The rope is both traversal and attack. Momentum creates one short opening to escape.',beats:[
+        ['Setup','The vampire guards the far ledge beneath a hanging rope','idle',22,'idle',75,['rope:48'],null],
+        ['Timing','Jump and hold the rope as the vampire reaches forward','jump',43,'reach',70,['rope:49'],'JUMP'],
+        ['Result','Release on the forward swing to knock it off balance','swing',58,'down',76,['rope:48'],'RELEASE'] ]},
+      {id:3,group:'environment',title:'Lantern Fight',type:'Environment',bg:'crypt.webp',summary:'Light is not a gun. It needs charge time and only holds the vampire long enough to pass.',beats:[
+        ['Setup','A dead lantern sits between the boy and the approaching vampire','idle',22,'idle',79,['lantern:48'],null],
+        ['Charge','Hold the lantern while the vampire closes the distance','brace',42,'reach',73,['lantern:48','pulse:48'],'HOLD'],
+        ['Result','The light forces it back. Run before the flame fades','run',71,'burn',48,['lantern:47','light:49'],'RUN'] ]},
+      {id:4,group:'stealth',title:'Stone Distraction',type:'Stealth',bg:'shadow_gallery.webp',summary:'Sound redirects the hunter. The player creates a safe route instead of confronting it.',beats:[
+        ['Setup','Crouch in shadow while the hunter watches the exit','crouch',20,'idle',76,['stone:29'],null],
+        ['Distract','Throw the stone behind the hunter to pull its attention away','brace',27,'idle',73,['stone:84','motion:34'],'INTERACT'],
+        ['Result','Stay low and pass while it investigates the sound','crouch',66,'idle',88,['stone:89'],'SIT'] ]},
+      {id:5,group:'environment',title:'Perfect Dodge',type:'Timing',bg:'graveyard.webp',summary:'A bright-eye telegraph gives one fair moment to dodge and redirect the attack into spikes.',beats:[
+        ['Warning','The vampire plants its feet and its eyes flare before the lunge','idle',27,'reach',73,['spikes:82','pulse:71'],null],
+        ['Dodge','Jump only after the claws extend—too early lets it correct','jump',50,'reach',61,['spikes:82'],'JUMP'],
+        ['Result','The missed lunge carries the vampire into the hazard','run',31,'down',83,['spikes:79'],'RUN'] ]},
+      {id:6,group:'stealth',title:'Temporary Dagger',type:'Temporary weapon',bg:'servants_passage.webp',summary:'A one-scene tool, not a permanent combat system: one timed strike, then the blade is lost.',beats:[
+        ['Discovery','The broken dagger is found beside a locked passage','idle',28,'idle',84,['dagger:37'],null],
+        ['One chance','Wait for the grab, then use the blade at arm’s length','brace',48,'reach',67,['dagger:51'],'STRIKE'],
+        ['Cost','The blade snaps. The vampire falls briefly and the boy escapes','run',73,'down',49,['dagger:55'],'RUN'] ]},
+      {id:7,group:'boss',title:'Crawler Encounter',type:'Creature',bg:'forest.webp',summary:'A giant ceiling predator turns crouching and movement timing into a cinematic survival puzzle.',beats:[
+        ['Listen','Dust falls before the giant crawler unfolds above the boy','idle',52,null,0,['crawler:7','dust:48'],null],
+        ['Stay low','Its front leg sweeps the path. Crouch and let it pass overhead','crouch',58,null,0,['crawler:15'],'SIT'],
+        ['Commit','The crawler lands behind him. Sprint through and pull the gate','run',72,null,0,['crawler:25','gate:5'],'RUN'] ]},
+      {id:8,group:'stealth',title:'Armored Hunter',type:'Bait & flank',bg:'outer_ramparts.webp',summary:'The armored front cannot be beaten. Make the hunter commit, circle behind, and use the wall mechanism.',beats:[
+        ['Read','The shield blocks the corridor and direct contact is fatal','idle',22,'idle',77,['machine:5'],null],
+        ['Bait','Trigger the heavy swing, then duck beneath the recovery','crouch',48,'reach',62,['machine:5'],'SIT'],
+        ['Flank','Reach the rear switch to drop the counterweight','run',78,'brace',51,['switch:84','machine:5'],'INTERACT'] ]},
+      {id:9,group:'stealth',title:'Grab Escape',type:'Last chance',bg:'coffin_gallery.webp',summary:'A grab is nearly fatal. One short struggle can line the vampire up with an environmental interruption.',beats:[
+        ['Caught','The vampire grabs the boy near a hanging counterweight','brace',51,'reach',55,['chandelier:54'],null],
+        ['Struggle','A single timed input shifts both figures under the mechanism','brace',59,'reach',58,['chandelier:56','pulse:57'],'BREAK FREE'],
+        ['Release','The counterweight drops; the boy falls clear and must run','sit',43,'down',62,['chandelier:58'],'RUN'] ]},
+      {id:10,group:'boss',title:'Three-Stage Boss',type:'Boss puzzle',bg:'bell_foundry.webp',summary:'No health bar. Each stage teaches a pattern, changes the arena, and ends with light—not sword damage.',beats:[
+        ['Stage I · Bait','Draw the elder vampire beneath the first bell hammer','run',28,'reach',72,['machine:62'],null],
+        ['Stage II · Start','Dodge the lunge and activate the foundry mechanism','jump',49,'reach',59,['switch:82','machine:68'],'JUMP'],
+        ['Stage III · Expose','The broken shutter opens; hold the vampire in the light path','brace',33,'burn',69,['light:40','pulse:67'],'HOLD'],
+        ['Escape','The boss collapses into ash as the exit gate rises','run',77,'burn',50,['gate:5','light:45'],'RUN'] ]},
+      {id:11,group:'stealth',title:'Shadow Back Stun',type:'Stealth stun',bg:'halls.webp',summary:'Darkness hides the crouched boy. Reaching the vampire’s back creates a stun, never a kill.',beats:[
+        ['Hide','Enter the deep shadow before the vampire turns','crouch',20,'idle',72,[],null],
+        ['Approach','Move only while its head faces away; stop when the eyes sweep back','crouch',48,'idle',70,['pulse:69'],'SIT'],
+        ['Stun','A short rear shove buys seconds. The vampire will recover','push',63,'down',70,[],'INTERACT'] ]},
+      {id:12,group:'environment',title:'Water Fight',type:'Environment',bg:'black_reservoir.webp',summary:'Change the arena itself: lure the vampire into deep water, then use the sluice switch.',beats:[
+        ['Setup','A shallow flooded channel separates the boy from the switch','idle',20,'idle',76,['water:22','switch:88'],null],
+        ['Lure','Cross slowly so the vampire follows into the low channel','run',55,'reach',68,['water:31','switch:88'],'MOVE'],
+        ['Result','Open the sluice. The current rises and pulls the vampire under','run',82,'down',58,['water:55','switch:88'],'INTERACT'] ]},
+      {id:13,group:'environment',title:'Moving Saw',type:'Machinery',bg:'chainworks.webp',summary:'The saw follows a fixed cycle. The player baits the enemy into the dangerous half of the machine.',beats:[
+        ['Observe','The blade crosses the corridor in a slow repeating rhythm','idle',20,'idle',78,['saw:51'],null],
+        ['Bait','Run past after the blade clears; the vampire follows late','run',62,'reach',77,['saw:39'],'RUN'],
+        ['Result','Reverse the carriage while the enemy occupies the track','brace',28,'down',67,['saw:61','switch:20'],'INTERACT'] ]},
+      {id:14,group:'boss',title:'Final Chase',type:'Cinematic finale',bg:'chase.webp',summary:'A final exam combining readable threats, jump, crouch, rope momentum and environmental closure.',beats:[
+        ['Run','A vampire pack enters from the fog and closes the rear route','run',35,'pack',72,['pack'],null],
+        ['Read & react','Jump the fallen cart, then immediately crouch below the beam','jump',53,'pack',82,['crate:60','spikes:82'],'JUMP'],
+        ['Swing','Catch the final rope while the pack floods the lower path','swing',59,'pack',78,['rope:48','spikes:73'],'HOLD'],
+        ['Dawn','Release beyond the gate. Morning light seals the pursuit behind him','run',78,'pack',38,['gate:12','light:41'],'RELEASE'] ]}
+    ];
+
+    if(encounters.length!==14||groups.some(group=>encounters.filter(encounter=>encounter.group===group.id).length!==({environment:6,stealth:5,boss:3})[group.id])||encounters.some(encounter=>![3,4].includes(encounter.beats.length)))throw new Error('Combat storyboard data is incomplete');
+    let activeGroup='boss',activeId=7,activeBeat=0;
+    const tabs=document.querySelector('.tabs'),list=document.querySelector('.encounter-list'),scene=document.querySelector('.cinematic-scene'),caption=document.querySelector('.scene-caption'),timeline=document.querySelector('.timeline'),previous=document.querySelector('.previous'),next=document.querySelector('.next');
+    tabs.innerHTML=groups.map(g=>`<button class="tab ${g.id===activeGroup?'active':''}" data-group="${g.id}" aria-pressed="${g.id===activeGroup}"><b>${g.title}</b><span>${g.note}</span></button>`).join('');
+    tabs.addEventListener('click',event=>{const button=event.target.closest('.tab');if(!button)return;activeGroup=button.dataset.group;activeId=encounters.find(e=>e.group===activeGroup).id;activeBeat=0;render();});
+
+    function actor(kind,x,pose,flip=1){if(!kind||pose===null)return'';if(pose==='pack')return`<div class="enemy-pack"><img src="${A}enemy-reach.png" alt=""><img src="${A}enemy-idle.png" alt=""><img src="${A}enemy-reach.png" alt=""></div>`;const enemy=kind==='enemy',down=pose==='down',file=enemy?(down?'enemy-reach':`enemy-${pose}`):`hero-${pose}`;return`<img class="actor ${kind} ${down?'down':''}" src="${A}${file}.png" alt="" style="--x:${x};--flip:${flip}">`;}
+    function props(items){return items.map(item=>{const [name,value]=item.split(':');const n=Number(value)||50;if(name==='crate')return`<i class="prop crate" style="--left:${n}%"></i>`;if(name==='trap')return`<i class="prop trap" style="--left:${n}%"></i>`;if(name==='rope')return`<i class="prop rope" style="--left:${n}%"></i>`;if(name==='lantern')return`<i class="prop lantern" style="--left:${n}%"></i>`;if(name==='stone')return`<i class="prop stone" style="--left:${n}%"></i>`;if(name==='light')return`<i class="prop light-cone" style="--left:${n}%"></i>`;if(name==='gate')return`<i class="prop gate" style="--right:${n}%"></i>`;if(name==='saw')return`<i class="prop saw" style="--left:${n}%"></i>`;if(name==='switch')return`<i class="prop switch" style="--left:${n}%"></i>`;if(name==='water')return`<i class="prop water" style="--height:${n}%"></i>`;if(name==='dagger')return`<i class="prop dagger" style="--left:${n}%"></i>`;if(name==='chandelier')return`<i class="prop chandelier" style="--left:${n}%"></i>`;if(name==='crawler')return`<i class="giant-crawler" style="--left:${n}%"><b class="leg l1"></b><b class="leg l2"></b><b class="leg l3"></b><b class="leg l4"></b></i>`;if(name==='dust')return`<i class="dust"></i>`;if(name==='machine')return`<i class="prop machine"></i>`;if(name==='spikes')return`<i class="prop spikes" style="--left:${n}%"></i>`;if(name==='pulse')return`<i class="prop pulse" style="--left:${n}%"></i>`;if(name==='motion')return`<i class="motion" style="left:${n}%;bottom:43%;width:38%;transform:rotate(-14deg)"></i>`;if(name==='pack')return'';return'';}).join('');}
+    function render(){document.querySelectorAll('.tab').forEach(button=>{const selected=button.dataset.group===activeGroup;button.classList.toggle('active',selected);button.setAttribute('aria-pressed',selected)});const filtered=encounters.filter(e=>e.group===activeGroup);document.querySelector('#encounter-count').textContent=`${filtered.length} encounters`;list.innerHTML=filtered.map(e=>`<button class="encounter-card ${e.id===activeId?'active':''}" data-id="${e.id}" aria-pressed="${e.id===activeId}"><span class="number">${String(e.id).padStart(2,'0')} / 14</span><strong>${e.title}</strong><small>${e.type}</small></button>`).join('');const encounter=encounters.find(e=>e.id===activeId),item=encounter.beats[activeBeat];const [label,text,heroPose,heroX,enemyPose,enemyX,items,control]=item;scene.style.setProperty('--scene-bg',`url('${B}${encounter.bg}')`);scene.innerHTML=`<i class="ground-slope"></i>${props(items)}${actor('enemy',enemyX,enemyPose)}${actor('hero',heroX,heroPose)}${control?`<span class="cinematic-control">${control}</span>`:''}`;caption.innerHTML=`<div><div class="micro">Encounter ${String(encounter.id).padStart(2,'0')} · ${encounter.type} · ${label}</div><h2>${encounter.title}</h2><p>${text}</p></div><div class="step-count">${String(activeBeat+1).padStart(2,'0')} <span>/ ${String(encounter.beats.length).padStart(2,'0')}</span></div>`;timeline.innerHTML=encounter.beats.map((beat,index)=>`<button class="${index===activeBeat?'active':''}" data-step="${index}" aria-pressed="${index===activeBeat}"><b>${beat[0]}</b><span>Step ${index+1}</span></button>`).join('');previous.disabled=activeBeat===0;next.disabled=activeBeat===encounter.beats.length-1;window.__storyboardReady=true;}
+    list.addEventListener('click',event=>{const card=event.target.closest('.encounter-card');if(!card)return;activeId=Number(card.dataset.id);activeBeat=0;render();});
+    timeline.addEventListener('click',event=>{const step=event.target.closest('[data-step]');if(!step)return;activeBeat=Number(step.dataset.step);render();});
+    previous.addEventListener('click',()=>{if(activeBeat>0){activeBeat--;render();}});next.addEventListener('click',()=>{const encounter=encounters.find(e=>e.id===activeId);if(activeBeat<encounter.beats.length-1){activeBeat++;render();}});
+    render();
+  </script>
+</body>
+</html>

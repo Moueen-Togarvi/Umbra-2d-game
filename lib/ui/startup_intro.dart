@@ -3,10 +3,12 @@ import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 
 import '../config/palette.dart';
+import '../config/game_settings.dart';
 
 /// One short logo reveal before the title screen on each cold start.
 class StartupIntro extends StatefulWidget {
-  const StartupIntro({super.key});
+  const StartupIntro({super.key, this.settings});
+  final GameSettings? settings;
 
   @override
   State<StartupIntro> createState() => _StartupIntroState();
@@ -14,26 +16,29 @@ class StartupIntro extends StatefulWidget {
 
 class _StartupIntroState extends State<StartupIntro>
     with SingleTickerProviderStateMixin {
-  late final AnimationController _controller = AnimationController(
-    vsync: this,
-    duration: const Duration(milliseconds: 5200),
-  )..addStatusListener((status) {
-      if (status == AnimationStatus.completed && mounted) {
-        setState(() => _visible = false);
-      }
-    });
+  late final AnimationController _controller =
+      AnimationController(
+        vsync: this,
+        duration: const Duration(milliseconds: 5200),
+      )..addStatusListener((status) {
+        if (status == AnimationStatus.completed && mounted) {
+          setState(() => _visible = false);
+        }
+      });
   late final Animation<double> _logo = TweenSequence<double>([
     TweenSequenceItem(
-      tween: Tween<double>(begin: 0, end: 1).chain(
-        CurveTween(curve: Curves.easeOut),
-      ),
+      tween: Tween<double>(
+        begin: 0,
+        end: 1,
+      ).chain(CurveTween(curve: Curves.easeOut)),
       weight: 25,
     ),
     TweenSequenceItem(tween: ConstantTween(1), weight: 42),
     TweenSequenceItem(
-      tween: Tween<double>(begin: 1, end: 0).chain(
-        CurveTween(curve: Curves.easeIn),
-      ),
+      tween: Tween<double>(
+        begin: 1,
+        end: 0,
+      ).chain(CurveTween(curve: Curves.easeIn)),
       weight: 33,
     ),
   ]).animate(_controller);
@@ -47,6 +52,16 @@ class _StartupIntroState extends State<StartupIntro>
   void initState() {
     super.initState();
     _controller.forward();
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (MediaQuery.disableAnimationsOf(context) ||
+        (widget.settings?.reducedMotion ?? false)) {
+      _controller.stop();
+      _visible = false;
+    }
   }
 
   @override
@@ -78,6 +93,27 @@ class _StartupIntroState extends State<StartupIntro>
               return Stack(
                 alignment: Alignment.center,
                 children: [
+                  Positioned(
+                    bottom: 24,
+                    left: 0,
+                    right: 0,
+                    child: SafeArea(
+                      child: Center(
+                        child: TextButton(
+                          onPressed: _skip,
+                          child: const Text(
+                            'Tap to skip',
+                            style: TextStyle(
+                              fontFamily: 'Roboto',
+                              fontSize: 14,
+                              color: Colors.white,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+
                   _mist(
                     fogSize,
                     Alignment(-.7 + _fog.value * .55, -.25),

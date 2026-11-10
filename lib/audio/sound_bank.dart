@@ -44,21 +44,11 @@ abstract final class SoundBank {
     'birds',
   ];
 
-  /// The music the player can pick to play under the game: id, title and
-  /// who made it.
-  static const List<(String, String, String)> backgrounds = [
-    ('bg_decoherence', 'Decoherence', 'Scott Buckley'),
-    ('bg_descent', 'Descent', 'Scott Buckley'),
-    ('bg_solitude', 'In Search Of Solitude', 'Scott Buckley'),
-    ('bg_distant_sun', 'The Distant Sun', 'Scott Buckley'),
-    ('bg_creepy_forest', 'Creepy Forest', 'HaelDB'),
-    ('bg_wastelands', 'Post Apocalyptic Wastelands', 'Juhani Junkala'),
-    ('bg_tomb', 'Forgotten tomb ambience', 'kindland'),
-    ('bg_overshadow', 'Overshadow', 'cinameng'),
-  ];
-
-  /// The fixed music: on the main menu, in a chase, under the credits.
-  static const String menu = 'bg_tragic', chase = 'chase', ending = 'ending';
+  /// Fixed menu, alternating gameplay, and credits music.
+  static const String menu = 'bg_distant_sun';
+  static const String gameplayTomb = 'bg_tomb';
+  static const String gameplayWastelands = 'bg_wastelands';
+  static const String ending = 'ending';
 
   static String effect(String name, int take) =>
       'audio/sfx/${name}_$take.${long.contains(name) ? 'ogg' : 'wav'}';

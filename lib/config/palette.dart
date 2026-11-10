@@ -60,8 +60,22 @@ abstract final class Palette {
   /// The lamp in the cottage window, and the brand's warm accent.
   static const Color lampAmber = Color(0xFFE8A84A);
 
-  /// The vampires' eyes. Used for nothing else.
+  /// The vampires' eyes.
   static const Color vampireRed = Color(0xFFC21E1E);
+
+  // ---------------------------------------------------------------------------
+  // Danger
+  // ---------------------------------------------------------------------------
+
+  /// The hot red core of lethal traps. Their shape and movement remain the
+  /// primary warning; this colour makes them readable through Umbra's fog.
+  static const Color trapRed = Color(0xFFFF2038);
+
+  /// The bloom around a lethal edge, deliberately stronger than vampire eyes.
+  static const Color trapGlow = Color(0xB8FF102D);
+
+  /// The sharp highlight that keeps a glowing trap crisp at phone size.
+  static const Color trapEdge = Color(0xFFFFD7DC);
 
   /// Near-black for the brand's screens (title, cards, splash): a hair
   /// lighter than the silhouettes so they never vanish into it.

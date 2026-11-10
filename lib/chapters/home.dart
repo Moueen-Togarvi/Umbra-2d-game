@@ -11,6 +11,8 @@ import '../render/mood.dart';
 import '../render/scenery.dart';
 import '../story/cottage.dart';
 import '../story/cutscene.dart';
+import '../story/hunters.dart';
+import '../story/vampire.dart';
 import 'chapter.dart';
 
 /// Chapter one, Home: dusk at the edge of the village.
@@ -38,6 +40,9 @@ class HomeChapter extends Chapter {
   void restoreWorld(double x) {
     player.hidden = false;
     cottage.burstOpen();
+    for (final (stalker, start) in _trainingVampires) {
+      stalker.reset(start);
+    }
   }
 
   @override
@@ -104,6 +109,7 @@ class HomeChapter extends Chapter {
   ];
 
   final Cottage cottage = Cottage(centreX: 7.6, groundY: yard, height: 8.0);
+  final List<(Stalker, double)> _trainingVampires = [];
 
   /// The window still lit, far behind him: seen once he is out in the
   /// orchard, always to his left.
@@ -277,6 +283,32 @@ class HomeChapter extends Chapter {
       ),
     ]);
 
+    // Two deliberately slow, short-leash vampires turn the first field into
+    // a safe combat lesson: strike/stun the first, then dodge past the second.
+    // They cannot follow the player through the rest of the chapter.
+    for (final (start, left, right) in const [
+      (40.2, 38.2, 43.4),
+      (56.0, 53.0, 60.5),
+    ]) {
+      final vampire = Vampire(
+        x: start,
+        groundY: g(start),
+        facing: -1,
+        priority: 2,
+      );
+      final stalker = Stalker(
+        vampire,
+        stage: this,
+        ground: g,
+        left: left,
+        right: right,
+        speed: .8,
+        wake: 3.2,
+      );
+      _trainingVampires.add((stalker, start));
+      pieces.add(vampire);
+    }
+
     // He looks back from the top of the hill at the window still lit.
     onReach(99.5, () => play(_lookBack()));
     // Behind him his mother goes in, and the door swings shut.
@@ -287,6 +319,15 @@ class HomeChapter extends Chapter {
         ..presence = 0;
       cottage.swingShut();
     });
+  }
+
+  @override
+  void update(double dt) {
+    super.update(dt);
+    if (intent.isScripted) return;
+    for (final (stalker, _) in _trainingVampires) {
+      stalker.update(dt);
+    }
   }
 
   @override

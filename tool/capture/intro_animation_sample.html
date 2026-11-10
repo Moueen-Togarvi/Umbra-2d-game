@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Umbra — Fog Logo Intro Sample</title>
+  <style>
+    *{box-sizing:border-box}html,body{margin:0;min-height:100%;background:#090c0e;color:#ecece7;font:14px/1.4 system-ui,sans-serif}
+    .shell{max-width:1500px;margin:auto;padding:20px clamp(14px,3vw,42px)}
+    header{display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:14px}
+    .kicker{font-size:10px;letter-spacing:.23em;color:#aab2b5;text-transform:uppercase}
+    h1{font:400 clamp(22px,3vw,32px)/1.15 Georgia,serif;margin:5px 0 0}
+    button{min-height:42px;padding:0 16px;border:1px solid #d5d8d555;background:#171c1f;color:#eee;letter-spacing:.1em;font-size:10px;text-transform:uppercase;cursor:pointer}
+    .stage{position:relative;isolation:isolate;overflow:hidden;width:min(100%,calc((100vh - 155px)*16/9));aspect-ratio:16/9;max-height:calc(100vh - 155px);margin:auto;background:radial-gradient(ellipse at 50% 54%,#303a40 0,#171e22 38%,#090c0e 78%);border:1px solid #c8c9ca35;box-shadow:0 24px 70px #0009}
+    .fog{position:absolute;inset:-30%;pointer-events:none;filter:blur(24px);opacity:0;background:radial-gradient(ellipse at 30% 52%,#c5cdd044 0 8%,transparent 34%),radial-gradient(ellipse at 68% 44%,#d4d9dc38 0 10%,transparent 38%),radial-gradient(ellipse at 48% 68%,#aeb9c02e 0 12%,transparent 42%);animation:fogDrift 9s ease-in-out infinite alternate}
+    .fog.back{animation-duration:12s;animation-delay:-4s;transform:scale(1.2);opacity:.6}
+    .fog.front{animation-delay:-2s;animation-duration:8s;transform:scale(1.4);opacity:.5}
+    .logo{position:absolute;left:50%;top:50%;display:block;width:clamp(250px,38vw,440px);height:auto;margin:0;mix-blend-mode:screen;opacity:0;filter:blur(18px);transform:translate(-50%,-50%) scale(.94);animation:logoFog 9s ease-in-out infinite}
+    .grain{position:absolute;inset:-50%;opacity:.055;pointer-events:none;background:url('../../assets/images/grain.png') repeat;mix-blend-mode:screen}
+    @keyframes logoFog{0%,100%{opacity:0;filter:blur(22px);transform:translate(-50%,-50%) scale(.94)}22%,70%{opacity:1;filter:blur(0);transform:translate(-50%,-50%) scale(1)}}
+    @keyframes fogDrift{0%{transform:translate3d(-5%,2%,0) scale(1);opacity:.1}50%{opacity:.78}100%{transform:translate3d(5%,-2%,0) scale(1.12);opacity:.34}}
+    .caption{margin:11px auto 0;max-width:calc((100vh - 155px)*16/9);color:#9fa8ac;font-size:11px}
+    .paused *{animation-play-state:paused!important}
+    @media(max-width:650px){.shell{padding:14px 10px}.stage{width:100%;max-height:75vh}.caption{font-size:9px}}
+    @media(prefers-reduced-motion:reduce){.logo,.fog{animation-duration:20s}}
+  </style>
+</head>
+<body>
+  <main class="shell">
+    <header><div><div class="kicker">UMBRA · FIRST-LAUNCH INTRO SAMPLE</div><h1>Logo emerges from fog, then fades back into it</h1></div><button id="replay">Replay</button></header>
+    <section class="stage" id="stage" aria-label="Umbra logo emerging and fading into fog">
+      <div class="fog back"></div><img class="logo" src="../../assets/brand/wordmark.png" alt="Umbra logo"><div class="fog"></div><div class="fog front"></div><div class="grain"></div>
+    </section>
+    <p class="caption">Only the UMBRA logo and moving fog · looping preview</p>
+  </main>
+  <script>document.querySelector('#replay').onclick=()=>{const stage=document.querySelector('#stage');stage.classList.remove('paused');void stage.offsetWidth;for(const el of stage.children){el.style.animation='none';void el.offsetWidth;el.style.animation=''}document.querySelector('.logo').style.animation='logoFog 9s ease-in-out infinite'};</script>
+</body>
+</html>

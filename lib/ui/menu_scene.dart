@@ -1,13 +1,16 @@
+import 'dart:math' as math;
 import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
 
 import '../config/palette.dart';
+import '../config/game_config.dart';
+import '../render/character_silhouette.dart';
 
 /// The restrained landscape behind the title screen.
 ///
-/// The painted plate already contains the boy and the depth layers. Motion is
-/// intentionally slight: a slow camera breath and two translucent fog bands.
+/// The painted plate contains the landscape and distant vampire; the hero is
+/// drawn from the gameplay rig at the right edge.
 class MenuScene extends StatefulWidget {
   const MenuScene({super.key});
 
@@ -45,12 +48,15 @@ class _MenuSceneState extends State<MenuScene>
                 child: Transform.translate(
                   offset: Offset((t - .5) * 4, (t - .5) * -2),
                   child: Image.asset(
-                    'assets/images/ui/menu_background_v2.png',
+                    'assets/images/ui/menu_background_chase.png',
                     fit: BoxFit.cover,
                     alignment: Alignment.center,
                     filterQuality: FilterQuality.high,
                   ),
                 ),
+              ),
+              RepaintBoundary(
+                child: CustomPaint(painter: _MenuHero(t), size: Size.infinite),
               ),
               if (!still) RepaintBoundary(child: CustomPaint(painter: _Fog(t))),
               Opacity(
@@ -66,6 +72,40 @@ class _MenuSceneState extends State<MenuScene>
       ),
     );
   }
+}
+
+/// The title scene uses the same procedural silhouette rig as gameplay, so
+/// the child keeps his in-game proportions and running gait.
+class _MenuHero extends CustomPainter {
+  _MenuHero(this.time)
+    : _boy = CharacterSilhouette(height: GameConfig.playerHeight);
+
+  final double time;
+  final CharacterSilhouette _boy;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final double scale = size.height * .155 / GameConfig.playerHeight;
+    canvas.save();
+    canvas.translate(size.width * .965, size.height * .752);
+    canvas.scale(scale);
+    canvas.translate(0, -.5);
+    _boy.draw(
+      canvas,
+      CharacterPose(
+        facing: -1,
+        gait: .94,
+        gaitPhase: time * math.pi * 2,
+        bodyLean: .10,
+        clock: time * 24,
+      ),
+    );
+    canvas.restore();
+  }
+
+  @override
+  bool shouldRepaint(covariant _MenuHero oldDelegate) =>
+      oldDelegate.time != time;
 }
 
 class _Fog extends CustomPainter {

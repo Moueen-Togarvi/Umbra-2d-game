@@ -3,27 +3,22 @@ import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
-import '../audio/sound_bank.dart';
 import '../config/game_settings.dart';
-import '../config/palette.dart';
 
 /// The three pages of the settings.
 enum SettingsTab { display, controls, sound }
 
-/// The settings, the same on the main menu and the pause screen: three
-/// words across the top (Display · Controls · Sound), the one chosen
-/// underlined in the lantern's amber, and under it only that page — thin
-/// sliders with an amber bead, small pill switches, and on the sound page
-/// the music to play under the game. Set right, in the menu's italic.
+/// Shared settings panel for the title and pause screens.
 class SettingsPanel extends StatefulWidget {
   const SettingsPanel({
     super.key,
     required this.settings,
     required this.unit,
     this.initialTab = SettingsTab.display,
-    this.onTry,
     this.width = 470,
     this.centered = false,
+    this.onCustomize,
+    this.onBack,
   });
 
   final GameSettings settings;
@@ -33,9 +28,8 @@ class SettingsPanel extends StatefulWidget {
   final SettingsTab initialTab;
   final double width;
   final bool centered;
-
-  /// Called with a piece of music as it is picked, to play it at once.
-  final void Function(String id)? onTry;
+  final VoidCallback? onCustomize;
+  final VoidCallback? onBack;
 
   @override
   State<SettingsPanel> createState() => _SettingsPanelState();
@@ -43,6 +37,7 @@ class SettingsPanel extends StatefulWidget {
 
 class _SettingsPanelState extends State<SettingsPanel> {
   late SettingsTab _tab = widget.initialTab;
+  String _feedback = "Changes save automatically";
 
   @override
   void didUpdateWidget(covariant SettingsPanel old) {
@@ -56,63 +51,163 @@ class _SettingsPanelState extends State<SettingsPanel> {
     final settings = widget.settings;
     return SizedBox(
       width: widget.width,
-      child: ListenableBuilder(
-        listenable: settings,
-        builder: (context, _) => Column(
-          crossAxisAlignment: widget.centered
-              ? CrossAxisAlignment.center
-              : CrossAxisAlignment.end,
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            // Smaller rather than cut off on a narrow screen.
-            if (widget.centered)
-              Center(
-                child: FittedBox(
-                  fit: BoxFit.scaleDown,
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      for (final (index, tab)
-                          in SettingsTab.values.indexed) ...[
-                        if (index > 0) SizedBox(width: u * 3.4),
-                        _Tab(
-                          label: _label(tab),
-                          chosen: tab == _tab,
-                          unit: u,
-                          onTap: () => setState(() => _tab = tab),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(16),
+        child: BackdropFilter(
+          filter: ui.ImageFilter.blur(sigmaX: 18, sigmaY: 18),
+          child: Container(
+            padding: EdgeInsets.symmetric(
+              horizontal: (u * 2).clamp(10, 18),
+              vertical: (u * 1.4).clamp(8, 14),
+            ),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(16),
+              color: const Color(0x99111111),
+              border: Border.all(color: Colors.white.withValues(alpha: .19)),
+              boxShadow: const [
+                BoxShadow(color: Color(0x99000000), blurRadius: 28),
+                BoxShadow(color: Color(0x18FFFFFF), blurRadius: 0),
+              ],
+            ),
+            child: ListenableBuilder(
+              listenable: settings,
+              builder: (context, _) => Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Text(
+                    'Settings',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontFamily: 'Roboto',
+                      fontSize: 24,
+                      fontWeight: FontWeight.w500,
+                      color: Colors.white,
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  Container(
+                    padding: const EdgeInsets.all(4),
+                    decoration: BoxDecoration(
+                      color: Colors.black.withValues(alpha: .27),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Row(
+                      children: [
+                        for (final tab in SettingsTab.values)
+                          Expanded(
+                            child: _Tab(
+                              label: _label(tab),
+                              chosen: tab == _tab,
+                              unit: u,
+                              onTap: () => setState(() => _tab = tab),
+                            ),
+                          ),
+                      ],
+                    ),
+                  ),
+                  SizedBox(height: u * 3),
+                  SizedBox(
+                    height: (MediaQuery.sizeOf(context).height - 235).clamp(
+                      80.0,
+                      340.0,
+                    ),
+                    child: SingleChildScrollView(
+                      key: ValueKey(_tab),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: _withDividers(_page(settings, u)),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    _feedback,
+                    textAlign: TextAlign.center,
+                    semanticsLabel: _feedback,
+                    style: const TextStyle(
+                      fontFamily: 'Roboto',
+                      fontSize: 12,
+                      color: Color(0xFFCCCCCC),
+                    ),
+                  ),
+                  if (widget.onBack != null) ...[
+                    const SizedBox(height: 8),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        SettingsAction(
+                          label: 'Reset',
+                          onTap: () async {
+                            final reset = await showDialog<bool>(
+                              context: context,
+                              builder: (context) => AlertDialog(
+                                backgroundColor: const Color(0xFF181818),
+                                title: const Text(
+                                  'Reset all settings?',
+                                  style: TextStyle(color: Colors.white),
+                                ),
+                                content: const Text(
+                                  'Sound, display and control layout will return to defaults. Chapter progress stays saved.',
+                                  style: TextStyle(color: Color(0xFFCCCCCC)),
+                                ),
+                                actions: [
+                                  SettingsAction(
+                                    label: 'Cancel',
+                                    onTap: () => Navigator.pop(context, false),
+                                  ),
+                                  SettingsAction(
+                                    label: 'Reset',
+                                    primary: true,
+                                    onTap: () => Navigator.pop(context, true),
+                                  ),
+                                ],
+                              ),
+                            );
+                            if (reset == true) {
+                              await settings.reset();
+                              if (mounted) {
+                                setState(() => _feedback = 'Settings restored');
+                                Future.delayed(const Duration(seconds: 3), () {
+                                  if (mounted) {
+                                    setState(
+                                      () => _feedback =
+                                          'Changes save automatically',
+                                    );
+                                  }
+                                });
+                              }
+                            }
+                          },
+                        ),
+                        SettingsAction(
+                          label: 'Back',
+                          primary: true,
+                          onTap: widget.onBack!,
                         ),
                       ],
-                    ],
-                  ),
-                ),
-              )
-            else
-              FittedBox(
-                fit: BoxFit.scaleDown,
-                alignment: Alignment.centerRight,
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    for (final tab in SettingsTab.values)
-                      Padding(
-                        padding: EdgeInsets.only(left: u * 3.4),
-                        child: _Tab(
-                          label: _label(tab),
-                          chosen: tab == _tab,
-                          unit: u,
-                          onTap: () => setState(() => _tab = tab),
-                        ),
-                      ),
+                    ),
                   ],
-                ),
+                ],
               ),
-            SizedBox(height: u * 3),
-            ..._page(settings, u),
-          ],
+            ),
+          ),
         ),
       ),
     );
   }
+
+  List<Widget> _withDividers(List<Widget> rows) => [
+    for (final (index, row) in rows.indexed) ...[
+      if (index > 0)
+        Divider(
+          height: 1,
+          thickness: 1,
+          color: Colors.white.withValues(alpha: .16),
+        ),
+      row,
+    ],
+  ];
 
   static String _label(SettingsTab tab) => switch (tab) {
     SettingsTab.display => 'Display',
@@ -125,6 +220,13 @@ class _SettingsPanelState extends State<SettingsPanel> {
       _SliderRow(s, 'Brightness', 'brightness', u, min: .8, max: 1.3),
       _SliderRow(s, 'Film grain', 'atmosphere', u),
       _ToggleRow(
+        'Reduced motion',
+        s.reducedMotion,
+        u,
+        (on) => s.setFlag('reducedMotion', on),
+        id: 'reducedMotion',
+      ),
+      _ToggleRow(
         'Camera shake',
         s.cameraShake,
         u,
@@ -136,32 +238,41 @@ class _SettingsPanelState extends State<SettingsPanel> {
     SettingsTab.controls => [
       _SliderRow(s, 'Button size', 'controlsScale', u, min: .8, max: 1.3),
       _SliderRow(s, 'Button opacity', 'controlsOpacity', u, min: .3, max: 1),
-      Row(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Flexible(
-            child: _ToggleRow(
-              'Left-handed',
-              s.leftHanded,
-              u,
-              (on) => s.setFlag('leftHanded', on),
-              id: 'leftHanded',
-              compact: true,
-            ),
-          ),
-          SizedBox(width: u * 3),
-          Flexible(
-            child: _ToggleRow(
-              'Vibration',
-              s.vibration,
-              u,
-              (on) => s.setFlag('vibration', on),
-              id: 'vibration',
-              compact: true,
-            ),
-          ),
-        ],
+      _ToggleRow(
+        'Left-handed',
+        s.leftHanded,
+        u,
+        (on) => s.setFlag('leftHanded', on),
+        id: 'leftHanded',
       ),
+      _ToggleRow(
+        'Vibration',
+        s.vibration,
+        u,
+        (on) => s.setFlag('vibration', on),
+        id: 'vibration',
+      ),
+      if (widget.onCustomize != null) ...[
+        OutlinedButton(
+          onPressed: widget.onCustomize,
+          style: OutlinedButton.styleFrom(
+            foregroundColor: const Color(0xFF111111),
+            backgroundColor: Colors.white,
+            side: BorderSide(color: Colors.white),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(7),
+            ),
+            minimumSize: const Size(180, 44),
+          ),
+          child: Text(
+            'Customize Layout',
+            style: _labelStyle(
+              (u * 2.8).clamp(15, 20),
+              const Color(0xFF111111),
+            ),
+          ),
+        ),
+      ],
     ],
     SettingsTab.sound => [
       _ToggleRow(
@@ -181,34 +292,19 @@ class _SettingsPanelState extends State<SettingsPanel> {
       _SliderRow(s, 'Music volume', 'music', u),
       _SliderRow(s, 'Ambience', 'ambience', u),
       _SliderRow(s, 'Effects', 'effects', u),
-      SizedBox(height: u * 1.6),
-      _Caption('While playing', u),
-      SizedBox(height: u * 0.6),
-      for (final (id, title, artist) in SoundBank.backgrounds)
-        _Track(
-          key: ValueKey('music-$id'),
-          title: title,
-          artist: artist,
-          chosen: id == s.background,
-          unit: u,
-          onTap: () {
-            s.setBackground(id);
-            widget.onTry?.call(id);
-          },
-        ),
     ],
   };
 }
 
-TextStyle _italic(double size, Color color) => TextStyle(
-  fontFamily: 'Cormorant',
-  fontStyle: FontStyle.italic,
+TextStyle _labelStyle(double size, Color color) => TextStyle(
+  fontFamily: 'Roboto',
+  fontWeight: FontWeight.w500,
   fontSize: size,
-  height: 1.15,
+  height: 1.5,
   color: color,
 );
 
-const Color _dim = Color(0x61D8D4CC);
+const Color _dim = Color(0xFFCCCCCC);
 
 class _Tab extends StatelessWidget {
   const _Tab({
@@ -230,48 +326,36 @@ class _Tab extends StatelessWidget {
     excludeSemantics: true,
     child: InkWell(
       onTap: onTap,
-      customBorder: const StadiumBorder(),
+      customBorder: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(7),
+      ),
       child: ConstrainedBox(
         constraints: const BoxConstraints(minHeight: 44),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Text(
+        child: AnimatedContainer(
+          duration: MediaQuery.disableAnimationsOf(context)
+              ? Duration.zero
+              : const Duration(milliseconds: 180),
+          padding: EdgeInsets.symmetric(
+            horizontal: (unit * 1.6).clamp(10, 18),
+            vertical: 6,
+          ),
+          decoration: BoxDecoration(
+            color: chosen ? Colors.white : Colors.transparent,
+            borderRadius: BorderRadius.circular(7),
+          ),
+          child: Center(
+            child: Text(
               label,
-              style: _italic(
-                (unit * 4.2).clamp(18, 34),
-                chosen ? Palette.brandInk : _dim,
+              style: TextStyle(
+                fontFamily: 'Roboto',
+                fontSize: (unit * 2).clamp(10, 14),
+                letterSpacing: 1,
+                color: chosen ? const Color(0xFF111111) : Colors.white,
               ),
             ),
-            SizedBox(height: unit * 0.8),
-            AnimatedContainer(
-              duration: const Duration(milliseconds: 220),
-              curve: Curves.easeOut,
-              height: 1,
-              width: chosen ? unit * 9 : 0,
-              color: Palette.lampAmber.withValues(alpha: .85),
-            ),
-          ],
+          ),
         ),
       ),
-    ),
-  );
-}
-
-class _Caption extends StatelessWidget {
-  const _Caption(this.text, this.unit);
-  final String text;
-  final double unit;
-
-  @override
-  Widget build(BuildContext context) => Text(
-    text.toUpperCase(),
-    style: TextStyle(
-      fontFamily: 'Cinzel',
-      fontSize: (unit * 1.5).clamp(9, 12),
-      letterSpacing: unit * 0.55,
-      color: Palette.lampAmber.withValues(alpha: .75),
     ),
   );
 }
@@ -312,21 +396,21 @@ class _SliderRow extends StatelessWidget {
           Expanded(
             child: FittedBox(
               fit: BoxFit.scaleDown,
-              alignment: Alignment.centerRight,
+              alignment: Alignment.centerLeft,
               child: Text(
                 label,
-                textAlign: TextAlign.right,
+                textAlign: TextAlign.left,
                 maxLines: 1,
-                style: _italic(
-                  (unit * 3.6).clamp(16, 28),
-                  Palette.brandInk.withValues(alpha: .92),
+                style: _labelStyle(
+                  (unit * 2.4).clamp(14, 17),
+                  Colors.white.withValues(alpha: .92),
                 ),
               ),
             ),
           ),
           SizedBox(width: unit * 3.2),
-          SizedBox(
-            width: (unit * 36).clamp(150, 300),
+          Expanded(
+            flex: 1,
             child: ThinSlider(
               key: ValueKey(setting),
               value: value,
@@ -337,12 +421,12 @@ class _SliderRow extends StatelessWidget {
             ),
           ),
           SizedBox(
-            width: unit * 6,
+            width: 44,
             child: Text(
-              '${(value * 100).round()}',
+              '${(value * 100).round()}%',
               textAlign: TextAlign.right,
               style: TextStyle(
-                fontFamily: 'Cinzel',
+                fontFamily: 'Roboto',
                 fontSize: (unit * 1.6).clamp(10, 13),
                 letterSpacing: 1,
                 color: _dim,
@@ -374,17 +458,15 @@ class _ToggleRow extends StatelessWidget {
   Widget build(BuildContext context) => SizedBox(
     height: (unit * 7.6).clamp(44, 64),
     child: Row(
-      mainAxisAlignment: compact
-          ? MainAxisAlignment.center
-          : MainAxisAlignment.end,
-      mainAxisSize: compact ? MainAxisSize.min : MainAxisSize.max,
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      mainAxisSize: MainAxisSize.max,
       children: [
         Flexible(
           child: Text(
             label,
-            style: _italic(
-              (unit * 3.6).clamp(16, 28),
-              Palette.brandInk.withValues(alpha: .92),
+            style: _labelStyle(
+              (unit * 2.4).clamp(14, 17),
+              Colors.white.withValues(alpha: .92),
             ),
           ),
         ),
@@ -395,83 +477,12 @@ class _ToggleRow extends StatelessWidget {
           label: label,
           onChanged: changed,
         ),
-        if (!compact) SizedBox(width: unit * 6),
       ],
     ),
   );
 }
 
-class _Track extends StatelessWidget {
-  const _Track({
-    super.key,
-    required this.title,
-    required this.artist,
-    required this.chosen,
-    required this.unit,
-    required this.onTap,
-  });
-  final String title, artist;
-  final bool chosen;
-  final double unit;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) => Semantics(
-    button: true,
-    selected: chosen,
-    label: '$title by $artist',
-    excludeSemantics: true,
-    child: InkWell(
-      onTap: onTap,
-      child: ConstrainedBox(
-        constraints: const BoxConstraints(minHeight: 40),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.end,
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: [
-            Flexible(
-              child: Text(
-                title,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: _italic(
-                  (unit * 3.1).clamp(14, 24),
-                  chosen ? Palette.lampAmber : _dim,
-                ),
-              ),
-            ),
-            SizedBox(width: unit * 1.6),
-            Text(
-              artist.toUpperCase(),
-              style: TextStyle(
-                fontFamily: 'Cinzel',
-                fontSize: (unit * 1.3).clamp(8, 11),
-                letterSpacing: 1.6,
-                color: const Color(0x4DD8D4CC),
-              ),
-            ),
-            SizedBox(width: unit * 1.6),
-            AnimatedContainer(
-              duration: const Duration(milliseconds: 200),
-              width: 6,
-              height: 6,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: chosen ? Palette.lampAmber : Colors.transparent,
-                boxShadow: chosen
-                    ? const [BoxShadow(color: Palette.lampAmber, blurRadius: 8)]
-                    : null,
-              ),
-            ),
-            SizedBox(width: unit * 6 - 6),
-          ],
-        ),
-      ),
-    ),
-  );
-}
-
-/// A slider drawn as a hairline with an amber bead: dragged, tapped, or
+/// A slider drawn as a hairline with an white bead: dragged, tapped, or
 /// stepped with the arrow keys.
 class ThinSlider extends StatefulWidget {
   const ThinSlider({
@@ -572,27 +583,27 @@ class _ThinSliderPainter extends CustomPainter {
       Offset(0, y),
       Offset(size.width, y),
       Paint()
-        ..color = const Color(0x38D8D4CC)
-        ..strokeWidth = 1,
+        ..color = const Color(0x55FFFFFF)
+        ..strokeWidth = 3,
     );
     canvas.drawLine(
       Offset(0, y),
       Offset(x, y),
       Paint()
-        ..color = const Color(0xD9D8D4CC)
-        ..strokeWidth = 1,
+        ..color = const Color(0xFFFFFFFF)
+        ..strokeWidth = 3,
     );
     canvas.drawCircle(
       Offset(x, y),
       lit ? 11 : 8,
       Paint()
-        ..color = Palette.lampAmber.withValues(alpha: lit ? .32 : .22)
+        ..color = Colors.white.withValues(alpha: lit ? .32 : .22)
         ..maskFilter = const MaskFilter.blur(ui.BlurStyle.normal, 6),
     );
     canvas.drawCircle(
       Offset(x, y),
       lit ? 6.5 : 5.5,
-      Paint()..color = Palette.lampAmber,
+      Paint()..color = Colors.white,
     );
   }
 
@@ -601,8 +612,7 @@ class _ThinSliderPainter extends CustomPainter {
       old.t != t || old.lit != lit;
 }
 
-/// An on/off switch: a hairline pill with a bead, amber and to the right
-/// when on.
+/// An on/off button using the menu's ivory and charcoal treatment.
 class PillToggle extends StatelessWidget {
   const PillToggle({
     super.key,
@@ -622,41 +632,71 @@ class PillToggle extends StatelessWidget {
     excludeSemantics: true,
     child: InkWell(
       onTap: () => onChanged(!value),
-      customBorder: const StadiumBorder(),
+      customBorder: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(7),
+      ),
       child: SizedBox(
-        width: 56,
+        width: 82,
         height: 44,
         child: Center(
           child: AnimatedContainer(
-            duration: const Duration(milliseconds: 200),
-            width: 46,
-            height: 24,
-            padding: const EdgeInsets.symmetric(horizontal: 5),
-            alignment: value ? Alignment.centerRight : Alignment.centerLeft,
+            duration: MediaQuery.disableAnimationsOf(context)
+                ? Duration.zero
+                : const Duration(milliseconds: 200),
+            width: 74,
+            height: 44,
+            alignment: Alignment.center,
             decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(
-                color: value
-                    ? Palette.lampAmber.withValues(alpha: .8)
-                    : const Color(0x59D8D4CC),
-              ),
+              color: value ? Colors.white : Colors.black,
+              borderRadius: BorderRadius.circular(7),
+              border: Border.all(color: Colors.white.withValues(alpha: .35)),
             ),
-            child: Container(
-              width: 12,
-              height: 12,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: value ? Palette.lampAmber : const Color(0x8CD8D4CC),
-                boxShadow: value
-                    ? const [
-                        BoxShadow(color: Color(0x99E8A84A), blurRadius: 10),
-                      ]
-                    : null,
+            child: Text(
+              value ? 'ON' : 'OFF',
+              style: TextStyle(
+                fontFamily: 'Roboto',
+                fontSize: 10,
+                letterSpacing: 1,
+                fontWeight: FontWeight.w700,
+                color: value ? const Color(0xFF111111) : Colors.white,
               ),
             ),
           ),
         ),
       ),
     ),
+  );
+}
+
+/// Shared action treatment for settings in both menus.
+class SettingsAction extends StatelessWidget {
+  const SettingsAction({
+    super.key,
+    required this.label,
+    required this.onTap,
+    this.primary = false,
+  });
+  final String label;
+  final VoidCallback onTap;
+  final bool primary;
+
+  @override
+  Widget build(BuildContext context) => OutlinedButton(
+    onPressed: onTap,
+    style: OutlinedButton.styleFrom(
+      foregroundColor: primary ? const Color(0xFF111111) : Colors.white,
+      backgroundColor: primary
+          ? Colors.white
+          : Colors.white.withValues(alpha: .04),
+      minimumSize: const Size(120, 44),
+      side: BorderSide(color: Colors.white.withValues(alpha: .35)),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(7)),
+      textStyle: const TextStyle(
+        fontFamily: 'Roboto',
+        fontSize: 13,
+        fontWeight: FontWeight.w600,
+      ),
+    ),
+    child: Text(label),
   );
 }

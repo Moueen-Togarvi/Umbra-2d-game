@@ -1,3 +1,4 @@
+import 'package:flame/components.dart' show Vector2;
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:umbra/input/keyboard_input.dart';
@@ -110,38 +111,41 @@ void main() {
     expect(intent.consumeInteractRelease(), isFalse);
   });
 
-  test('touch actions can combine and cancellation releases the grab', () {
+  test('touch movement and jump combine; cancellation releases held input', () {
     final intent = PlayerIntent();
     final controls = TouchControls(intent);
-    final buttons = controls.buildButtons();
+    final buttons = controls.buildButtons(Vector2(800, 360));
     expect(
       buttons,
-      hasLength(8),
-      reason: 'walk, jump, action, sit, climb and pause',
+      hasLength(9),
+      reason: 'walk, jump, sit, attack, weapon, climb and pause',
     );
     buttons[1].onPressed!();
     buttons[2].onPressed!();
-    buttons[3].onPressed!();
     expect(intent.horizontalAxis, 1);
-    expect(intent.isJumpHeld && intent.isInteractHeld, isTrue);
-    expect(intent.consumeJumpRequest(), isTrue);
-    expect(intent.consumeInteractRequest(), isTrue);
-    buttons[3].onCancelled!();
+    expect(intent.isJumpHeld, isTrue);
     expect(intent.isInteractHeld, isFalse);
-    expect(intent.consumeInteractRelease(), isTrue);
+    expect(intent.consumeJumpRequest(), isTrue);
+    buttons[2].onCancelled!();
+    expect(intent.isJumpHeld, isFalse);
     expect(intent.horizontalAxis, 1);
-    buttons[4].onPressed!();
+    buttons[3].onPressed!();
     expect(intent.isSitHeld, isTrue);
     expect(intent.isDownHeld, isFalse, reason: 'sit is not rope-down');
-    buttons[4].onCancelled!();
+    buttons[3].onCancelled!();
     expect(intent.isSitHeld, isFalse);
-    buttons[5].onPressed!();
-    expect(intent.isUpHeld, isTrue);
-    buttons[5].onReleased!();
+    buttons[4].onPressed!();
+    expect(intent.isAttackHeld, isTrue);
+    expect(intent.consumeAttackRequest(), isTrue);
+    buttons[4].onReleased!();
+    expect(intent.isAttackHeld, isFalse);
     buttons[6].onPressed!();
+    expect(intent.isUpHeld, isTrue);
+    buttons[6].onReleased!();
+    buttons[7].onPressed!();
     expect(intent.isUpHeld, isFalse);
     expect(intent.isDownHeld, isTrue);
-    buttons[4].onPressed!();
+    buttons[6].onPressed!();
     controls.clear();
     expect(intent.horizontalAxis, 0);
     expect(intent.isJumpHeld, isFalse);

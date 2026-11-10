@@ -385,6 +385,7 @@ class PuzzleRoom {
   double _highest = double.infinity;
   double _furthest = double.negativeInfinity;
   bool? _doorWasShut;
+  int _lastAttempts = 0;
 
   /// The first useful thing to notice on entering this room.
   Vector2? pulseTarget;
@@ -422,6 +423,7 @@ class PuzzleRoom {
     pulseTarget = null;
     _furthest = double.negativeInfinity;
     _doorWasShut = door?.shut;
+    _lastAttempts = 0;
   }
 
   List<Component> pit(Stage stage) {
@@ -2139,6 +2141,11 @@ class PuzzleRoute extends Component {
     if (local < 1 || local > room.length - 1) return;
 
     room._hintCooldown = math.max(0, room._hintCooldown - dt);
+    final attempts = stage.inputAttempts;
+    if (attempts > room._lastAttempts) {
+      room.idleSeconds += math.min(3, (attempts - room._lastAttempts) * 0.8);
+      room._lastAttempts = attempts;
+    }
     final rising = boy.body.position.y < room._highest - .7;
     final mechanismChanged =
         room._doorWasShut != null &&
@@ -2152,13 +2159,13 @@ class PuzzleRoute extends Component {
     } else {
       room.idleSeconds += dt;
     }
-    if (room.idleSeconds >= 22 && room._hintCooldown <= 0) {
+    if (room.idleSeconds >= 16 && room._hintCooldown <= 0) {
       room.hintPulse = 2.2;
-      room._hintCooldown = room.idleSeconds >= 36 ? 7 : 14;
+      room._hintCooldown = room.idleSeconds >= 30 ? 7 : 12;
       room.pulseTarget = null;
       stage.cue(
         'tick',
-        weight: room.idleSeconds >= 36 ? .55 : .3,
+        weight: room.idleSeconds >= 30 ? .55 : .3,
         at: room.hintTarget,
       );
     }

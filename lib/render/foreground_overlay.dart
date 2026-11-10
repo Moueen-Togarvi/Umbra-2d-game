@@ -8,11 +8,16 @@ import '../config/game_settings.dart';
 /// The lens: LIMBO's heavy rounded vignette, a darker sky edge, film grain
 /// that changes every frame, and a faint projector flicker.
 class ForegroundOverlay extends Component {
-  ForegroundOverlay({required this.camera, required this.settings})
-    : super(priority: -10);
+  ForegroundOverlay({
+    required this.camera,
+    required this.settings,
+    this.reducedEffects = _never,
+  }) : super(priority: -10);
 
   final CameraComponent camera;
   final GameSettings settings;
+  final bool Function() reducedEffects;
+  static bool _never() => false;
   Image? _grain;
   late final Image _vignette;
   final math.Random _random = math.Random(3);
@@ -107,7 +112,7 @@ class ForegroundOverlay extends Component {
       0,
       0,
       0,
-      _flicker * settings.atmosphere * 0.45,
+      reducedEffects() ? 0 : _flicker * settings.atmosphere * 0.45,
     );
     canvas.drawRect(full, _flickerPaint);
     final brightness = settings.brightness;
@@ -121,7 +126,7 @@ class ForegroundOverlay extends Component {
     }
 
     final Image? grain = _grain;
-    if (grain == null || settings.atmosphere <= 0) return;
+    if (grain == null || settings.atmosphere <= 0 || reducedEffects()) return;
     _grainPaint.color = Color.fromRGBO(
       255,
       255,

@@ -11,6 +11,8 @@ import '../game/umbra_game.dart';
 import 'menu_scene.dart';
 import 'main_menu_choice.dart';
 import 'menu_word.dart';
+import 'control_layout_editor.dart';
+import 'chapter_carousel.dart';
 import 'settings_panel.dart';
 import 'wordmark.dart';
 
@@ -52,10 +54,19 @@ class _TitleScreenState extends State<TitleScreen>
   }
 
   @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (MediaQuery.disableAnimationsOf(context)) {
+      _fade.value = 1;
+      _leave.duration = Duration.zero;
+    } else {
+      _leave.duration = const Duration(milliseconds: 700);
+    }
+  }
+
+  @override
   void dispose() {
-    widget.game
-      ..previewBackground = null
-      ..coveredByMenu = false;
+    widget.game.coveredByMenu = false;
     if (widget.game.titleBack == _back) widget.game.titleBack = null;
     _fade.dispose();
     _leave.dispose();
@@ -64,7 +75,6 @@ class _TitleScreenState extends State<TitleScreen>
 
   void _open(_Page page) => setState(() {
     _page = page;
-    widget.game.previewBackground = null;
   });
 
   void _settings(SettingsTab tab) {
@@ -99,21 +109,6 @@ class _TitleScreenState extends State<TitleScreen>
     final int reached = progress.reached;
     final Size size = MediaQuery.sizeOf(context);
     final double unit = size.shortestSide / 100;
-    Widget chapterChoice(int i) => _Choice(
-      label: '${CampaignCatalog.roman(i + 1)}   ${Chapters.all[i].title}',
-      size: unit,
-      small: true,
-      status: i > reached
-          ? 'Locked'
-          : i == progress.current
-          ? 'Current'
-          : 'Replay',
-      enabled: i <= reached,
-      onTap: director == null || i > reached
-          ? null
-          : () =>
-                _go(() => i == 0 ? director.begin() : director.playChapter(i)),
-    );
     final choices = <(String, VoidCallback?)>[
       if (progress.canContinue)
         (
@@ -136,56 +131,107 @@ class _TitleScreenState extends State<TitleScreen>
       ('Chapters', () => _open(_Page.chapters)),
       ('Settings', () => _settings(SettingsTab.display)),
     ];
-    Widget mainMenu() => Positioned(
-      left: size.width * .055,
-      top: size.height * .19,
-      child: ConstrainedBox(
-        constraints: BoxConstraints(maxWidth: size.width * .40),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+    Widget mainMenu() => Positioned.fill(
+      child: CustomPaint(
+        painter: const _MainMenuFramePainter(),
+        child: Stack(
           children: [
-            Text(
-              'UMBRA',
-              semanticsLabel: 'Umbra',
-              style: TextStyle(
-                fontFamily: 'Cinzel',
-                fontSize: (unit * 8.2).clamp(38, 72),
-                fontWeight: FontWeight.w400,
-                letterSpacing: (unit * 2).clamp(8, 17),
-                color: Palette.brandInk,
-                shadows: const [
-                  Shadow(color: Color(0x66000000), blurRadius: 16),
-                ],
-              ),
-            ),
-            SizedBox(height: (unit * 5.4).clamp(22, 48)),
-            if (progress.canContinue)
-              Padding(
-                padding: const EdgeInsets.only(bottom: 8),
-                child: Text(
-                  'Continue: ${Chapters.all[progress.current].title}',
-                  style: const TextStyle(color: Palette.brandInk, fontSize: 14),
+            SafeArea(
+              child: Center(
+                child: SingleChildScrollView(
+                  padding: EdgeInsets.symmetric(vertical: unit * 3),
+                  child: ConstrainedBox(
+                    constraints: BoxConstraints(
+                      maxWidth: math.min(size.width * .82, 430),
+                    ),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      children: [
+                        Text(
+                          'UMBRA',
+                          semanticsLabel: 'Umbra',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            fontFamily: 'Cinzel',
+                            fontSize: (unit * 7.2).clamp(34, 64),
+                            fontWeight: FontWeight.w400,
+                            letterSpacing: (unit * 1.8).clamp(7, 15),
+                            color: Palette.brandInk,
+                            shadows: const [
+                              Shadow(color: Color(0x66000000), blurRadius: 16),
+                            ],
+                          ),
+                        ),
+                        SizedBox(height: unit * .5),
+                        Text(
+                          'A child lost between dusk and dawn',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            fontFamily: 'Cormorant',
+                            fontStyle: FontStyle.italic,
+                            fontSize: (unit * 3.3).clamp(15, 22),
+                            color: Palette.brandInk.withValues(alpha: .82),
+                            shadows: const [
+                              Shadow(color: Color(0x99000000), blurRadius: 8),
+                            ],
+                          ),
+                        ),
+                        SizedBox(height: (unit * 3.2).clamp(16, 28)),
+                        for (final (i, (label, onTap)) in choices.indexed)
+                          MainMenuChoice(
+                            label: label,
+                            unit: unit,
+                            selected: i == _mainSelection,
+                            centered: true,
+                            ornamental: true,
+                            minimumWidth: math.min(size.width * .52, 300),
+                            autofocus: i == 0,
+                            onHighlight: () {
+                              if (_mainSelection != i) {
+                                setState(() => _mainSelection = i);
+                              }
+                            },
+                            onTap: onTap,
+                          ),
+                        if (progress.saveFailed)
+                          Padding(
+                            padding: EdgeInsets.only(top: unit),
+                            child: const Text(
+                              'Progress could not be saved. Check device storage.',
+                              textAlign: TextAlign.center,
+                              style: TextStyle(
+                                color: Palette.brandInk,
+                                fontSize: 13,
+                              ),
+                            ),
+                          ),
+                      ],
+                    ),
+                  ),
                 ),
               ),
-            if (progress.saveFailed)
-              const Text(
-                'Progress could not be saved. Please check device storage.',
-                style: TextStyle(color: Palette.brandInk, fontSize: 14),
+            ),
+            Positioned(
+              left: 0,
+              right: 0,
+              bottom: size.height * .075,
+              child: IgnorePointer(
+                child: Text(
+                  'UMBRA · MAIN MENU',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontFamily: 'Cinzel',
+                    fontSize: (unit * 1.4).clamp(8, 11),
+                    letterSpacing: 1,
+                    color: Palette.brandInk.withValues(alpha: .92),
+                    shadows: const [
+                      Shadow(color: Color(0xCC000000), blurRadius: 6),
+                    ],
+                  ),
+                ),
               ),
-            for (final (i, (label, onTap)) in choices.indexed)
-              MainMenuChoice(
-                label: label,
-                unit: unit,
-                selected: i == _mainSelection,
-                amberSelected: true,
-                autofocus: i == 0,
-                onHighlight: () {
-                  if (_mainSelection != i) {
-                    setState(() => _mainSelection = i);
-                  }
-                },
-                onTap: onTap,
-              ),
+            ),
           ],
         ),
       ),
@@ -203,44 +249,6 @@ class _TitleScreenState extends State<TitleScreen>
             SizedBox(height: unit * 7),
             ...children,
           ],
-        ),
-      ),
-    );
-    final back = _Choice(
-      label: 'Back',
-      size: unit,
-      small: true,
-      onTap: () => _open(_Page.main),
-    );
-    Widget panel(String title, List<Widget> children, {double? width}) => Align(
-      alignment: const Alignment(0.95, 0),
-      child: Container(
-        width: width ?? size.width * 0.51,
-        height: size.height * 0.88,
-        padding: EdgeInsets.symmetric(horizontal: unit * 1.5),
-        child: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(
-                title,
-                style: TextStyle(
-                  fontFamily: 'Cinzel',
-                  fontSize: (unit * 4).clamp(16, 28),
-                  letterSpacing: unit * 0.8,
-                  color: Palette.brandInk,
-                ),
-              ),
-              SizedBox(height: unit * 1.4),
-              Container(
-                width: unit * 5,
-                height: 1,
-                color: Palette.lampAmber.withValues(alpha: .7),
-              ),
-              SizedBox(height: unit * 2),
-              ...children,
-            ],
-          ),
         ),
       ),
     );
@@ -264,8 +272,15 @@ class _TitleScreenState extends State<TitleScreen>
               child: const MenuScene(),
             ),
             BackdropFilter(
-              filter: ui.ImageFilter.blur(sigmaX: 8, sigmaY: 8),
-              child: const ColoredBox(color: Color(0xA6080A0B)),
+              filter: ui.ImageFilter.blur(
+                sigmaX: _page == _Page.main ? 3 : 8,
+                sigmaY: _page == _Page.main ? 3 : 8,
+              ),
+              child: ColoredBox(
+                color: _page == _Page.main
+                    ? const Color(0x66080A0B)
+                    : const Color(0xA6080A0B),
+              ),
             ),
             FadeTransition(
               opacity: CurvedAnimation(
@@ -324,84 +339,48 @@ class _TitleScreenState extends State<TitleScreen>
                       ),
                     ]),
                   if (_page == _Page.chapters)
-                    panel('CHAPTERS', [
-                      for (var group = 0; group < 8; group++) ...[
-                        Padding(
-                          padding: const EdgeInsets.only(top: 12, bottom: 4),
-                          child: Text(
-                            '${group * 5 + 1}–${group * 5 + 5}',
-                            style: const TextStyle(
-                              fontFamily: 'Cinzel',
-                              letterSpacing: 2,
-                              color: Palette.lampAmber,
+                    Positioned.fill(
+                      child: ChapterCarousel(
+                        reached: reached,
+                        initialIndex: progress.current,
+                        currentIndex: progress.current,
+                        onBack: () => _open(_Page.main),
+                        onPlay: (i) {
+                          if (director != null) {
+                            _go(
+                              () => i == 0
+                                  ? director.begin()
+                                  : director.playChapter(i),
+                            );
+                          }
+                        },
+                      ),
+                    ),
+                  if (_page == _Page.settings)
+                    Positioned.fill(
+                      child: SafeArea(
+                        child: Center(
+                          child: SingleChildScrollView(
+                            child: SizedBox(
+                              key: const ValueKey('title-settings-content'),
+                              width: math.min(
+                                (unit * 70).clamp(340, 620),
+                                size.width * .88,
+                              ),
+                              child: SettingsPanel(
+                                key: ValueKey(_tab),
+                                settings: widget.game.settings,
+                                unit: unit,
+                                initialTab: _tab,
+                                centered: true,
+                                onBack: () => _open(_Page.main),
+                                onCustomize: () => showControlLayoutEditor(
+                                  context,
+                                  widget.game.settings,
+                                ),
+                              ),
                             ),
                           ),
-                        ),
-                        for (var i = group * 5; i < group * 5 + 5; i++)
-                          chapterChoice(i),
-                      ],
-                      back,
-                    ]),
-                  if (_page == _Page.settings)
-                    Positioned(
-                      right: size.width * 0.069,
-                      top: size.height * 0.08,
-                      bottom: size.height * 0.03,
-                      child: SingleChildScrollView(
-                        child: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          crossAxisAlignment: CrossAxisAlignment.end,
-                          children: [
-                            Text(
-                              'SETTINGS',
-                              style: TextStyle(
-                                fontFamily: 'Cinzel',
-                                fontSize: (unit * 4).clamp(16, 28),
-                                letterSpacing: unit * 0.8,
-                                color: Palette.brandInk,
-                              ),
-                            ),
-                            SizedBox(height: unit * 1.4),
-                            Container(
-                              width: unit * 5,
-                              height: 1,
-                              color: Palette.lampAmber.withValues(alpha: .7),
-                            ),
-                            SizedBox(height: unit * 2.2),
-                            SettingsPanel(
-                              key: ValueKey(_tab),
-                              settings: widget.game.settings,
-                              unit: unit,
-                              initialTab: _tab,
-                              width: math.min(
-                                (unit * 70).clamp(380, 620),
-                                size.width * 0.6,
-                              ),
-                              // Picked here, it plays at once to be heard.
-                              onTry: (id) => widget.game.previewBackground = id,
-                            ),
-                            SizedBox(height: unit * 1.6),
-                            Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                MenuWord(
-                                  numeral: 'I',
-                                  label: 'Reset',
-                                  unit: unit,
-                                  scale: .55,
-                                  onTap: widget.game.settings.reset,
-                                ),
-                                SizedBox(width: unit * 5),
-                                MenuWord(
-                                  numeral: 'II',
-                                  label: 'Back',
-                                  unit: unit,
-                                  scale: .55,
-                                  onTap: () => _open(_Page.main),
-                                ),
-                              ],
-                            ),
-                          ],
                         ),
                       ),
                     ),
@@ -417,82 +396,45 @@ class _TitleScreenState extends State<TitleScreen>
 
 enum _Page { main, chapters, settings, confirmBegin }
 
-/// Keyboard, touch and assistive-technology accessible menu choice.
-class _Choice extends StatelessWidget {
-  const _Choice({
-    required this.label,
-    required this.size,
-    required this.onTap,
-    this.small = false,
-    this.enabled = true,
-    this.status,
-  });
-  final String label;
-  final double size;
-  final VoidCallback? onTap;
-  final bool small, enabled;
-  final String? status;
+class _MainMenuFramePainter extends CustomPainter {
+  const _MainMenuFramePainter();
 
   @override
-  Widget build(BuildContext context) {
-    final ink = Palette.brandInk.withValues(alpha: enabled ? .94 : .62);
-    return TextButton(
-      onPressed: enabled ? onTap : null,
-      style: ButtonStyle(
-        foregroundColor: WidgetStateProperty.resolveWith(
-          (states) =>
-              states.contains(WidgetState.hovered) ||
-                  states.contains(WidgetState.focused)
-              ? Palette.lampAmber
-              : ink,
-        ),
-        minimumSize: const WidgetStatePropertyAll(Size(44, 44)),
-        padding: WidgetStatePropertyAll(
-          EdgeInsets.symmetric(horizontal: size, vertical: small ? 5 : 8),
-        ),
-        overlayColor: const WidgetStatePropertyAll(Color(0x0CFFFFFF)),
-        textStyle: WidgetStatePropertyAll(
-          TextStyle(
-            fontFamily: 'Cormorant',
-            fontStyle: FontStyle.italic,
-            fontSize: (size * (small ? 3.4 : 5.4)).clamp(
-              small ? 14.0 : 18.0,
-              small ? 24.0 : 38.0,
-            ),
-            letterSpacing: .3,
-          ),
-        ),
-      ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Text(label, textAlign: TextAlign.center),
-          if (status != null)
-            Padding(
-              padding: const EdgeInsets.only(top: 2),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  if (!enabled)
-                    Padding(
-                      padding: const EdgeInsets.only(right: 3),
-                      child: Icon(Icons.lock_outline, size: 10, color: ink),
-                    ),
-                  Text(
-                    status!.toUpperCase(),
-                    style: TextStyle(
-                      fontFamily: 'Cinzel',
-                      fontStyle: FontStyle.normal,
-                      fontSize: 9,
-                      letterSpacing: 1.5,
-                      color: status == 'Current' ? Palette.lampAmber : ink,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-        ],
-      ),
+  void paint(Canvas canvas, Size size) {
+    final rect = Rect.fromLTRB(
+      size.width * .09,
+      size.height * .07,
+      size.width * .91,
+      size.height * .93,
     );
+    final paint = Paint()
+      ..color = const Color(0x82D2D4D0)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1;
+    canvas.drawRect(rect, paint);
+
+    final corner = 18.0;
+    final notch = 7.0;
+    final details = Path()
+      ..moveTo(rect.left + corner, rect.top)
+      ..lineTo(rect.left + notch, rect.top)
+      ..lineTo(rect.left + notch, rect.top + notch)
+      ..lineTo(rect.left, rect.top + notch)
+      ..moveTo(rect.right - corner, rect.top)
+      ..lineTo(rect.right - notch, rect.top)
+      ..lineTo(rect.right - notch, rect.top + notch)
+      ..lineTo(rect.right, rect.top + notch)
+      ..moveTo(rect.left + corner, rect.bottom)
+      ..lineTo(rect.left + notch, rect.bottom)
+      ..lineTo(rect.left + notch, rect.bottom - notch)
+      ..lineTo(rect.left, rect.bottom - notch)
+      ..moveTo(rect.right - corner, rect.bottom)
+      ..lineTo(rect.right - notch, rect.bottom)
+      ..lineTo(rect.right - notch, rect.bottom - notch)
+      ..lineTo(rect.right, rect.bottom - notch);
+    canvas.drawPath(details, paint..color = const Color(0xC2D2D4D0));
   }
+
+  @override
+  bool shouldRepaint(covariant _MainMenuFramePainter oldDelegate) => false;
 }

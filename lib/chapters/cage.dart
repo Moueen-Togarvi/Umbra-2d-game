@@ -6,7 +6,6 @@ import 'package:flame/components.dart';
 import '../world/footprint.dart';
 import '../entities/cave_props.dart';
 import '../entities/ground.dart';
-import '../entities/player.dart';
 import '../render/culling.dart';
 import '../render/mood.dart';
 import '../render/scenery.dart';
@@ -363,11 +362,10 @@ class CageChapter extends Chapter {
     final double dx = player.body.position.x - guard.x;
     final bool ahead = dx * guard.facing > -0.4;
     if (dx.abs() < 1.25 && ahead && !hidden && player.body.position.y > 4.0) {
-      _caught = true;
       guard
         ..facing = dx.sign
         ..seize();
-      player.die(cause: DeathCause.vampire);
+      _caught = player.receiveEnemyHit(direction: dx.sign) && player.isDead;
     }
   }
 

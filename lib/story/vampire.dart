@@ -6,6 +6,7 @@ import 'package:flame/components.dart';
 import 'package:flame/game.dart' show FlameGame;
 
 import '../config/palette.dart';
+import '../combat/combat_target.dart';
 import '../render/mood.dart';
 import '../render/npc_atlas.dart';
 import '../render/scenery.dart';
@@ -54,7 +55,8 @@ enum VampireMode {
 /// scrolling slower, like the scenery there. Everything that moves follows
 /// a critically damped spring or a smooth cycle, so he moves with a slow,
 /// deliberate menace and never jitters.
-class Vampire extends Component implements BackdropDrawable {
+class Vampire extends Component
+    implements BackdropDrawable, CombatTarget, CombatTelegraph {
   Vampire({
     required this.x,
     required this.groundY,
@@ -102,6 +104,45 @@ class Vampire extends Component implements BackdropDrawable {
 
   /// Not drawn at all (out of the story for now).
   bool gone = false;
+  double posture = 0;
+  double stunRemaining = 0;
+  bool combatTelegraph = false;
+
+  @override
+  Vector2 get combatPosition => Vector2(x, groundY - lift - 1.1);
+
+  @override
+  bool get canReceiveCombatHit =>
+      !gone &&
+      mode != VampireMode.burn &&
+      mode != VampireMode.sink &&
+      depth >= .99;
+
+  @override
+  bool get isCombatStunned => stunRemaining > 0;
+
+  @override
+  bool get isTelegraphing => combatTelegraph && !isCombatStunned;
+
+  @override
+  void receiveCombatHit(CombatHit hit) {
+    if (!canReceiveCombatHit) return;
+    if (hit.finisher) {
+      crush();
+      return;
+    }
+    posture += hit.posture;
+    stunRemaining = math.max(
+      stunRemaining,
+      hit.stunSeconds * (posture >= 2.2 ? 1.55 : 1),
+    );
+    if (posture >= 2.2) posture = 0;
+    combatTelegraph = false;
+    reachGoal = 0;
+    x += hit.direction * (.08 + hit.posture * .08);
+    mode = VampireMode.stand;
+    cue('rumble', weight: .16, at: combatPosition, shake: .08);
+  }
 
   /// How far the claws reach forward when not seizing (0–1): running at
   /// the boy, or reaching for him across the edge of the light.
@@ -272,6 +313,9 @@ class Vampire extends Component implements BackdropDrawable {
     _motes.clear();
     shieldGoal = 0;
     reachGoal = 0;
+    posture = 0;
+    stunRemaining = 0;
+    combatTelegraph = false;
     lift = 0;
     mode = VampireMode.stand;
   }
@@ -322,6 +366,11 @@ class Vampire extends Component implements BackdropDrawable {
   @override
   void update(double dt) {
     if (dt <= 0) return;
+    if (stunRemaining > 0) {
+      stunRemaining = math.max(0, stunRemaining - dt);
+      reachGoal = 0;
+      combatTelegraph = false;
+    }
     final previousX = _soundX;
     _soundX = x;
     if (!gone &&

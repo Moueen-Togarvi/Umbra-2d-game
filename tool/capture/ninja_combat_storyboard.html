@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="icon" href="data:,">
+  <title>Umbra — Light Ninja Combat Storyboard</title>
+  <style>
+    @font-face{font-family:Cinzel;src:url('../../assets/fonts/Cinzel-Variable.ttf');font-display:swap}
+    :root{color-scheme:dark;--paper:#fff;--ink:#020304;--line:#ffffff52;--muted:#c6c9ca}
+    *{box-sizing:border-box}html{background:var(--ink)}body{margin:0;min-height:100vh;background:radial-gradient(circle at 50% -25%,#30363a,#080a0c 48%,#020304 78%);color:var(--paper);font:16px/1.45 system-ui,sans-serif}
+    button{font:inherit;color:inherit;cursor:pointer;touch-action:manipulation}button:focus-visible{outline:2px solid #fff;outline-offset:3px}
+    .shell{width:min(1380px,100%);margin:auto;padding:24px clamp(12px,3.5vw,48px) 42px}.micro{font:600 10px Cinzel,serif;letter-spacing:.17em;text-transform:uppercase}.muted{color:var(--muted)}
+    header{display:flex;justify-content:space-between;align-items:end;gap:24px;margin-bottom:16px}h1{font:400 clamp(30px,4.6vw,60px)/1 Cinzel,serif;letter-spacing:.045em;margin:5px 0 8px}header p{max-width:760px;margin:0;color:var(--muted);font-size:14px}.sample{padding:10px 14px;background:#fff;color:#060708;white-space:nowrap}
+    .kit{display:grid;grid-template-columns:repeat(4,1fr);border:1px solid var(--line);margin-bottom:10px;background:#050607}.kit div{padding:11px 14px;border-right:1px solid #ffffff24}.kit div:last-child{border-right:0}.kit b{display:block;font:600 10px Cinzel,serif;letter-spacing:.13em}.kit span{display:block;color:var(--muted);font-size:10px;margin-top:3px}
+    .techniques{display:flex;gap:6px;overflow:auto;padding:8px;border:1px solid var(--line);background:#050607;margin-bottom:10px;scroll-snap-type:x mandatory}.technique{flex:0 0 172px;min-height:60px;border:1px solid #ffffff24;background:#0d1012;text-align:left;padding:8px 10px;scroll-snap-align:start}.technique:hover{border-color:#fff}.technique.active{background:#fff;color:#050607}.technique strong{display:block;font:500 12px Cinzel,serif}.technique small{display:block;font-size:9px;margin-top:3px;opacity:.72}
+    .stage{border:1px solid var(--line);background:#030405;box-shadow:0 30px 90px #000;overflow:hidden}.scene{position:relative;isolation:isolate;aspect-ratio:16/7.1;min-height:410px;overflow:hidden;background:linear-gradient(180deg,#dfe5e15e,#65707125 48%,#040506 89%),var(--bg) center/cover;filter:grayscale(1)}
+    .scene::before{content:'';position:absolute;inset:0;background:radial-gradient(ellipse at 67% 18%,#fff7,transparent 32%),linear-gradient(90deg,#0009,transparent 31%,transparent 70%,#0009),linear-gradient(0deg,#000 0 7%,transparent 29%);z-index:1}.scene::after{content:'';position:absolute;left:-10%;right:-10%;bottom:5%;height:25%;background:radial-gradient(ellipse,#edf1ee5f,transparent 68%);filter:blur(12px);z-index:8;animation:fog 7s ease-in-out infinite alternate}
+    .ground{position:absolute;z-index:3;left:-5%;right:-5%;bottom:-17%;height:30%;background:#020304;transform:rotate(-1deg)}
+    .actor{position:absolute;z-index:6;bottom:7%;left:calc(var(--x)*1%);object-fit:contain;object-position:center bottom;transform:translateX(-50%) scaleX(var(--flip,1));transform-origin:center bottom;filter:grayscale(1) contrast(1.2) drop-shadow(0 6px 8px #000)}.actor.hero{height:40%;z-index:7}.actor.enemy{height:62%}.actor.enemy.down{height:49%;bottom:-1%;transform:translateX(-50%) rotate(77deg)}
+    .blade{position:absolute;z-index:10;left:calc(var(--x)*1%);bottom:calc(var(--y)*1%);width:clamp(38px,6vw,82px);height:5px;background:#fff;box-shadow:0 0 11px #fff;transform:rotate(calc(var(--r)*1deg));transform-origin:left center}.blade::after{content:'';position:absolute;right:-11px;top:-5px;border-left:13px solid #fff;border-top:7px solid transparent;border-bottom:7px solid transparent}.blade.broken::after{border-left-width:7px;right:-5px}
+    .slash{position:absolute;z-index:11;left:calc(var(--x)*1%);bottom:calc(var(--y)*1%);width:19%;aspect-ratio:1;border:7px solid #fff;border-left-color:transparent;border-bottom-color:transparent;border-radius:50%;transform:rotate(calc(var(--r)*1deg));filter:drop-shadow(0 0 9px #fff);animation:slash .42s ease-out both}.spark{position:absolute;z-index:12;left:calc(var(--x)*1%);bottom:calc(var(--y)*1%);width:7px;height:7px;background:#fff;box-shadow:22px -18px #fff,-19px -26px #fff,31px 13px #fff,-29px 19px #fff,4px -39px #fff;animation:spark .7s ease-out both}
+    .knife{position:absolute;z-index:11;left:calc(var(--x)*1%);bottom:calc(var(--y)*1%);width:38px;height:3px;background:#fff;transform:rotate(calc(var(--r)*1deg));box-shadow:0 0 7px #fff}.knife::after{content:'';position:absolute;right:-8px;top:-4px;border-left:9px solid #fff;border-top:5px solid transparent;border-bottom:5px solid transparent}.knife.flight{animation:knife 1.1s ease-in-out infinite alternate}
+    .slow-ring{position:absolute;z-index:5;left:calc(var(--x)*1%);bottom:calc(var(--y)*1%);width:19%;aspect-ratio:1;border:2px solid #fff;border-radius:50%;animation:ring 1.4s ease-out infinite}.shadow{position:absolute;z-index:4;left:0;bottom:6%;width:55%;height:68%;background:linear-gradient(90deg,#000 8%,#000d 58%,transparent);filter:blur(4px)}.afterimage{opacity:.18;transform:translateX(-75%) scaleX(var(--flip,1))}.danger-flash{position:absolute;z-index:13;inset:0;border:8px solid #fff;box-shadow:inset 0 0 90px #fff7;animation:flash .8s ease-in-out infinite alternate}
+    .touch-hud{position:absolute;z-index:20;inset:0;pointer-events:none}.attack{position:absolute;right:3.2%;bottom:8%;width:78px;height:78px;border:2px solid #fff;border-radius:50%;display:grid;place-items:center;background:#050607b8;font:600 9px Cinzel,serif;letter-spacing:.08em}.attack::before{content:'';position:absolute;width:35px;height:3px;background:#fff;transform:rotate(-35deg)}.jump{position:absolute;right:10%;bottom:5%;width:54px;height:54px;border:1px solid #fff;border-radius:50%;display:grid;place-items:center;background:#050607aa;font:600 8px Cinzel,serif}.hud-top{position:absolute;left:16px;right:16px;top:14px;display:flex;justify-content:space-between;gap:10px}.hud-pill{border:1px solid #fff;background:#030405c4;padding:8px 10px;font:600 9px Cinzel,serif;letter-spacing:.11em}.hud-pill i{display:inline-block;width:9px;height:9px;border:1px solid #fff;transform:rotate(45deg);margin-left:6px}.hud-pill i.empty{opacity:.25}.input{position:absolute;right:18px;top:64px;min-width:82px;min-height:44px;padding:8px;border:1px solid #fff;background:#030405d6;display:grid;place-items:center;font:600 9px Cinzel,serif;letter-spacing:.13em}
+    .caption{display:grid;grid-template-columns:1fr auto;align-items:center;gap:18px;padding:15px 18px;border-top:1px solid var(--line)}.caption h2{font:400 clamp(25px,3vw,40px)/1.05 Cinzel,serif;margin:4px 0}.caption p{margin:0;color:var(--muted);font-size:13px}.counter{font:400 32px Cinzel,serif}.counter span{font-size:12px;color:var(--muted)}
+    .story-nav{display:grid;grid-template-columns:56px 1fr 56px;border-top:1px solid var(--line)}.arrow{min-height:58px;border:0;background:#090b0d;font-size:28px}.arrow:hover:not(:disabled){background:#fff;color:#050607}.arrow:disabled{opacity:.25;cursor:not-allowed}.timeline{display:grid;grid-template-columns:repeat(4,1fr)}.timeline button{min-height:58px;border:0;border-left:1px solid #ffffff25;background:#07090a;text-align:left;padding:9px 11px}.timeline button:last-child{border-right:1px solid #ffffff25}.timeline button.active{background:#fff;color:#050607}.timeline b{display:block;font:500 10px Cinzel,serif}.timeline span{font-size:9px;opacity:.7}
+    @keyframes fog{to{transform:translateX(10%) scaleX(1.1)}}@keyframes slash{from{opacity:0;transform:rotate(calc(var(--r)*1deg)) scale(.45)}to{opacity:1;transform:rotate(calc(var(--r)*1deg)) scale(1)}}@keyframes spark{to{transform:scale(1.5);opacity:0}}@keyframes knife{to{transform:translate(90px,-14px) rotate(calc(var(--r)*1deg))}}@keyframes ring{from{transform:scale(.45);opacity:1}to{transform:scale(1.5);opacity:0}}@keyframes flash{to{opacity:.18}}
+    @media(max-width:720px){.shell{padding:16px 10px 28px}header{display:block}.sample{display:none}header p{font-size:12px}.kit{display:flex;overflow:auto}.kit div{flex:0 0 58%;border-bottom:0}.technique{flex-basis:155px}.scene{aspect-ratio:16/9;min-height:270px}.actor.hero{height:44%}.actor.enemy{height:65%}.attack{width:62px;height:62px}.jump{right:16%;width:46px;height:46px}.hud-top{left:8px;right:8px;top:8px}.hud-pill{padding:6px;font-size:7px}.input{right:8px;top:52px}.caption{grid-template-columns:1fr;padding:12px}.counter{display:none}.story-nav{grid-template-columns:48px minmax(0,1fr) 48px}.timeline{display:flex;overflow:auto}.timeline button{flex:1 0 130px}.caption p{font-size:12px}}
+    @media(prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}}
+  </style>
+</head>
+<body>
+  <main class="shell">
+    <header><div><div class="micro">UMBRA / LIGHT NINJA COMBAT</div><h1>Fast. Dangerous. Limited.</h1><p>The boy finds a broken blade, but never becomes overpowered. Every strike needs timing; two mistakes can still end the encounter.</p></div><div class="sample micro">Storyboard sample</div></header>
+    <section class="kit" aria-label="Ninja combat rules">
+      <div><b>ONE ATTACK BUTTON</b><span>Context changes on ground, in air and behind enemies.</span></div>
+      <div><b>BROKEN BLADE</b><span>Short reach. No long button-mashing combo.</span></div>
+      <div><b>THROWING KNIVES ×3</b><span>Limited per encounter; mainly for stun and distraction.</span></div>
+      <div><b>TWO-HIT DANGER</b><span>First hit wounds. Second hit restarts the checkpoint.</span></div>
+    </section>
+    <nav class="techniques" aria-label="Ninja combat storyboards"></nav>
+    <section class="stage" aria-live="polite">
+      <div class="scene"><i class="ground"></i><div class="touch-hud"><div class="hud-top"><span class="hud-pill">BLADE READY</span><span class="hud-pill">DANGER <i></i><i></i></span></div><span class="jump">JUMP</span><span class="attack">ATTACK</span></div></div>
+      <div class="caption"></div>
+      <div class="story-nav"><button class="arrow previous" aria-label="Previous storyboard step">‹</button><div class="timeline"></div><button class="arrow next" aria-label="Next storyboard step">›</button></div>
+    </section>
+  </main>
+  <script>
+    const A='combat_storyboard_assets/',B='../../assets/images/backgrounds/';
+    const stories=[
+      {id:'slash',title:'Ground Slash',tag:'Basic attack',bg:'halls.webp',beats:[
+        ['Ready','The vampire closes in. The broken blade has short reach, so wait.','idle',29,'idle',74,['blade:34:26:-12'],null],
+        ['Telegraph','Claws rise and the eyes brighten. This is the safe timing cue.','brace',34,'reach',68,['blade:38:27:-8','ring:67:28'],'WAIT'],
+        ['Strike','Tap once inside the narrow window. The ground slash breaks posture.','strike',48,'reach',63,['blade:52:30:-10','slash:55:24:-28','spark:63:32'],'ATTACK'],
+        ['Recover','The vampire staggers, not dies. Use the opening to move or escape.','run',72,'down',54,['blade:75:28:-8'],null] ]},
+      {id:'air',title:'Air Attack',tag:'Jump + attack',bg:'watchers_walk.webp',beats:[
+        ['Launch','Jump over the low swipe instead of trading damage.','jump',42,'reach',69,['blade:47:44:18'],'JUMP'],
+        ['Aim','Drift above the enemy. The attack button changes in the air.','air-strike',52,'idle',66,['blade:57:45:28'],'HOLD'],
+        ['Drop strike','Tap attack while descending to drive the enemy downward.','air-strike',59,'reach',62,['blade:64:35:52','slash:60:27:45','spark:63:31'],'ATTACK'],
+        ['Land','Landing has recovery. Roll away before the vampire stands.','crouch',70,'down',58,['blade:74:21:-5'],null] ]},
+      {id:'dodge',title:'Perfect Dodge',tag:'Slow-motion counter',bg:'graveyard.webp',beats:[
+        ['Read','A white eye-flash marks the final part of the lunge telegraph.','idle',35,'reach',68,['ring:66:29'],null],
+        ['Last moment','Dodge through at the instant the claws cross the warning line.','run',57,'reach',55,['after:44','ring:54:23'],'DODGE'],
+        ['Slow time','A successful dodge creates a very short counter window.','brace',68,'reach',48,['ring:61:23','blade:72:29:165'],'COUNTER'],
+        ['Counter','One rear slash causes a heavy stagger, then normal speed returns.','strike',63,'down',48,['blade:58:29:170','slash:50:23:140','spark:49:31'],'ATTACK'] ]},
+      {id:'parry',title:'Timed Parry',tag:'High risk',bg:'lower_castle.webp',beats:[
+        ['Guard','Hold the blade ready, but guarding alone cannot stop the vampire.','parry',41,'reach',65,['blade:45:39:-48'],null],
+        ['Contact','Tap attack at claw contact—not before—to create a parry flash.','parry',48,'reach',58,['blade:51:39:-48','spark:54:39'],'PARRY'],
+        ['Posture break','The enemy recoils and exposes its center for one beat.','brace',43,'down',62,['blade:47:29:-5','ring:61:24'],null],
+        ['Finish opening','Use one slash, then disengage before it recovers.','strike',53,'down',63,['blade:57:29:-10','slash:59:22:-28'],'ATTACK'] ]},
+      {id:'backstab',title:'Shadow Backstab',tag:'Stealth attack',bg:'shadow_gallery.webp',beats:[
+        ['Disappear','Crouch inside deep shadow until the eye glow turns away.','crouch',24,'idle',72,['shadow'],null],
+        ['Approach','Move slowly behind the vampire. Running would reveal the boy.','crouch',53,'idle',68,['shadow'],'SIT'],
+        ['Backstab','Behind an unaware enemy, attack becomes a silent posture break.','strike',61,'idle',68,['blade:65:28:-5','spark:67:34','shadow'],'ATTACK'],
+        ['Escape','It survives and recovers after seconds. The goal is passage, not a kill.','run',79,'down',61,['shadow'],null] ]},
+      {id:'knife',title:'Throwing Knives',tag:'3 per encounter',bg:'outer_ramparts.webp',beats:[
+        ['Count','Three knives are available. The HUD always shows the remaining count.','throw',29,'idle',77,['knife:34:31:-8'],null],
+        ['Aim','Hold attack to show a short trajectory; release to throw.','throw',35,'reach',72,['knife:41:34:-8','line:40:34'],'HOLD'],
+        ['Throw','A knife interrupts the lunge but causes very little damage.','throw',38,'reach',67,['knife-flight:47:35:-8','spark:66:38'],'RELEASE'],
+        ['Use opening','Run, reposition, or enter shadow while the enemy is stunned.','run',71,'down',57,[],null] ]},
+      {id:'danger',title:'Two-Hit Danger',tag:'No health sponge',bg:'furnace_passage.webp',beats:[
+        ['First mistake','The first hit wounds the boy and removes one danger mark.','brace',45,'reach',58,['flash'],'HIT 1'],
+        ['Wounded','Movement continues, but the boy limps and cannot trade attacks.','run',54,'idle',72,['blade:58:28:-8'],null],
+        ['Second mistake','A second clean hit is fatal—there is no long health bar.','sit',49,'reach',56,['flash'],'HIT 2'],
+        ['Checkpoint','The short encounter restarts with the learned attack pattern intact.','idle',31,'idle',76,['blade:35:26:-8'],null] ]}
+    ];
+    if(stories.length!==7||stories.some(story=>story.beats.length!==4))throw new Error('Ninja storyboard data is incomplete');
+    let active='slash',step=0;const techniques=document.querySelector('.techniques'),scene=document.querySelector('.scene'),caption=document.querySelector('.caption'),timeline=document.querySelector('.timeline'),previous=document.querySelector('.previous'),next=document.querySelector('.next');
+    techniques.innerHTML=stories.map(story=>`<button class="technique ${story.id===active?'active':''}" data-story="${story.id}" aria-pressed="${story.id===active}"><strong>${story.title}</strong><small>${story.tag}</small></button>`).join('');
+    function actor(kind,x,pose,extra=''){const enemy=kind==='enemy',down=pose==='down',file=enemy?(down?'enemy-reach':`enemy-${pose}`):`hero-${pose}`;return`<img class="actor ${kind} ${down?'down':''} ${extra}" src="${A}${file}.png" alt="" style="--x:${x}">`;}
+    function props(items){return items.map(item=>{const [name,x='50',y='28',r='0']=item.split(':');if(name==='blade')return`<i class="blade broken" style="--x:${x};--y:${y};--r:${r}"></i>`;if(name==='slash')return`<i class="slash" style="--x:${x};--y:${y};--r:${r}"></i>`;if(name==='spark')return`<i class="spark" style="--x:${x};--y:${y}"></i>`;if(name==='knife')return`<i class="knife" style="--x:${x};--y:${y};--r:${r}"></i>`;if(name==='knife-flight')return`<i class="knife flight" style="--x:${x};--y:${y};--r:${r}"></i>`;if(name==='ring')return`<i class="slow-ring" style="--x:${x};--y:${y}"></i>`;if(name==='shadow')return`<i class="shadow"></i>`;if(name==='after')return actor('hero',x,'run','afterimage');if(name==='flash')return`<i class="danger-flash"></i>`;if(name==='line')return`<i class="knife flight" style="--x:${x};--y:${y};--r:-8;opacity:.35"></i>`;return'';}).join('');}
+    function render(){const story=stories.find(item=>item.id===active),beat=story.beats[step],[label,text,heroPose,heroX,enemyPose,enemyX,items,input]=beat;document.querySelectorAll('.technique').forEach(button=>{const selected=button.dataset.story===active;button.classList.toggle('active',selected);button.setAttribute('aria-pressed',selected)});scene.style.setProperty('--bg',`url('${B}${story.bg}')`);scene.innerHTML=`<i class="ground"></i>${props(items)}${actor('enemy',enemyX,enemyPose)}${actor('hero',heroX,heroPose)}<div class="touch-hud"><div class="hud-top"><span class="hud-pill">BROKEN BLADE</span><span class="hud-pill">KNIVES ${story.id==='knife'&&step>1?'×2':'×3'} · DANGER <i></i><i class="${story.id==='danger'&&step>0?'empty':''}"></i></span></div><span class="jump">JUMP</span><span class="attack">ATTACK</span>${input?`<span class="input">${input}</span>`:''}</div>`;caption.innerHTML=`<div><div class="micro">${story.tag} · ${label}</div><h2>${story.title}</h2><p>${text}</p></div><div class="counter">${String(step+1).padStart(2,'0')} <span>/ 04</span></div>`;timeline.innerHTML=story.beats.map((item,index)=>`<button class="${index===step?'active':''}" data-step="${index}" aria-pressed="${index===step}"><b>${item[0]}</b><span>Step ${index+1}</span></button>`).join('');previous.disabled=step===0;next.disabled=step===3;window.__ninjaReady=true;}
+    techniques.addEventListener('click',event=>{const button=event.target.closest('[data-story]');if(!button)return;active=button.dataset.story;step=0;render();});timeline.addEventListener('click',event=>{const button=event.target.closest('[data-step]');if(!button)return;step=Number(button.dataset.step);render();});previous.addEventListener('click',()=>{if(step>0){step--;render();}});next.addEventListener('click',()=>{if(step<3){step++;render();}});render();
+  </script>
+</body>
+</html>

@@ -72,26 +72,31 @@ void main() {
     return (game, player, buttons);
   }
 
-  /// Five movement controls, rope controls, pause, then development buttons.
+  /// Four primary controls, rope controls, pause, then development buttons.
   const int walkLeft = 0;
   const int walkRight = 1;
   const int jump = 2;
-  const int action = 3;
-  const int sit = 4;
-  const int climbUp = 5;
-  const int climbDown = 6;
-  const int pause = 7;
-  const int debugToggle = 8;
-  const int reset = 9;
-  const int knockdown = 10;
+  const int sit = 3;
+  const int attack = 4;
+  const int weapon = 5;
+  const int climbUp = 6;
+  const int climbDown = 7;
+  const int pause = 8;
+  const int debugToggle = 9;
+  const int reset = 10;
+  const int knockdown = 11;
 
   testWidgets('mobile actions mount into the camera viewport', (tester) async {
-    final (_, _, buttons) = await boot(tester);
+    final (game, _, buttons) = await boot(tester);
     expect(
       buttons,
-      hasLength(8),
-      reason: 'left, right, jump, action, sit, rope climbing and pause',
+      hasLength(9),
+      reason: 'movement, attack, weapon switch, rope climbing and pause',
     );
+    buttons[attack].onPressed!();
+    expect(game.intent.consumeAttackRequest(), isTrue);
+    buttons[attack].onReleased!();
+    expect(buttons[weapon].size.x, 58);
   });
 
   testWidgets('pause opens controls and resume returns to play', (
@@ -133,7 +138,7 @@ void main() {
     final resized = game.camera.viewport.children
         .whereType<HudButtonComponent>()
         .toList();
-    expect(resized, hasLength(8));
+    expect(resized, hasLength(9));
     expect(
       resized[0].size.x,
       closeTo(GameConfig.controlButtonDiameterPx * 1.2, .01),
@@ -146,6 +151,24 @@ void main() {
     await move.up();
     await advance(tester, 2);
     expect(game.intent.horizontalAxis, 0);
+  });
+
+  testWidgets('saved control positions rebuild the HUD in place', (
+    tester,
+  ) async {
+    final (game, _, _) = await boot(tester);
+    await game.settings.saveControlPositions({
+      'left': const Offset(.15, .75),
+      'jump': const Offset(.85, .8),
+    });
+    game.settings.setFlag('leftHanded', true);
+    await advance(tester, 6);
+    final moved = game.camera.viewport.children
+        .whereType<HudButtonComponent>()
+        .toList();
+    expect(moved[walkLeft].absoluteCenter.x, closeTo(120, 1));
+    expect(moved[jump].absoluteCenter.x, closeTo(680, 1));
+    expect(moved[jump].absoluteCenter.y, closeTo(288, 1));
   });
 
   testWidgets('climb buttons only appear while holding a rope', (tester) async {
@@ -178,7 +201,7 @@ void main() {
 
   testWidgets('development builds add the debug buttons', (tester) async {
     final (_, _, buttons) = await boot(tester, debugTools: true);
-    expect(buttons, hasLength(12));
+    expect(buttons, hasLength(13));
   });
 
   testWidgets('controls sit on screen, along the bottom, thumbs apart', (
@@ -209,10 +232,9 @@ void main() {
       }
     }
 
-    // Walk buttons on the left, jump and action on the right.
+    // Walk buttons on the left, jump and sit on the right.
     expect(buttons[walkLeft].toRect().right, lessThan(viewport.x / 2));
     expect(buttons[jump].toRect().left, greaterThan(viewport.x / 2));
-    expect(buttons[action].toRect().left, greaterThan(viewport.x / 2));
     expect(buttons[sit].toRect().left, greaterThan(viewport.x / 2));
     expect(
       buttons[walkLeft].toRect().overlaps(buttons[walkRight].toRect()),

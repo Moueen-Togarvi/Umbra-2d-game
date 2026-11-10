@@ -21,7 +21,9 @@ class Hazard extends BodyComponent with ContactCallbacks, OffScreenCulling {
   Hazard({required Vector2 center, required Vector2 size, this.stakes = true})
     : _size = size.clone(),
       super(
-        paint: Paint()..color = Palette.silhouette,
+        paint: Paint()
+          ..color = Palette.trapRed
+          ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 2.2),
         renderBody: false,
         bodyDef: BodyDef(type: BodyType.static, position: center.clone()),
         shapeSpecs: [
@@ -212,7 +214,7 @@ class Hazard extends BodyComponent with ContactCallbacks, OffScreenCulling {
 
   final Paint _shadowPaint = Paint();
   final Paint _edgePaint = Paint()
-    ..color = const Color(0x505D6263)
+    ..color = Palette.trapEdge
     ..style = PaintingStyle.stroke
     ..strokeWidth = 0.014;
 
