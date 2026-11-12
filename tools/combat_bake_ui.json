@@ -1,0 +1,20 @@
+{
+ "ui_slash": {
+  "source": "i_slash_b",
+  "max_h": 256,
+  "despeckle": 3,
+  "keep_inner_white": 0.0008
+ },
+ "ui_throw": {
+  "source": "w_shuriken_c",
+  "max_h": 256,
+  "despeckle": 3,
+  "keep_inner_white": 0.0008
+ },
+ "ui_dash": {
+  "source": "i_dash_a",
+  "max_h": 256,
+  "despeckle": 3,
+  "keep_inner_white": 0.0008
+ }
+}

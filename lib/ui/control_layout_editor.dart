@@ -220,7 +220,6 @@ class _ControlLayoutEditorState extends State<_ControlLayoutEditor> {
   double _diameter(String id, Size size) {
     final base = switch (id) {
       'pause' => 46.0,
-      'weaponSlot' => 58.0,
       'attack' =>
         GameConfig.controlButtonDiameterPx *
             widget.settings.controlsScale *
@@ -303,11 +302,20 @@ class _PreviewButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final action =
-        id == 'jump' || id == 'sit' || id == 'attack' || id == 'weaponSlot';
+        id == 'jump' ||
+        id == 'sit' ||
+        id == 'attack' ||
+        id == 'throw' ||
+        id == 'dash' ||
+        id == 'grab';
     final asset = switch (id) {
       'left' || 'right' || 'climbUp' || 'climbDown' => 'ui_arrow.png',
       'jump' => 'ui_jump.png',
       'sit' => 'ui_sit.png',
+      'attack' => 'ui_slash.png',
+      'throw' => 'ui_throw.png',
+      'dash' => 'ui_dash.png',
+      'grab' => 'ui_hand.png',
       _ => 'ui_pause.png',
     };
     final degrees = switch (id) {
@@ -316,13 +324,7 @@ class _PreviewButton extends StatelessWidget {
       'climbDown' => 90.0,
       _ => 0.0,
     };
-    final Widget face = id == 'attack' || id == 'weaponSlot'
-        ? Icon(
-            id == 'attack' ? Icons.flash_on_outlined : Icons.diamond_outlined,
-            color: Palette.controlGlyph,
-            size: diameter * .44,
-          )
-        : Image.asset(
+    final Widget face = Image.asset(
             'assets/images/ui/$asset',
             width: diameter * (action ? .48 : .58),
             height: diameter * (action ? .52 : .58),
@@ -346,8 +348,10 @@ class _PreviewButton extends StatelessWidget {
                 switch (id) {
                   'jump' => 'JUMP',
                   'sit' => 'SIT',
-                  'attack' => 'ATTACK',
-                  _ => 'WEAPON',
+                  'attack' => 'SLASH',
+                  'throw' => 'THROW',
+                  'dash' => 'DASH',
+                  _ => 'GRAB',
                 },
                 style: TextStyle(
                   color: Palette.controlGlyph,

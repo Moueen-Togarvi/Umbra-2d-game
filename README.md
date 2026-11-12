@@ -34,13 +34,17 @@ The APK is written to `build/app/outputs/flutter-apk/app-release.apk`. The curre
 
 ## Controls
 
-LIMBO's whole vocabulary: move, jump and one action. The boy always runs; there is no run button and no crouch.
+LIMBO's vocabulary of move, jump and one action, plus sit and a short fight: a sword, throwing stars and a dash. The boy always runs; there is no run button. Chapter 1 hands him the sword, then the stars; every later chapter starts with both.
 
 | Action | Keyboard | Touch |
 |---|---|---|
 | Run left / right | A/D, Left/Right | ◀ ▶ |
 | Jump (always the same height) | Space, W, Up | ▲ |
-| Grab and pull an object | Hold E or Ctrl | Hold ✋ |
+| Sit (still) or crouch-creep (moving) | Hold S/Down | Hold SIT |
+| Grab and pull an object | Hold E or Ctrl | Hold GRAB (shown beside a crate) |
+| Slash | J or F | SLASH |
+| Throw a star (three, refilled at checkpoints) | K | THROW |
+| Dash (passes through a claw) | L or Shift | DASH |
 | Climb a caught ledge | Toward it, or jump | Toward it, or ▲ |
 | Let go of a ledge | S/Down, or steer away | Steer away |
 | Climb up / down a rope | W/Up, S/Down | ˄ ˅ (shown only on a rope) |
@@ -50,7 +54,9 @@ LIMBO's whole vocabulary: move, jump and one action. The boy always runs; there 
 
 Ledges and ropes are caught automatically when the boy reaches them in the air, a rope anywhere along it. Pushing happens by running into a crate. Steep banks (over 32°) are slid down on his feet.
 
-Development builds (`--dart-define=UMBRA_DEBUG=true`) add on-screen DBG, RESET, FALL and SOUND buttons; on a keyboard F1 toggles the physics overlay, R resets to the checkpoint, K knocks the boy down and M toggles sound.
+One claw kills him, and one cut or star kills a hunting vampire, which burns to ash. Story chasers only reel back from a blow. A vampire's eyes flare as he winds up to strike: cut first, or dash through.
+
+Development builds (`--dart-define=UMBRA_DEBUG=true`) add on-screen DBG, RESET, FALL and SOUND buttons; on a keyboard F1 toggles the physics overlay, R resets to the checkpoint, N knocks the boy down and M toggles sound.
 
 The mother and the vampires are drawn from generated artwork in `assets/images/characters/` (prompts and notes in `assets/design/characters/README.md`); the boy's visual rig is unchanged. The original concept sheets are archived outside the repo (see `assets/design/archive-manifest.json`).
 

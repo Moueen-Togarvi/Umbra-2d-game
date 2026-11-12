@@ -1,6 +1,7 @@
 import 'dart:math' as math;
 import 'dart:ui';
 
+import 'package:flame/flame.dart';
 import 'package:flame_forge2d/flame_forge2d.dart';
 import 'package:flutter/foundation.dart';
 
@@ -11,6 +12,7 @@ import '../character/character_state.dart';
 import '../character/foot_placement.dart';
 import '../character/ground_probe.dart';
 import '../character/limb_physics.dart';
+import '../combat/combat_controller.dart';
 import '../combat/weapons.dart';
 import '../config/game_config.dart';
 import '../config/palette.dart';
@@ -18,6 +20,7 @@ import '../input/player_intent.dart';
 import '../physics/collision_layers.dart';
 import '../render/character_silhouette.dart';
 import '../story/figures.dart' show Calm;
+import '../world/stage.dart' show StageCues;
 
 /// What he does with himself while standing about.
 enum IdleAction { none, lookUp, lookBack, shiftFeet }
@@ -97,10 +100,30 @@ class Player extends BodyComponent {
   bool get isRespawnProtected => _respawnGrace > 0;
   Vector2? _deathPush;
   bool _grounded = false;
-  int _enemyWounds = 0;
   double _enemyInvulnerability = 0;
 
-  int get dangerMarks => 2 - _enemyWounds;
+  /// A dash: a short burst along [_dashDirection], through whatever claws
+  /// are swinging at him.
+  double _dashTime = 0;
+  double _dashCooldown = 0;
+  double _dashDirection = 1;
+  bool _airDashUsed = false;
+  final List<Vector2> _dashTrail = [];
+  static const double dashSeconds = .18;
+  static const double dashSpeed = 9;
+  static const double dashCooldownSeconds = .6;
+
+  /// Whether a dash is under way.
+  bool get isDashing => _dashTime > 0;
+
+  /// 1 when a dash is ready, rising from 0 after one.
+  double get dashReadiness =>
+      1 - (_dashCooldown / dashCooldownSeconds).clamp(0.0, 1.0);
+
+  /// Whether dashing is open to him yet (Chapter 1 gives it with the
+  /// sword), and the sword itself, drawn on his back.
+  bool canDash = false;
+  bool carriesSword = false;
 
   /// Down low: crouched or sitting, on a capsule shortened from the top.
   bool _low = false;
@@ -185,7 +208,7 @@ class Player extends BodyComponent {
   double _blinkRemaining = 0;
   double _actualSpeed = 0;
   double _gripWeight = 0;
-  WeaponFamily? _combatWeapon;
+  AttackKind? _combatAttack;
   double _combatProgress = 0;
 
   // Idle life: after standing still a while, now and then he looks up,
@@ -248,6 +271,11 @@ class Player extends BodyComponent {
   /// turning round.
   double get visualFacing => math.cos(_turnAngle);
   bool get isRagdoll => _ragdoll != null;
+
+  /// Next to a crate he could take hold of (or holding one), on his feet.
+  bool get canGrabCrate =>
+      isLoaded && !_dead && _ragdoll == null && _grounded && !_low &&
+      interactions.canGrabCrate(_facing);
 
   /// True from the moment the body goes limp until the checkpoint respawn.
   bool get isDead => _dead;
@@ -468,6 +496,7 @@ class Player extends BodyComponent {
     super.update(dt);
     _respawnGrace = math.max(0, _respawnGrace - dt);
     _enemyInvulnerability = math.max(0, _enemyInvulnerability - dt);
+    _dashCooldown = math.max(0, _dashCooldown - dt);
     if (!body.isValid) {
       if (kDebugMode) debugPrint('Umbra physics: invalid player body handle');
       return;
@@ -574,6 +603,8 @@ class Player extends BodyComponent {
       _previousVerticalSpeed = body.linearVelocity.y;
       return;
     }
+    if (_grounded) _airDashUsed = false;
+    if (_intent.consumeDashRequest()) _startDash();
     _timeSinceGrounded = _grounded ? 0 : _timeSinceGrounded + dt;
     _updateSliding(dt);
     _timeSinceJumpPressed = jumpPressed && !interactions.releasedThisStep
@@ -654,9 +685,21 @@ class Player extends BodyComponent {
     final maxAcceleration = pushing
         ? math.min(acceleration, interactionForce / body.mass)
         : acceleration;
-    final newX = _sliding
-        ? _slideVelocity(measuredVelocity.x, supportX, axis, dt)
-        : _approach(measuredVelocity.x, target, maxAcceleration * dt);
+    final double newX;
+    if (_dashTime > 0) {
+      // The burst holds its speed, then hands back what the run allows.
+      _dashTime = math.max(0, _dashTime - dt);
+      newX = _dashTime > 0
+          ? supportX + _dashDirection * dashSpeed * surfaceScale
+          : supportX + _dashDirection * speed * surfaceScale;
+      _dashTrail.insert(0, body.position.clone());
+      if (_dashTrail.length > 6) _dashTrail.removeLast();
+    } else {
+      if (_dashTrail.isNotEmpty) _dashTrail.removeLast();
+      newX = _sliding
+          ? _slideVelocity(measuredVelocity.x, supportX, axis, dt)
+          : _approach(measuredVelocity.x, target, maxAcceleration * dt);
+    }
     // Impulse is bounded by mass * acceleration * dt, so physical contacts
     // with a heavy crate or external body still resist the controller.
     final double drive = (newX - measuredVelocity.x) * body.mass;
@@ -1280,33 +1323,54 @@ class Player extends BodyComponent {
     if (rope != null) return rope;
     final grip = interactions.gripWorld;
     if (grip != null) return [grip, grip + Vector2(0, 0.02)];
-    if (_combatWeapon != null) {
-      final swing = math.sin(_combatProgress.clamp(0.0, 1.0) * math.pi);
+    final attack = _combatAttack;
+    if (attack != null) {
+      final shoulder = CombatController.shoulderOf(this);
+      final angle = _armAngle(attack, _combatProgress);
       final front =
-          body.position +
-          Vector2(_facing * (.45 + .22 * swing), -.24 - .22 * swing);
-      return [front, front + Vector2(-_facing * .12, .08)];
+          shoulder +
+          Vector2(_facing * math.cos(angle), math.sin(angle)) * _armReach;
+      // The back hand stays near the chest, braced, as the front one swings.
+      final back = shoulder + Vector2(_facing * .12, .16);
+      return [front, back];
     }
     return null;
   }
 
-  void setCombatAttack(WeaponFamily? weapon, double progress) {
-    _combatWeapon = weapon;
+  void setCombatAttack(AttackKind? attack, double progress) {
+    _combatAttack = attack;
     _combatProgress = progress.clamp(0.0, 1.0);
   }
 
-  /// Enemy contact gives one recoverable wound; hazards still call [die].
+  /// A claw that lands kills him, as everything else does; one that meets
+  /// him mid-dash (or just after a respawn) finds nothing.
   bool receiveEnemyHit({double direction = 0}) {
     if (_dead || _respawnGrace > 0 || _enemyInvulnerability > 0) return false;
-    _enemyWounds++;
-    if (_enemyWounds >= 2) {
-      die(push: Vector2(direction * 4, -1.2), cause: DeathCause.vampire);
-    } else {
-      _enemyInvulnerability = 1.1;
-      body.linearVelocity += Vector2(direction * 2.4, -.6);
-      knockDown();
-    }
+    die(push: Vector2(direction * 4, -1.2), cause: DeathCause.vampire);
     return true;
+  }
+
+  /// Starts a dash if one is ready: along the stick if it is held, else the
+  /// way he faces. One in the air until he lands again.
+  void _startDash() {
+    if (!canDash ||
+        _dead ||
+        _dashCooldown > 0 ||
+        _low ||
+        interactions.controlsMotion ||
+        interactions.mode != InteractionMode.none ||
+        (!_grounded && _airDashUsed)) {
+      return;
+    }
+    final axis = _intent.horizontalAxis;
+    _dashDirection = axis.abs() > .2 ? axis.sign : _facing;
+    _facing = _dashDirection;
+    _dashTime = dashSeconds;
+    _dashCooldown = dashCooldownSeconds;
+    if (!_grounded) _airDashUsed = true;
+    _enemyInvulnerability = math.max(_enemyInvulnerability, dashSeconds + .08);
+    _dashTrail.clear();
+    cue('dash', weight: .6, at: body.position);
   }
 
   CharacterPose get _pose =>
@@ -1407,7 +1471,7 @@ class Player extends BodyComponent {
       backRoll: _grounded ? rolls[1] : 0,
       frontHand: hands == null ? null : local(hands[0]),
       backHand: hands == null ? null : local(hands[1]),
-      interactionWeight: _gripWeight,
+      interactionWeight: _combatAttack != null ? 1 : _gripWeight,
       hipFloor: hipFloor,
       lookUp: _smooth(_lookUp),
       headTurn: _smooth(_headTurn / 0.85) * 0.85,
@@ -1509,9 +1573,12 @@ class Player extends BodyComponent {
     _ragdoll = null;
     _recoveryPose = null;
     _dead = false;
-    _enemyWounds = 0;
     _enemyInvulnerability = 0;
-    _combatWeapon = null;
+    _dashTime = 0;
+    _dashCooldown = 0;
+    _airDashUsed = false;
+    _dashTrail.clear();
+    _combatAttack = null;
     _combatProgress = 0;
     _resetLow();
     body.isEnabled = true;
@@ -1599,6 +1666,7 @@ class Player extends BodyComponent {
         // The simulated pose is in world metres; this canvas is centred on
         // the body.
         canvas.translate(-body.position.x, -body.position.y);
+        _drawDashTrail(canvas, drawn);
         _figure.drawRig(canvas, drawn, hairSway: _hairSway);
         _drawCombatWeapon(canvas, drawn);
       } else {
@@ -1611,72 +1679,102 @@ class Player extends BodyComponent {
     if (debugEnabled) renderDebug(canvas);
   }
 
-  void _drawCombatWeapon(Canvas canvas, CharacterRigPose pose) {
-    final family = _combatWeapon;
-    if (family == null || _dead || _ragdoll != null) return;
-    final hand = pose[RigJoint.frontHand];
-    final direction = pose.side;
-    final length = switch (family) {
-      WeaponFamily.spear => 1.15,
-      WeaponFamily.kusarigama => .82,
-      WeaponFamily.katana => .72,
-      WeaponFamily.bow => .64,
-      _ => .38,
-    };
-    final angle = -.55 + _combatProgress * 1.2;
-    final tip =
-        hand +
-        Vector2(direction * math.cos(angle) * length, math.sin(angle) * length);
-    final stroke = Paint()
-      ..color = const Color(0xFFF7F7F4)
-      ..strokeWidth = .055
-      ..strokeCap = StrokeCap.round
-      ..style = PaintingStyle.stroke;
-    switch (family) {
-      case WeaponFamily.smokeBomb || WeaponFamily.bombs:
-        canvas.drawCircle(Offset(hand.x, hand.y), .12, stroke);
-      case WeaponFamily.shuriken:
-        final center = Offset(tip.x, tip.y);
-        final path = Path();
-        for (var i = 0; i < 8; i++) {
-          final a = i * math.pi / 4;
-          final r = i.isEven ? .14 : .045;
-          final p = center + Offset(math.cos(a) * r, math.sin(a) * r);
-          i == 0 ? path.moveTo(p.dx, p.dy) : path.lineTo(p.dx, p.dy);
-        }
-        canvas.drawPath(path..close(), stroke);
-      case WeaponFamily.claws:
-        for (var i = -1; i <= 1; i++) {
-          canvas.drawLine(
-            Offset(hand.x, hand.y + i * .06),
-            Offset(tip.x, tip.y + i * .06),
-            stroke,
-          );
-        }
-      case WeaponFamily.bow:
-        canvas.drawArc(
-          Rect.fromCenter(
-            center: Offset(hand.x, hand.y),
-            width: .6,
-            height: .9,
-          ),
-          -math.pi / 2,
-          math.pi,
-          false,
-          stroke,
-        );
-      case _:
-        canvas.drawLine(Offset(hand.x, hand.y), Offset(tip.x, tip.y), stroke);
-        if (family == WeaponFamily.katana ||
-            family == WeaponFamily.kunai ||
-            family == WeaponFamily.twinDaggers) {
-          canvas.drawLine(
-            Offset(tip.x, tip.y),
-            Offset(tip.x - direction * .12, tip.y + .03),
-            stroke..strokeWidth = .09,
-          );
-        }
+  static const double _armReach = .44;
+
+  /// Fading copies of him where the dash has just carried him from.
+  void _drawDashTrail(Canvas canvas, CharacterRigPose pose) {
+    for (var i = _dashTrail.length - 1; i >= 1; i -= 2) {
+      final behind = _dashTrail[i] - body.position;
+      canvas.saveLayer(
+        null,
+        Paint()..color = Color.fromRGBO(0, 0, 0, .32 * (1 - i / 7)),
+      );
+      canvas.translate(behind.x, behind.y);
+      _figure.drawRig(canvas, pose, hairSway: _hairSway);
+      canvas.restore();
     }
+  }
+
+  /// The front arm's angle on screen (0 ahead, positive down) through an
+  /// attack.
+  static double _armAngle(AttackKind attack, double progress) {
+    if (attack == AttackKind.slash) return CombatController.swingAngle(progress);
+    // A throw: back over the shoulder, then flicked out level.
+    final p = progress.clamp(0.0, 1.0);
+    if (p < 1 / 3) return -.6 - 1.6 * math.sin(p * 3 * math.pi / 2);
+    if (p < 2 / 3) return -2.2 + 2.2 * (1 - math.pow(1 - (p - 1 / 3) * 3, 2));
+    return .25 * ((p - 2 / 3) * 3);
+  }
+
+  static final Paint _bladeFill = Paint()..color = const Color(0xFF050607);
+  static final Paint _bladeEdge = Paint()
+    ..color = const Color(0xD9F2F2EC)
+    ..style = PaintingStyle.stroke
+    ..strokeWidth = .016
+    ..strokeCap = StrokeCap.round;
+  final Paint _swordImage = Paint()..filterQuality = FilterQuality.low;
+  static const String swordArt = 'weapons/sword.png';
+  static const double _swordLength = .78;
+
+  /// The sword in his hand while he swings it; otherwise across his back.
+  /// A thrown star leaves the hand at once, so the throw shows only the arm.
+  void _drawCombatWeapon(Canvas canvas, CharacterRigPose pose) {
+    if (_dead || _ragdoll != null) return;
+    final side = pose.side;
+    if (_combatAttack == AttackKind.slash) {
+      final hand = pose[RigJoint.frontHand];
+      final angle = _armAngle(AttackKind.slash, _combatProgress);
+      _drawSword(canvas, hand, side, angle, grip: .1);
+    } else if (carriesSword) {
+      // Slung behind the near shoulder, hilt up, blade down his back.
+      final at = pose[RigJoint.chest] + Vector2(-side * .07, -.14);
+      _drawSword(canvas, at, side, math.pi - 1.05, grip: .16, back: true);
+    }
+  }
+
+  /// One sword from [at] (the grip, [grip] metres up from the guard) at
+  /// [angle], mirrored by [side]: black, with a pale edge along the blade.
+  void _drawSword(
+    Canvas canvas,
+    Vector2 at,
+    double side,
+    double angle, {
+    double grip = .1,
+    bool back = false,
+  }) {
+    canvas.save();
+    canvas.translate(at.x, at.y);
+    canvas.scale(side, 1);
+    canvas.rotate(angle);
+    // Along +x from here: the hilt behind the hand, the blade ahead.
+    if (Flame.images.containsKey(swordArt)) {
+      final image = Flame.images.fromCache(swordArt);
+      final h = _swordLength * image.height / image.width;
+      canvas.drawImageRect(
+        image,
+        Rect.fromLTWH(0, 0, image.width.toDouble(), image.height.toDouble()),
+        Rect.fromLTWH(-grip - .08, -h / 2, _swordLength, h),
+        _swordImage,
+      );
+    } else {
+      final blade = Path()
+        ..moveTo(-grip - .08, -.022)
+        ..lineTo(_swordLength - grip - .14, -.026)
+        ..quadraticBezierTo(_swordLength - grip - .04, -.024, _swordLength - grip - .08, .02)
+        ..lineTo(-grip - .08, .022)
+        ..close();
+      canvas.drawPath(blade, _bladeFill);
+      canvas.drawRect(const Rect.fromLTWH(-.02, -.055, .03, .11), _bladeFill);
+    }
+    if (!back) {
+      // The edge catches the light along the blade.
+      canvas.drawLine(
+        const Offset(.05, -.018),
+        Offset(_swordLength - grip - .14, -.022),
+        _bladeEdge,
+      );
+    }
+    canvas.restore();
   }
 
   void renderDebug(Canvas canvas) {

@@ -17,6 +17,8 @@ import '../audio/ambient_audio.dart';
 import '../audio/sound_bank.dart';
 import '../config/palette.dart';
 import '../combat/combat_controller.dart';
+import '../combat/combat_fx.dart';
+import '../combat/projectile.dart';
 import '../combat/weapons.dart';
 import '../entities/player.dart';
 import '../entities/weapon_pickup.dart';
@@ -30,7 +32,6 @@ import '../render/chapter_backdrop.dart';
 import '../render/npc_atlas.dart';
 import '../render/foreground_overlay.dart';
 import '../render/gameplay_guidance.dart';
-import '../render/weapon_hud.dart';
 import '../story/chapter_card.dart';
 import '../story/chapter_director.dart';
 import '../chapters/chapter.dart';
@@ -97,12 +98,21 @@ class UmbraGame extends Forge2DGame with HasKeyboardHandlerComponents {
   /// The furthest chapter reached, kept between runs.
   final ProgressStore progress;
 
-  late final WeaponInventory weapons = WeaponInventory.fromProgress(progress);
+  /// The sword and the stars: what Chapter 1 gives him, and every later
+  /// chapter starts with.
+  late final CombatKit kit = CombatKit(
+    hasSword: !campaign,
+    hasShuriken: !campaign,
+  );
   late final CombatController combat = CombatController(
-    inventory: weapons,
+    kit: kit,
     intent: _intent,
     onCue: _combatCue,
+    onKill: _onKill,
   );
+
+  /// The frame held still when a blow kills, counting down.
+  double _hitStop = 0;
 
   /// Runs the story when [campaign] is set.
   ChapterDirector? director;
@@ -141,19 +151,18 @@ class UmbraGame extends Forge2DGame with HasKeyboardHandlerComponents {
         (_stage?.controlsHidden ?? false) ||
         (director?.hidesControls ?? false),
     onPause: pauseGameplay,
-    onWeaponMenu: openWeaponRadial,
+    hasSword: () => kit.hasSword,
+    hasShuriken: () => kit.hasShuriken,
+    stars: () => kit.stars,
     attackReadiness: () => combat.readiness,
+    dashReadiness: () => _player?.dashReadiness ?? 1,
+    nearCrate: () => _player?.canGrabCrate ?? false,
+    prompt: () => _guidance.prompt,
     debugTools: debugTools,
   );
 
   static const String pauseOverlay = 'pause';
-  static const String weaponRadialOverlay = 'weaponRadial';
-  static const String weaponPickupOverlay = 'weaponPickup';
   bool get isGameplayPaused => overlays.isActive(pauseOverlay);
-  bool get isWeaponRadialOpen => overlays.isActive(weaponRadialOverlay);
-  WeaponDefinition? pendingWeaponPickup;
-  int? _pendingPickupChapter;
-  bool _pausedForWeaponPickup = false;
 
   /// The main menu covers the whole screen: nothing of the world shows, so
   /// none of it is drawn (the stage behind it keeps its sound).
@@ -175,8 +184,6 @@ class UmbraGame extends Forge2DGame with HasKeyboardHandlerComponents {
       titleBack?.call();
     } else if (director?.awaitingChoice ?? false) {
       // The completed chapter stays put until one of its choices is made.
-    } else if (isWeaponRadialOpen) {
-      closeWeaponRadial();
     } else if (isGameplayPaused) {
       resumeGameplay();
     } else {
@@ -184,38 +191,9 @@ class UmbraGame extends Forge2DGame with HasKeyboardHandlerComponents {
     }
   }
 
-  void openWeaponRadial() {
-    if (isGameplayPaused ||
-        isWeaponRadialOpen ||
-        !weapons.hasAny ||
-        (_player?.isDead ?? true) ||
-        (director?.hidesControls ?? false)) {
-      return;
-    }
-    _touchControls.clear();
-    overlays.add(weaponRadialOverlay);
-  }
-
-  void closeWeaponRadial() {
-    if (isWeaponRadialOpen) overlays.remove(weaponRadialOverlay);
-  }
-
-  void selectWeapon(int slot) {
-    weapons.select(slot);
-    unawaited(weapons.save(progress));
-    sound('tick', .35);
-    closeWeaponRadial();
-  }
-
-  Future<void> equipWeapon(WeaponFamily family, int slot) async {
-    weapons.equip(family, slot);
-    await weapons.save(progress);
-  }
-
   void pauseGameplay() {
     if (isGameplayPaused || (director?.hidesControls ?? false)) return;
     _touchControls.clear();
-    closeWeaponRadial();
     _intent.clear();
     pauseEngine();
     overlays.add(pauseOverlay);
@@ -357,17 +335,6 @@ class UmbraGame extends Forge2DGame with HasKeyboardHandlerComponents {
         player: () => _player,
         checkpoints: () => checkpoints,
       ),
-      WeaponHud(
-        inventory: weapons,
-        combat: combat,
-        player: () => _player,
-        hidden: () =>
-            _stage == null ||
-            coveredByMenu ||
-            isGameplayPaused ||
-            (director?.hidesControls ?? false) ||
-            (_stage?.controlsHidden ?? false),
-      ),
       _guidance = GameplayGuidance(
         camera: camera,
         player: () => _player,
@@ -376,6 +343,7 @@ class UmbraGame extends Forge2DGame with HasKeyboardHandlerComponents {
         settings: settings,
         chapterIndex: () => director?.index ?? 0,
         tutorialEnabled: () => campaign && (director?.index ?? -1) == 0,
+        kit: () => kit,
       ),
     ]);
 
@@ -465,14 +433,8 @@ class UmbraGame extends Forge2DGame with HasKeyboardHandlerComponents {
     // A scene in the old stage may have held the controls.
     _intent.endScript();
     _intent.clear();
-    closeWeaponRadial();
-    if (pendingWeaponPickup != null) {
-      overlays.remove(weaponPickupOverlay);
-      pendingWeaponPickup = null;
-      _pendingPickupChapter = null;
-      _pausedForWeaponPickup = false;
-    }
     _simulationAccumulator = 0;
+    _hitStop = 0;
     combat.reset();
     _stage = stage;
     checkpoints = stage.checkpoints;
@@ -504,7 +466,7 @@ class UmbraGame extends Forge2DGame with HasKeyboardHandlerComponents {
     player.drainFootContacts();
     _heardLandings = player.landings;
     _heardSits = player.sitDowns;
-    await _mountChapterPickup(stage, player);
+    await _mountCombat(stage, player);
 
     // Start the camera on the boy so the first frame is not a pan.
     _lookAhead = 0;
@@ -518,78 +480,73 @@ class UmbraGame extends Forge2DGame with HasKeyboardHandlerComponents {
     _cameraBase.setFrom(_cameraTarget);
   }
 
-  Future<void> _mountChapterPickup(Stage stage, Player player) async {
+  /// The fight's marks for this stage, and what the boy carries in it.
+  /// Chapter 1 hands him the sword, then the stars; every chapter after it
+  /// starts with both.
+  Future<void> _mountCombat(Stage stage, Player player) async {
+    final fx = stage.combatFx = CombatFx();
+    await stage.add(fx);
     if (!campaign) return;
     final chapter = director?.index ?? 0;
-    if (progress.weaponPickups.contains(chapter)) return;
-    final weapon = WeaponCatalog.forChapter(chapter);
-    stage.combatLocked = true;
-    // Chapter 1's opening runs the boy away from the cottage before control is
-    // handed back. Put its mandatory lesson directly on the path after that
-    // cutscene instead of beside the now-abandoned spawn point.
-    final pickupPosition = chapter == 0 && stage is Chapter
-        ? Vector2(20.4, stage.groundAt(20.4) - .42)
-        : player.body.position +
-              Vector2(player.facing * 2.5, GameConfig.playerHeight * .42);
-    stage.combatLockCenter = pickupPosition;
-    await stage.add(
-      WeaponPickup(
-        weapon: weapon,
+    final lesson = chapter == 0 && stage is Chapter;
+    kit
+      ..hasSword = !lesson
+      ..hasShuriken = !lesson
+      ..refill();
+    _pickups.clear();
+    if (!lesson) return;
+    double ground(double x) => stage.groundAt(x);
+    for (final (item, x) in const [
+      (KitItem.sword, swordStumpX),
+      (KitItem.shuriken, starPouchX),
+    ]) {
+      final pickup = KitPickup(
+        item: item,
         stage: stage,
         enabled: () => director?.isPlaying ?? false,
-        onCollected: (value) => _collectWeapon(value, chapter),
-        approachDirection: player.facing,
-        position: pickupPosition,
-      ),
-    );
-    if (chapter == 0) {
-      await stage.add(
-        TrainingEffigy(
-          position: Vector2(
-            24.2,
-            stage is Chapter ? stage.groundAt(24.2) : player.body.position.y,
-          ),
-        ),
+        onCollected: _collect,
+        groundPosition: Vector2(x, ground(x) + .06),
       );
+      _pickups.add(pickup);
+      await stage.add(pickup);
     }
+    await stage.add(
+      TrainingEffigy(position: Vector2(dummyX, ground(dummyX) + .05)),
+    );
   }
 
-  void _collectWeapon(WeaponDefinition weapon, int chapter) {
-    if (pendingWeaponPickup != null) return;
-    weapons.unlock(weapon);
-    if (_stage != null) {
-      _stage!
-        ..combatLocked = false
-        ..combatLockCenter = null;
+  /// Where Chapter 1 puts the sword, the dummy and the stars.
+  static const double swordStumpX = 20.4, dummyX = 27.5, starPouchX = 45.2;
+  final List<KitPickup> _pickups = [];
+
+  void _collect(KitItem item) {
+    switch (item) {
+      case KitItem.sword:
+        kit.hasSword = true;
+      case KitItem.shuriken:
+        kit.hasShuriken = true;
+        kit.refill();
     }
-    pendingWeaponPickup = weapon;
-    _pendingPickupChapter = chapter;
-    unawaited(weapons.save(progress, collectedChapter: chapter));
-    sound('checkpoint', .7);
+    sound('checkpoint', .55);
     _feel(.45);
-    if (overlays.registeredOverlays.contains(weaponPickupOverlay)) {
-      _pausedForWeaponPickup = !paused;
-      if (_pausedForWeaponPickup) pauseEngine();
-      overlays.add(weaponPickupOverlay);
-    } else {
-      pendingWeaponPickup = null;
-      _pendingPickupChapter = null;
+  }
+
+  /// A restore or a respawn past a gift he has not picked up hands it over
+  /// quietly, so a later checkpoint never leaves him without it.
+  void _catchUpPickups(Player player) {
+    for (final pickup in _pickups) {
+      if (pickup.taken || player.body.position.x < pickup.position.x + 1.5) {
+        continue;
+      }
+      pickup.markTaken();
+      _collect(pickup.item);
     }
   }
 
-  void finishWeaponPickup({int? replaceSlot}) {
-    final weapon = pendingWeaponPickup;
-    if (weapon == null) return;
-    if (replaceSlot != null) weapons.equip(weapon.family, replaceSlot);
-    unawaited(weapons.save(progress, collectedChapter: _pendingPickupChapter));
-    overlays.remove(weaponPickupOverlay);
-    pendingWeaponPickup = null;
-    _pendingPickupChapter = null;
-    if (_pausedForWeaponPickup) {
-      _pausedForWeaponPickup = false;
-      _simulationAccumulator = 0;
-      resumeEngine();
-    }
+  void _onKill(Vector2 at) {
+    _hitStop = .075;
+    _trauma = math.max(_trauma, .32);
+    _feel(.7);
   }
 
   /// Shared film grain. Chapter artwork is owned by its backdrop.
@@ -606,6 +563,15 @@ class UmbraGame extends Forge2DGame with HasKeyboardHandlerComponents {
     // The control icons, before the buttons are built.
     try {
       await Flame.images.loadAll(TouchControls.icons);
+    } catch (_) {}
+    // The sword, the stars, the stump, the pouch and the dummy.
+    try {
+      await Flame.images.loadAll([
+        Player.swordArt,
+        Shuriken.art,
+        TrainingEffigy.art,
+        ...KitPickup.arts,
+      ]);
     } catch (_) {}
   }
 
@@ -659,18 +625,20 @@ class UmbraGame extends Forge2DGame with HasKeyboardHandlerComponents {
         _simulationAccumulator = 0;
       }
     }
-    final simulationFrameDt = frameDt * (isWeaponRadialOpen ? .2 : 1);
+    // A killing blow holds the frame for a beat; a lesson can slow time.
+    final double held = _hitStop > 0 ? .06 : 1;
+    _hitStop = math.max(0, _hitStop - frameDt);
+    final simulationFrameDt = frameDt * held * (_stage?.timeScale ?? 1);
     _simulationAccumulator += simulationFrameDt;
     while (_simulationAccumulator + 1e-10 >= _simulationStep) {
       super.update(_simulationStep);
       final player = _player;
       if (player != null && player.isMounted) {
-        final oldSlot = weapons.activeSlot;
+        player
+          ..carriesSword = kit.hasSword
+          ..canDash = kit.hasSword;
+        _catchUpPickups(player);
         combat.update(_simulationStep, player, _stage);
-        if (weapons.activeSlot != oldSlot) {
-          unawaited(weapons.save(progress));
-          sound('tick', .3);
-        }
         // Consume after every physics tick: a slow render frame can contain
         // more than one foot contact. Each contact gets its own sound.
         for (final contact in player.drainFootContacts()) {
@@ -707,7 +675,7 @@ class UmbraGame extends Forge2DGame with HasKeyboardHandlerComponents {
       for (final (name, weight, pan) in stage.cues) {
         _audio.effect(name, weight, pan);
         if (name == 'checkpoint') {
-          weapons.refill();
+          kit.refill();
           _tap(HapticFeedback.selectionClick);
           _guidance.checkpointReached();
         }
@@ -848,14 +816,7 @@ class UmbraGame extends Forge2DGame with HasKeyboardHandlerComponents {
   void sound(String name, [double weight = 1]) => _audio.effect(name, weight);
 
   void _combatCue(String name, double strength) {
-    final effect = switch (name) {
-      'slash' => 'chain',
-      'throw' => 'rope',
-      'parry' => 'hammer',
-      'empty' => 'tick',
-      'smoke' => 'fire',
-      _ => 'rumble',
-    };
+    final effect = name == 'empty' ? 'tick' : name;
     sound(effect, .35 + strength * .45);
     _feel(strength);
   }
@@ -931,6 +892,9 @@ class UmbraGame extends Forge2DGame with HasKeyboardHandlerComponents {
   @override
   void lifecycleStateChange(AppLifecycleState state) {
     if (state != AppLifecycleState.resumed) {
+      // Back from a call or a notification, he waits on the pause menu
+      // rather than running on before the thumbs are back.
+      if (overlays.registeredOverlays.contains(pauseOverlay)) pauseGameplay();
       _touchControls.clear();
       _intent.clear();
       _simulationAccumulator = 0;

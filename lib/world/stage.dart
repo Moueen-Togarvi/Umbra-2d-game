@@ -1,6 +1,7 @@
 import 'dart:ui' show Rect, Offset;
 import 'package:flame/components.dart';
 import 'package:flame_forge2d/flame_forge2d.dart' show QueryFilter;
+import '../combat/combat_fx.dart';
 import '../physics/collision_layers.dart';
 
 import '../entities/player.dart';
@@ -19,34 +20,29 @@ import 'checkpoint_service.dart';
 enum ThreatLevel { calm, tension, chase }
 
 abstract class Stage extends Component {
-  bool combatLocked = false;
-  Vector2? combatLockCenter;
-  bool get combatThreatLocked =>
-      combatLocked &&
-      player.isMounted &&
-      combatLockCenter != null &&
-      (player.body.position - combatLockCenter!).length < 4.5;
   ThreatLevel _threat = ThreatLevel.calm;
   double _threatHold = 0;
   ThreatLevel get threat => _threat;
   final List<Rect> hidingPlaces = [];
-  double combatConcealment = 0;
+
+  /// The fight's marks in the air (cuts, sparks), once the game adds them.
+  CombatFx? combatFx;
+
+  /// How fast this place's time runs, 0–1: a lesson can slow a moment
+  /// down so it can be read.
+  double timeScale = 1;
 
   bool get playerHidden =>
       player.isMounted &&
-      (combatConcealment > 0 ||
-          (player.isLow &&
-              player.isOnGround &&
-              player.velocity.x.abs() <= 0.9 &&
-              hidingPlaces.any(
-                (r) => r.contains(
-                  Offset(player.body.position.x, player.body.position.y),
-                ),
-              )));
+      player.isLow &&
+      player.isOnGround &&
+      player.velocity.x.abs() <= 0.9 &&
+      hidingPlaces.any(
+        (r) => r.contains(Offset(player.body.position.x, player.body.position.y)),
+      );
 
   bool seesPlayer(Vector2 from, {double? facing, double range = 9}) {
-    if (combatThreatLocked ||
-        !player.isMounted ||
+    if (!player.isMounted ||
         player.isDead ||
         playerHidden) {
       return false;
@@ -65,7 +61,6 @@ abstract class Stage extends Component {
   }
 
   void reportThreat(ThreatLevel value) {
-    if (combatThreatLocked) return;
     if (value.index >= _threat.index) {
       _threat = value;
       _threatHold = value == ThreatLevel.chase ? 1.5 : 3;
@@ -75,7 +70,6 @@ abstract class Stage extends Component {
   @override
   void update(double dt) {
     super.update(dt);
-    combatConcealment = (combatConcealment - dt).clamp(0, double.infinity);
     _threatHold -= dt;
     if (_threatHold <= 0) _threat = ThreatLevel.calm;
   }

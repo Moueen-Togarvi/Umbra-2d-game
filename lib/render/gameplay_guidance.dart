@@ -3,6 +3,8 @@ import 'package:flame/components.dart';
 import 'package:flutter/painting.dart';
 
 import '../character/character_interactions.dart';
+import '../combat/combat_target.dart';
+import '../combat/weapons.dart';
 import '../config/game_config.dart';
 import '../config/game_settings.dart';
 import '../entities/hazard.dart';
@@ -28,7 +30,10 @@ class GameplayGuidance extends Component {
     required this.settings,
     required this.chapterIndex,
     required this.tutorialEnabled,
+    required this.kit,
   }) : super(priority: 8000);
+
+  final CombatKit Function() kit;
 
   final CameraComponent camera;
   final Player? Function() player;
@@ -56,8 +61,6 @@ class GameplayGuidance extends Component {
 
   static const tutorialMessages = [
     'HOLD LEFT OR RIGHT TO MOVE',
-    'WALK INTO THE GLOWING KATANA',
-    'TAP ATTACK TO STUN THE TARGET',
     'TAP JUMP TO CLEAR THE LOG',
     'HOLD SIT TO CROUCH LOW',
     'PUSH AGAINST THE CART',
@@ -70,8 +73,12 @@ class GameplayGuidance extends Component {
 
   @override
   void update(double dt) {
+    _clock += dt;
     final boy = player();
     final place = stage();
+    prompt = null;
+    promptTarget = null;
+    if (place != null) place.timeScale = 1;
     if (boy == null || place == null || !boy.isMounted || boy.isDead) {
       _message = '';
       _target = null;
@@ -95,6 +102,8 @@ class GameplayGuidance extends Component {
     } else {
       _idle += dt;
     }
+
+    _combatLesson(place, boy);
 
     if (!settings.tutorialComplete &&
         tutorialEnabled() &&
@@ -148,23 +157,72 @@ class GameplayGuidance extends Component {
     }
   }
 
+  /// The button a fight lesson points at (a layout id), or null. Combat
+  /// is taught without words: the button pulses, and a ring marks what it
+  /// is for.
+  String? prompt;
+  Vector2? promptTarget;
+  bool _slowShown = false, _dashShown = false;
+
+  /// Chapter 1 points at Slash by the dummy and at the first vampire's
+  /// wind-up (time slows for it, once), and at Throw for a vampire out of
+  /// reach. Chapter 2 points at Dash the first time a claw winds up.
+  void _combatLesson(Stage place, Player boy) {
+    prompt = null;
+    promptTarget = null;
+    final chapter = chapterIndex();
+    final kit = this.kit();
+    if (!tutorialEnabled() && chapter != 1) return;
+    if (chapter > 1 || !kit.hasSword) {
+      place.timeScale = 1;
+      return;
+    }
+    final at = boy.body.position;
+    final facing = boy.facing;
+    CombatTarget? close, far;
+    bool telegraph = false;
+    for (final target in place.descendants().whereType<CombatTarget>()) {
+      if (!target.canReceiveCombatHit) continue;
+      final delta = target.combatPosition - at;
+      if (delta.y.abs() > 1.6 || delta.x * facing < -.3) continue;
+      final d = delta.x.abs();
+      if (d <= AttackTiming.slashReach - .05) {
+        close ??= target;
+        telegraph |= target is CombatTelegraph &&
+            (target as CombatTelegraph).isTelegraphing;
+      } else if (d <= 12 && target is! TrainingEffigy) {
+        far ??= target;
+      }
+    }
+    if (chapter == 1) {
+      if (!_dashShown && telegraph) {
+        prompt = 'dash';
+        promptTarget = close!.combatPosition;
+        _dashShown = true;
+      }
+      return;
+    }
+    final slow = telegraph && !_slowShown;
+    place.timeScale = slow ? .3 : 1;
+    if (!slow && telegraph) _slowShown = true;
+    if (close != null && (close is TrainingEffigy || telegraph || slow)) {
+      prompt = 'attack';
+      promptTarget = close.combatPosition;
+    } else if (close == null && far != null && kit.hasShuriken) {
+      prompt = 'throw';
+      promptTarget = far.combatPosition;
+    }
+  }
+
   void _advanceTutorial(Player boy, Stage place) {
     final complete = switch (_tutorial) {
       0 => intent.horizontalAxis.abs() > .2 || boy.velocity.x.abs() > .8,
-      1 =>
-        place.descendants().whereType<WeaponPickup>().isEmpty ||
-            boy.body.position.x > 21.4,
-      2 =>
-        place.descendants().whereType<TrainingEffigy>().any(
-              (target) => target.isCombatStunned,
-            ) ||
-            boy.body.position.x > 26.8,
-      3 => !boy.isOnGround && boy.velocity.y.abs() > .4,
-      4 => boy.isLow,
-      5 =>
+      1 => !boy.isOnGround && boy.velocity.y.abs() > .4,
+      2 => boy.isLow,
+      3 =>
         boy.interactions.mode == InteractionMode.pushing ||
             boy.interactions.mode == InteractionMode.pulling,
-      6 => boy.isOnRope,
+      4 => boy.isOnRope,
       _ => false,
     };
     if (!complete) return;
@@ -214,11 +272,27 @@ class GameplayGuidance extends Component {
     return null;
   }
 
+  double _clock = 0;
+
   @override
   void render(Canvas canvas) {
-    if (_message.isEmpty || _visible <= 0) return;
     final view = camera.viewport.size;
     if (view.x <= 0) return;
+    final lesson = promptTarget;
+    if (lesson != null) {
+      // What the pulsing button is for: a ring closing in on it.
+      final point = camera.localToGlobal(lesson).toOffset();
+      final t = (_clock * 1.4) % 1;
+      canvas.drawCircle(
+        point,
+        34 - 16 * t,
+        Paint()
+          ..color = Color.fromRGBO(255, 255, 255, .25 + .6 * t)
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 1.5 + t,
+      );
+    }
+    if (_message.isEmpty || _visible <= 0) return;
     _text.text = TextSpan(
       text: _message,
       style: TextStyle(

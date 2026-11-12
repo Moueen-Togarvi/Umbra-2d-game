@@ -1,0 +1,27 @@
+{
+ "sword": {
+  "source": "w_sword_a",
+  "max_h": 140,
+  "despeckle": 3
+ },
+ "shuriken": {
+  "source": "w_shuriken_b",
+  "max_h": 256,
+  "despeckle": 3
+ },
+ "stump": {
+  "source": "w_stump_a",
+  "max_h": 420,
+  "despeckle": 3
+ },
+ "pouch": {
+  "source": "w_pouch_a",
+  "max_h": 512,
+  "despeckle": 3
+ },
+ "dummy": {
+  "source": "w_dummy_a",
+  "max_h": 512,
+  "despeckle": 3
+ }
+}

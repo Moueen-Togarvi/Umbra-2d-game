@@ -209,6 +209,22 @@ class HomeChapter extends Chapter {
         depth: 0.9,
         priority: -40,
       ),
+      // The yard and the field: a barrel by the house, hay by the wall, an
+      // old gate into the orchard, a wheelbarrow left on the hill.
+      for (final (x, image, h, depth) in const [
+        (13.1, 'barrel', 1.0, .95),
+        (76.5, 'wheelbarrow', .78, .88),
+        (37.0, 'haybale', 1.05, .9),
+        (63.2, 'gate', 1.25, .86),
+      ])
+        SceneryProp(
+          'home/$image.png',
+          x: x,
+          baseY: g(x) + .12,
+          height: h,
+          depth: depth,
+          priority: -42,
+        ),
       for (final (x, image, h, flip) in const [
         (55.0, 'b', 5.5, false),
         (61.5, 'a', 5.2, true),
@@ -283,9 +299,10 @@ class HomeChapter extends Chapter {
       ),
     ]);
 
-    // Two deliberately slow, short-leash vampires turn the first field into
-    // a safe combat lesson: strike/stun the first, then dodge past the second.
-    // They cannot follow the player through the rest of the chapter.
+    // Two slow, short-leash vampires are the first fight. The first comes to
+    // him in the field, where time slows on his first wind-up so the cut can
+    // be read; the second waits across the ditch, out of the sword's reach,
+    // for the stars picked up just before it. Neither can follow him on.
     for (final (start, left, right) in const [
       (40.2, 38.2, 43.4),
       (56.0, 53.0, 60.5),

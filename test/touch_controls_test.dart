@@ -72,31 +72,39 @@ void main() {
     return (game, player, buttons);
   }
 
-  /// Four primary controls, rope controls, pause, then development buttons.
+  /// Walking, jump and sit, the fight's three, grab, rope controls, pause,
+  /// then development buttons.
   const int walkLeft = 0;
   const int walkRight = 1;
   const int jump = 2;
   const int sit = 3;
   const int attack = 4;
-  const int weapon = 5;
-  const int climbUp = 6;
-  const int climbDown = 7;
-  const int pause = 8;
-  const int debugToggle = 9;
-  const int reset = 10;
-  const int knockdown = 11;
+  const int throwStar = 5;
+  const int dash = 6;
+  const int grab = 7;
+  const int climbUp = 8;
+  const int climbDown = 9;
+  const int pause = 10;
+  const int debugToggle = 11;
+  const int reset = 12;
+  const int knockdown = 13;
 
   testWidgets('mobile actions mount into the camera viewport', (tester) async {
     final (game, _, buttons) = await boot(tester);
     expect(
       buttons,
-      hasLength(9),
-      reason: 'movement, attack, weapon switch, rope climbing and pause',
+      hasLength(11),
+      reason: 'movement, slash, throw, dash, grab, rope climbing and pause',
     );
     buttons[attack].onPressed!();
     expect(game.intent.consumeAttackRequest(), isTrue);
     buttons[attack].onReleased!();
-    expect(buttons[weapon].size.x, 58);
+    buttons[throwStar].onPressed!();
+    expect(game.intent.consumeThrowRequest(), isTrue);
+    buttons[dash].onPressed!();
+    expect(game.intent.consumeDashRequest(), isTrue);
+    // Grab shows only beside a crate.
+    expect(buttons[grab].containsLocalPoint(buttons[grab].size / 2), isFalse);
   });
 
   testWidgets('pause opens controls and resume returns to play', (
@@ -138,7 +146,7 @@ void main() {
     final resized = game.camera.viewport.children
         .whereType<HudButtonComponent>()
         .toList();
-    expect(resized, hasLength(9));
+    expect(resized, hasLength(11));
     expect(
       resized[0].size.x,
       closeTo(GameConfig.controlButtonDiameterPx * 1.2, .01),
@@ -201,7 +209,7 @@ void main() {
 
   testWidgets('development builds add the debug buttons', (tester) async {
     final (_, _, buttons) = await boot(tester, debugTools: true);
-    expect(buttons, hasLength(13));
+    expect(buttons, hasLength(15));
   });
 
   testWidgets('controls sit on screen, along the bottom, thumbs apart', (
@@ -367,6 +375,9 @@ void main() {
     );
     game.lifecycleStateChange(AppLifecycleState.paused);
     game.lifecycleStateChange(AppLifecycleState.resumed);
+    // Back in the app, he waits on the pause menu.
+    expect(game.isGameplayPaused, isTrue);
+    game.resumeGameplay();
     await advance(tester, 30);
     expect(player.body.linearVelocity.x.abs(), lessThan(0.1));
     await walk.up();

@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flame/components.dart';
 import 'package:flame_forge2d/flame_forge2d.dart'
     show BodyComponent, BodyType, QueryFilter;
@@ -16,6 +18,7 @@ import '../render/dust.dart';
 import '../render/chapter_backgrounds.dart';
 import '../render/grass.dart';
 import '../render/near_layer.dart';
+import '../render/scenery.dart';
 import '../render/white_blossom_tree.dart';
 import 'decor_layout.dart';
 import '../render/chapter_exit_gate.dart';
@@ -453,6 +456,7 @@ abstract class Chapter extends Stage {
         ),
       );
     }
+    pieces.addAll(_groundDressing());
     final double? gateX = exitGateX;
     if (gateX != null) {
       pieces.add(
@@ -479,6 +483,45 @@ abstract class Chapter extends Stage {
       );
     if (grassy) pieces.add(FrontGrass(banks: banks, wind: wind));
     await addAll(pieces);
+  }
+
+  /// Small things lying about just behind the path, so the ground is never
+  /// a bare black line: stones everywhere; out of doors also fallen
+  /// branches, mushrooms and thistles. Placed by a seed of the chapter's
+  /// own, a step behind the path, never over a pit or near its edge.
+  List<Component> _groundDressing() {
+    final random = math.Random(number * 7919 + 13);
+    final kinds = grassy
+        ? const [
+            ('stones', .42),
+            ('branch', .34),
+            ('mushrooms', .5),
+            ('weeds', .72),
+          ]
+        : const [('stones', .42)];
+    final props = <Component>[];
+    var x = 6 + random.nextDouble() * 4;
+    while (x < width - 6) {
+      final onBank = banks.any(
+        (bank) => x > bank.segment.left + 1.6 && x < bank.segment.right - 1.6,
+      );
+      if (onBank) {
+        final (name, tall) = kinds[random.nextInt(kinds.length)];
+        props.add(
+          SceneryProp(
+            'dressing/$name.png',
+            x: x,
+            baseY: groundAt(x) + .12,
+            height: tall * (.8 + random.nextDouble() * .45),
+            depth: .93,
+            flip: random.nextBool(),
+            priority: -20,
+          ),
+        );
+      }
+      x += 5.5 + random.nextDouble() * 6;
+    }
+    return props;
   }
 
   /// The trees and standing props are settled on clear ground once all of

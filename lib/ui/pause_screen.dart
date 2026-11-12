@@ -8,7 +8,6 @@ import '../game/umbra_game.dart';
 import 'main_menu_choice.dart';
 import 'settings_panel.dart';
 import 'control_layout_editor.dart';
-import 'weapon_overlays.dart';
 
 /// Pause menu styled to match the quiet, brush-highlighted title menu.
 class PauseScreen extends StatefulWidget {
@@ -22,15 +21,12 @@ class PauseScreen extends StatefulWidget {
 class _PauseScreenState extends State<PauseScreen> {
   bool _leaving = false;
   bool _showSettings = false;
-  bool _showArmory = false;
 
   int _selection = 0;
 
   void _back() {
     if (_showSettings) {
       setState(() => _showSettings = false);
-    } else if (_showArmory) {
-      setState(() => _showArmory = false);
     } else {
       widget.game.resumeGameplay();
     }
@@ -45,7 +41,6 @@ class _PauseScreenState extends State<PauseScreen> {
     final actions = <(String, VoidCallback?)>[
       ('Resume', game.resumeGameplay),
       ('Restart', game.resetFromPause),
-      ('Armory', () => setState(() => _showArmory = true)),
       if (game.campaign)
         (
           'Main menu',
@@ -141,14 +136,6 @@ class _PauseScreenState extends State<PauseScreen> {
                                         .toDouble(),
                             ),
                           )
-                        : _showArmory
-                        ? KeyedSubtree(
-                            key: const ValueKey('armory'),
-                            child: ArmoryPanel(
-                              game: game,
-                              onBack: () => setState(() => _showArmory = false),
-                            ),
-                          )
                         : KeyedSubtree(
                             key: const ValueKey('pause-menu'),
                             child: Column(
@@ -179,7 +166,7 @@ class _PauseScreenState extends State<PauseScreen> {
                     child: SingleChildScrollView(
                       child: ConstrainedBox(
                         constraints: BoxConstraints(
-                          maxWidth: _showSettings || _showArmory
+                          maxWidth: _showSettings
                               ? bounds.maxWidth
                               : compact
                               ? bounds.maxWidth

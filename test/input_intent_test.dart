@@ -79,7 +79,7 @@ void main() {
     for (final key in [
       LogicalKeyboardKey.keyR,
       LogicalKeyboardKey.f1,
-      LogicalKeyboardKey.keyK,
+      LogicalKeyboardKey.keyN,
       LogicalKeyboardKey.keyM,
     ]) {
       input.onKeyEvent(down(key), {key});
@@ -117,8 +117,8 @@ void main() {
     final buttons = controls.buildButtons(Vector2(800, 360));
     expect(
       buttons,
-      hasLength(9),
-      reason: 'walk, jump, sit, attack, weapon, climb and pause',
+      hasLength(11),
+      reason: 'walk, jump, sit, slash, throw, dash, grab, climb and pause',
     );
     buttons[1].onPressed!();
     buttons[2].onPressed!();
@@ -139,13 +139,17 @@ void main() {
     expect(intent.consumeAttackRequest(), isTrue);
     buttons[4].onReleased!();
     expect(intent.isAttackHeld, isFalse);
-    buttons[6].onPressed!();
-    expect(intent.isUpHeld, isTrue);
-    buttons[6].onReleased!();
     buttons[7].onPressed!();
+    expect(intent.isInteractHeld, isTrue, reason: 'grab holds the action');
+    buttons[7].onReleased!();
+    expect(intent.isInteractHeld, isFalse);
+    buttons[8].onPressed!();
+    expect(intent.isUpHeld, isTrue);
+    buttons[8].onReleased!();
+    buttons[9].onPressed!();
     expect(intent.isUpHeld, isFalse);
     expect(intent.isDownHeld, isTrue);
-    buttons[6].onPressed!();
+    buttons[8].onPressed!();
     controls.clear();
     expect(intent.horizontalAxis, 0);
     expect(intent.isJumpHeld, isFalse);

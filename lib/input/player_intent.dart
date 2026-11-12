@@ -48,8 +48,8 @@ class PlayerIntent {
   bool _resetRequested = false, _debugRequested = false;
   bool _knockdownRequested = false;
   bool _audioRequested = false;
-  bool _attackRequested = false, _cycleWeaponRequested = false;
-  int? _weaponSlotRequested;
+  bool _attackRequested = false, _throwRequested = false;
+  bool _dashRequested = false;
 
   void setKeyboardState({
     double? axis,
@@ -109,8 +109,7 @@ class PlayerIntent {
     _scriptJump = _scriptInteract = _scriptDown = _scriptUp = false;
     _scriptSit = false;
     _jumpRequested = _interactRequested = false;
-    _attackRequested = _cycleWeaponRequested = false;
-    _weaponSlotRequested = null;
+    _attackRequested = _throwRequested = _dashRequested = false;
     _interactionEdge(wasInteracting);
   }
 
@@ -172,12 +171,16 @@ class PlayerIntent {
     actionAttempts++;
   }
 
-  void requestCycleWeapon() {
-    if (!_scripted) _cycleWeaponRequested = true;
+  void requestThrow() {
+    if (_scripted) return;
+    _throwRequested = true;
+    actionAttempts++;
   }
 
-  void requestWeaponSlot(int slot) {
-    if (!_scripted && slot >= 0 && slot < 3) _weaponSlotRequested = slot;
+  void requestDash() {
+    if (_scripted) return;
+    _dashRequested = true;
+    actionAttempts++;
   }
 
   void requestJump({bool fromUp = false}) {
@@ -235,15 +238,15 @@ class PlayerIntent {
     return value;
   }
 
-  bool consumeCycleWeaponRequest() {
-    final value = _cycleWeaponRequested;
-    _cycleWeaponRequested = false;
+  bool consumeThrowRequest() {
+    final value = _throwRequested;
+    _throwRequested = false;
     return value;
   }
 
-  int? consumeWeaponSlotRequest() {
-    final value = _weaponSlotRequested;
-    _weaponSlotRequested = null;
+  bool consumeDashRequest() {
+    final value = _dashRequested;
+    _dashRequested = false;
     return value;
   }
 
@@ -261,8 +264,7 @@ class PlayerIntent {
     _jumpFromUp = false;
     _resetRequested = _debugRequested = _knockdownRequested = false;
     _audioRequested = false;
-    _attackRequested = _cycleWeaponRequested = false;
-    _weaponSlotRequested = null;
+    _attackRequested = _throwRequested = _dashRequested = false;
     _interactReleaseRequested = release;
   }
 }

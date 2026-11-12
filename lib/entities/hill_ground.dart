@@ -56,6 +56,38 @@ class HillGround extends BodyComponent {
   final bool bare;
 
   late final Path _outline = _buildOutline();
+
+  /// A faint light along the top of the ground, where the fog behind meets
+  /// it, so the path reads as a surface rather than a cut-out. It thins
+  /// and breaks here and there, like light catching uneven turf.
+  late final Path _rim = _buildRim();
+  static final Paint _rimPaint = Paint()
+    ..color = const Color(0x30E8E8E2)
+    ..style = PaintingStyle.stroke
+    ..strokeWidth = .022
+    ..strokeCap = StrokeCap.round;
+
+  Path _buildRim() {
+    final path = Path();
+    final left = segment.left + (pitOnLeft ? .1 : 0);
+    final right = segment.right - (pitOnRight ? .1 : 0);
+    const step = .08;
+    var drawing = false;
+    for (double x = left; x <= right; x += step) {
+      // Short gaps every metre or two, from a fixed hash of x.
+      final gap = math.sin(x * 2.3) + math.sin(x * 5.9 + 1.7) > 1.45;
+      final y = drawnHeightAt(x) + .012;
+      if (gap) {
+        drawing = false;
+      } else if (!drawing) {
+        path.moveTo(x, y);
+        drawing = true;
+      } else {
+        path.lineTo(x, y);
+      }
+    }
+    return path;
+  }
   late final List<_Root> _roots = bare ? const [] : _buildRoots();
   late final List<_Root> _lipBlades = bare ? const [] : _buildLipBlades();
 
@@ -361,6 +393,7 @@ class HillGround extends BodyComponent {
     }
     canvas.drawPath(_outline, paint);
     canvas.drawPath(_details, paint);
+    canvas.drawPath(_rim, _rimPaint);
 
     // Roots hanging into a pit, stirring slowly, and grass drooping over
     // the lips: tapered shapes, all in one path, so a pit costs one draw.

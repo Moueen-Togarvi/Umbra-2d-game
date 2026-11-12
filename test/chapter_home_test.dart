@@ -6,11 +6,15 @@ import 'package:umbra/character/character_interactions.dart';
 import 'package:umbra/config/game_config.dart';
 import 'package:umbra/entities/weapon_pickup.dart';
 import 'package:umbra/game/umbra_game.dart';
+import 'package:umbra/story/progress_store.dart';
 import 'package:umbra/story/vampire.dart';
 
 void main() {
-  Future<UmbraGame> boot(WidgetTester tester) async {
-    final game = UmbraGame(campaign: true);
+  Future<UmbraGame> boot(WidgetTester tester, {ProgressStore? progress}) async {
+    final game = UmbraGame(
+      campaign: true,
+      progress: progress ?? ProgressStore.memory(),
+    );
     await tester.pumpWidget(GameWidget(game: game));
     for (var i = 0; i < 60 && game.stage?.isLoaded != true; i++) {
       await tester.runAsync(
@@ -42,7 +46,7 @@ void main() {
     final game = await boot(tester);
     step(game, 3);
     final home = game.stage! as HomeChapter;
-    expect(home.descendants().whereType<WeaponPickup>(), hasLength(1));
+    expect(home.descendants().whereType<KitPickup>(), hasLength(2));
     expect(home.descendants().whereType<TrainingEffigy>(), hasLength(1));
     expect(home.descendants().whereType<Vampire>(), hasLength(2));
     expect(game.director!.showingTitle, isTrue);
@@ -84,6 +88,24 @@ void main() {
     expect(reach, 1);
     expect(home.player.body.position.x, greaterThan(14));
     expect(home.cameraFocus, isNull, reason: 'the camera follows him again');
+  });
+
+  testWidgets('Chapter 1 always teaches the sword and stars again', (
+    tester,
+  ) async {
+    final progress = ProgressStore.memory();
+    await progress.saveWeaponState(
+      tiers: const {'sword': 1, 'shuriken': 1},
+      equipped: const [null, null, null],
+      activeSlot: 0,
+    );
+    final game = await boot(tester, progress: progress);
+    final home = game.stage! as HomeChapter;
+    expect(home.descendants().whereType<KitPickup>(), hasLength(2));
+    expect(home.descendants().whereType<TrainingEffigy>(), hasLength(1));
+    expect(home.descendants().whereType<Vampire>(), hasLength(2));
+    expect(game.kit.hasSword, isFalse);
+    expect(game.kit.hasShuriken, isFalse);
   });
 
   testWidgets('chapter one can be played from the door to the forest', (

@@ -104,9 +104,18 @@ class Vampire extends Component
 
   /// Not drawn at all (out of the story for now).
   bool gone = false;
-  double posture = 0;
   double stunRemaining = 0;
   bool combatTelegraph = false;
+
+  /// Whether a blade or a star ends him. Hunters set it; story chasers and
+  /// scripted figures only stagger back.
+  bool killable = false;
+
+  /// The white frame of a blow landing, counting down.
+  double _flash = 0;
+
+  /// Struck down rather than caught by light: he goes to ash faster.
+  bool _slain = false;
 
   @override
   Vector2 get combatPosition => Vector2(x, groundY - lift - 1.1);
@@ -118,8 +127,10 @@ class Vampire extends Component
       mode != VampireMode.sink &&
       depth >= .99;
 
-  @override
   bool get isCombatStunned => stunRemaining > 0;
+
+  @override
+  bool get killedByHit => killable;
 
   @override
   bool get isTelegraphing => combatTelegraph && !isCombatStunned;
@@ -127,21 +138,20 @@ class Vampire extends Component
   @override
   void receiveCombatHit(CombatHit hit) {
     if (!canReceiveCombatHit) return;
-    if (hit.finisher) {
-      crush();
-      return;
-    }
-    posture += hit.posture;
-    stunRemaining = math.max(
-      stunRemaining,
-      hit.stunSeconds * (posture >= 2.2 ? 1.55 : 1),
-    );
-    if (posture >= 2.2) posture = 0;
+    _flash = .05;
     combatTelegraph = false;
     reachGoal = 0;
-    x += hit.direction * (.08 + hit.posture * .08);
+    if (killable) {
+      _slain = true;
+      burn();
+      return;
+    }
+    // He reels back from the blow and comes again.
+    stunRemaining = math.max(stunRemaining, 1.0);
+    x += hit.direction * .6;
+    _speed = 0;
     mode = VampireMode.stand;
-    cue('rumble', weight: .16, at: combatPosition, shake: .08);
+    cue('rumble', weight: .3, at: combatPosition, shake: .12);
   }
 
   /// How far the claws reach forward when not seizing (0–1): running at
@@ -313,9 +323,10 @@ class Vampire extends Component
     _motes.clear();
     shieldGoal = 0;
     reachGoal = 0;
-    posture = 0;
     stunRemaining = 0;
     combatTelegraph = false;
+    _slain = false;
+    _flash = 0;
     lift = 0;
     mode = VampireMode.stand;
   }
@@ -366,6 +377,7 @@ class Vampire extends Component
   @override
   void update(double dt) {
     if (dt <= 0) return;
+    _flash = math.max(0, _flash - dt);
     if (stunRemaining > 0) {
       stunRemaining = math.max(0, stunRemaining - dt);
       reachGoal = 0;
@@ -445,7 +457,7 @@ class Vampire extends Component
         lift -= dt * (0.6 + _sunk * 0.6);
         if (_sunk > 2.6) gone = true;
       case VampireMode.burn:
-        _burnt += dt;
+        _burnt += dt * (_slain ? 2.4 : 1);
         _smoulder(dt);
         if (_burnt >= burnSeconds) {
           gone = true;
@@ -544,7 +556,9 @@ class Vampire extends Component
         hip + Offset(math.sin(hunch) * .77, -math.cos(hunch) * .77 + breathe);
     final head = neck + const Offset(.045, -.16);
     final tintAmount = math.max(fog, ash * .85).clamp(0.0, .9);
-    _sprite.colorFilter = tintAmount > .01
+    _sprite.colorFilter = _flash > 0
+        ? const ColorFilter.mode(Color(0xFFF4F4EE), BlendMode.srcATop)
+        : tintAmount > .01
         ? ColorFilter.mode(
             tone.withValues(alpha: tintAmount),
             BlendMode.srcATop,
@@ -656,9 +670,12 @@ class Vampire extends Component
       const red = Color(0xFFFF2028);
       // Opaque: a shader paints at the paint colour's opacity.
       _glow.color = const Color(0xFFFFFFFF);
+      // Winding up to strike, the eyes flare: the warning to cut first or
+      // dash through.
+      final double glow = isTelegraphing ? .22 : .095;
       _glow.shader = Gradient.radial(
         eye,
-        .095,
+        glow,
         [
           red.withValues(alpha: .65 * a),
           red.withValues(alpha: .22 * a),
@@ -666,7 +683,7 @@ class Vampire extends Component
         ],
         [0, .35, 1],
       );
-      canvas.drawCircle(eye, .095, _glow);
+      canvas.drawCircle(eye, glow, _glow);
       _glow
         ..shader = null
         ..color = red.withValues(alpha: a);

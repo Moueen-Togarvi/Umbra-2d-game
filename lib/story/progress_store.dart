@@ -53,26 +53,10 @@ class ProgressStore {
                 reached >= 0 &&
                 current >= 0 &&
                 current <= reached) {
+              // Version 2 predates weapons: chapters after the first start
+              // with the whole kit, and Chapter 1 teaches it again.
               final migratedTiers = <String, int>{};
               final migratedPickups = <int>{};
-              if (version == 2) {
-                for (var chapter = 0; chapter <= reached; chapter++) {
-                  const families = [
-                    'katana',
-                    'shuriken',
-                    'kunai',
-                    'bow',
-                    'smokeBomb',
-                    'kusarigama',
-                    'spear',
-                    'bombs',
-                    'twinDaggers',
-                    'claws',
-                  ];
-                  migratedTiers[families[chapter % 10]] = chapter ~/ 10 + 1;
-                  migratedPickups.add(chapter);
-                }
-              }
               final tiersRaw = data['weapons'];
               final slotsRaw = data['equipped'];
               final pickupsRaw = data['pickups'];
@@ -201,6 +185,7 @@ class ProgressStore {
     required List<String?> equipped,
     required int activeSlot,
     int? collectedChapter,
+    bool clearPickups = false,
   }) {
     weaponTiers = {
       for (final entry in tiers.entries) entry.key: entry.value.clamp(1, 4),
@@ -209,6 +194,7 @@ class ProgressStore {
       for (var i = 0; i < 3; i++) i < equipped.length ? equipped[i] : null,
     ];
     activeWeaponSlot = activeSlot.clamp(0, 2);
+    if (clearPickups) weaponPickups = {};
     if (collectedChapter != null) weaponPickups.add(collectedChapter);
     return _save();
   }

@@ -27,7 +27,7 @@ KEY = load_key()
 HOST = os.environ.get("DASHSCOPE_HOST", "dashscope-intl.aliyuncs.com")
 MODELS = os.environ.get(
     "GEN_MODELS",
-    "wan2.2-t2i-plus,wan2.2-t2i-flash,wanx2.1-t2i-plus,wanx2.1-t2i-turbo,qwen-image-plus,qwen-image",
+    "wan2.5-t2i-preview,wan2.2-t2i-plus,wan2.2-t2i-flash,wanx2.1-t2i-plus,wanx2.1-t2i-turbo,qwen-image-plus,qwen-image",
 ).split(",")
 QWEN_URL = f"https://{HOST}/api/v1/services/aigc/multimodal-generation/generation"
 WAN_URL = f"https://{HOST}/api/v1/services/aigc/text2image/image-synthesis"

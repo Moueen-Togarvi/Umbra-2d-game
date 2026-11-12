@@ -1,0 +1,332 @@
+[
+ {
+  "name": "w_sword_a",
+  "size": "1664*928",
+  "prompt": "One short straight ninja sword lying horizontally, blade pointing right, a simple square guard and a wrapped grip with a small cord tassel at the pommel, slim and elegant. Rendered as one SOLID BLACK SILHOUETTE like a black paper cut-out or a shadow puppet: every part of the shape is filled flat solid pure black (#000000) with NO interior lines, NO outlines, NO hatching and NO white details inside, set on a completely flat pure white (#FFFFFF) background. Exact side view, flat orthographic, isolated, nothing else in the image. Crisp clean edges, detail only in the outline. No ground, no text, no border.",
+  "negative": "text, letters, words, signature, watermark, frame, border, colour, color, grey, gray, gradient, shading, texture, 3d, photo, horizon, people, line art, sketch, outline drawing, hatching, white interior, perspective, three-quarter view, scenery, multiple objects"
+ },
+ {
+  "name": "w_sword_b",
+  "size": "1664*928",
+  "prompt": "One short straight ninja sword lying horizontally, blade pointing right, a simple square guard and a wrapped grip with a small cord tassel at the pommel, slim and elegant. Rendered as one SOLID BLACK SILHOUETTE like a black paper cut-out or a shadow puppet: every part of the shape is filled flat solid pure black (#000000) with NO interior lines, NO outlines, NO hatching and NO white details inside, set on a completely flat pure white (#FFFFFF) background. Exact side view, flat orthographic, isolated, nothing else in the image. Crisp clean edges, detail only in the outline. No ground, no text, no border.",
+  "negative": "text, letters, words, signature, watermark, frame, border, colour, color, grey, gray, gradient, shading, texture, 3d, photo, horizon, people, line art, sketch, outline drawing, hatching, white interior, perspective, three-quarter view, scenery, multiple objects"
+ },
+ {
+  "name": "w_sword_c",
+  "size": "1664*928",
+  "prompt": "One short straight ninja sword lying horizontally, blade pointing right, a simple square guard and a wrapped grip with a small cord tassel at the pommel, slim and elegant. Rendered as one SOLID BLACK SILHOUETTE like a black paper cut-out or a shadow puppet: every part of the shape is filled flat solid pure black (#000000) with NO interior lines, NO outlines, NO hatching and NO white details inside, set on a completely flat pure white (#FFFFFF) background. Exact side view, flat orthographic, isolated, nothing else in the image. Crisp clean edges, detail only in the outline. No ground, no text, no border.",
+  "negative": "text, letters, words, signature, watermark, frame, border, colour, color, grey, gray, gradient, shading, texture, 3d, photo, horizon, people, line art, sketch, outline drawing, hatching, white interior, perspective, three-quarter view, scenery, multiple objects"
+ },
+ {
+  "name": "w_shuriken_a",
+  "size": "1024*1024",
+  "prompt": "One four-pointed ninja throwing star seen flat from the front, sharp curved points, a small round hole in the centre. Rendered as one SOLID BLACK SILHOUETTE like a black paper cut-out or a shadow puppet: every part of the shape is filled flat solid pure black (#000000) with NO interior lines, NO outlines, NO hatching and NO white details inside, set on a completely flat pure white (#FFFFFF) background. Exact side view, flat orthographic, isolated, nothing else in the image. Crisp clean edges, detail only in the outline. No ground, no text, no border.",
+  "negative": "text, letters, words, signature, watermark, frame, border, colour, color, grey, gray, gradient, shading, texture, 3d, photo, horizon, people, line art, sketch, outline drawing, hatching, white interior, perspective, three-quarter view, scenery, multiple objects"
+ },
+ {
+  "name": "w_shuriken_b",
+  "size": "1024*1024",
+  "prompt": "One four-pointed ninja throwing star seen flat from the front, sharp curved points, a small round hole in the centre. Rendered as one SOLID BLACK SILHOUETTE like a black paper cut-out or a shadow puppet: every part of the shape is filled flat solid pure black (#000000) with NO interior lines, NO outlines, NO hatching and NO white details inside, set on a completely flat pure white (#FFFFFF) background. Exact side view, flat orthographic, isolated, nothing else in the image. Crisp clean edges, detail only in the outline. No ground, no text, no border.",
+  "negative": "text, letters, words, signature, watermark, frame, border, colour, color, grey, gray, gradient, shading, texture, 3d, photo, horizon, people, line art, sketch, outline drawing, hatching, white interior, perspective, three-quarter view, scenery, multiple objects"
+ },
+ {
+  "name": "w_shuriken_c",
+  "size": "1024*1024",
+  "prompt": "One four-pointed ninja throwing star seen flat from the front, sharp curved points, a small round hole in the centre. Rendered as one SOLID BLACK SILHOUETTE like a black paper cut-out or a shadow puppet: every part of the shape is filled flat solid pure black (#000000) with NO interior lines, NO outlines, NO hatching and NO white details inside, set on a completely flat pure white (#FFFFFF) background. Exact side view, flat orthographic, isolated, nothing else in the image. Crisp clean edges, detail only in the outline. No ground, no text, no border.",
+  "negative": "text, letters, words, signature, watermark, frame, border, colour, color, grey, gray, gradient, shading, texture, 3d, photo, horizon, people, line art, sketch, outline drawing, hatching, white interior, perspective, three-quarter view, scenery, multiple objects"
+ },
+ {
+  "name": "w_stump_a",
+  "size": "1024*1024",
+  "prompt": "One short thick chopped tree stump with rough bark and a few roots spreading at its base, a straight ninja sword stuck point-down deep into the top of the stump at a slight angle, its grip and guard sticking up. Rendered as one SOLID BLACK SILHOUETTE like a black paper cut-out or a shadow puppet: every part of the shape is filled flat solid pure black (#000000) with NO interior lines, NO outlines, NO hatching and NO white details inside, set on a completely flat pure white (#FFFFFF) background. Exact side view, flat orthographic, isolated, nothing else in the image. Crisp clean edges, detail only in the outline. No ground, no text, no border.",
+  "negative": "text, letters, words, signature, watermark, frame, border, colour, color, grey, gray, gradient, shading, texture, 3d, photo, horizon, people, line art, sketch, outline drawing, hatching, white interior, perspective, three-quarter view, scenery, multiple objects"
+ },
+ {
+  "name": "w_stump_b",
+  "size": "1024*1024",
+  "prompt": "One short thick chopped tree stump with rough bark and a few roots spreading at its base, a straight ninja sword stuck point-down deep into the top of the stump at a slight angle, its grip and guard sticking up. Rendered as one SOLID BLACK SILHOUETTE like a black paper cut-out or a shadow puppet: every part of the shape is filled flat solid pure black (#000000) with NO interior lines, NO outlines, NO hatching and NO white details inside, set on a completely flat pure white (#FFFFFF) background. Exact side view, flat orthographic, isolated, nothing else in the image. Crisp clean edges, detail only in the outline. No ground, no text, no border.",
+  "negative": "text, letters, words, signature, watermark, frame, border, colour, color, grey, gray, gradient, shading, texture, 3d, photo, horizon, people, line art, sketch, outline drawing, hatching, white interior, perspective, three-quarter view, scenery, multiple objects"
+ },
+ {
+  "name": "w_stump_c",
+  "size": "1024*1024",
+  "prompt": "One short thick chopped tree stump with rough bark and a few roots spreading at its base, a straight ninja sword stuck point-down deep into the top of the stump at a slight angle, its grip and guard sticking up. Rendered as one SOLID BLACK SILHOUETTE like a black paper cut-out or a shadow puppet: every part of the shape is filled flat solid pure black (#000000) with NO interior lines, NO outlines, NO hatching and NO white details inside, set on a completely flat pure white (#FFFFFF) background. Exact side view, flat orthographic, isolated, nothing else in the image. Crisp clean edges, detail only in the outline. No ground, no text, no border.",
+  "negative": "text, letters, words, signature, watermark, frame, border, colour, color, grey, gray, gradient, shading, texture, 3d, photo, horizon, people, line art, sketch, outline drawing, hatching, white interior, perspective, three-quarter view, scenery, multiple objects"
+ },
+ {
+  "name": "w_pouch_a",
+  "size": "928*1664",
+  "prompt": "One short wooden post driven into the ground with a small leather pouch hanging from a nail on it, three ninja throwing stars tucked into the pouch strap. Rendered as one SOLID BLACK SILHOUETTE like a black paper cut-out or a shadow puppet: every part of the shape is filled flat solid pure black (#000000) with NO interior lines, NO outlines, NO hatching and NO white details inside, set on a completely flat pure white (#FFFFFF) background. Exact side view, flat orthographic, isolated, nothing else in the image. Crisp clean edges, detail only in the outline. No ground, no text, no border.",
+  "negative": "text, letters, words, signature, watermark, frame, border, colour, color, grey, gray, gradient, shading, texture, 3d, photo, horizon, people, line art, sketch, outline drawing, hatching, white interior, perspective, three-quarter view, scenery, multiple objects"
+ },
+ {
+  "name": "w_pouch_b",
+  "size": "928*1664",
+  "prompt": "One short wooden post driven into the ground with a small leather pouch hanging from a nail on it, three ninja throwing stars tucked into the pouch strap. Rendered as one SOLID BLACK SILHOUETTE like a black paper cut-out or a shadow puppet: every part of the shape is filled flat solid pure black (#000000) with NO interior lines, NO outlines, NO hatching and NO white details inside, set on a completely flat pure white (#FFFFFF) background. Exact side view, flat orthographic, isolated, nothing else in the image. Crisp clean edges, detail only in the outline. No ground, no text, no border.",
+  "negative": "text, letters, words, signature, watermark, frame, border, colour, color, grey, gray, gradient, shading, texture, 3d, photo, horizon, people, line art, sketch, outline drawing, hatching, white interior, perspective, three-quarter view, scenery, multiple objects"
+ },
+ {
+  "name": "w_pouch_c",
+  "size": "928*1664",
+  "prompt": "One short wooden post driven into the ground with a small leather pouch hanging from a nail on it, three ninja throwing stars tucked into the pouch strap. Rendered as one SOLID BLACK SILHOUETTE like a black paper cut-out or a shadow puppet: every part of the shape is filled flat solid pure black (#000000) with NO interior lines, NO outlines, NO hatching and NO white details inside, set on a completely flat pure white (#FFFFFF) background. Exact side view, flat orthographic, isolated, nothing else in the image. Crisp clean edges, detail only in the outline. No ground, no text, no border.",
+  "negative": "text, letters, words, signature, watermark, frame, border, colour, color, grey, gray, gradient, shading, texture, 3d, photo, horizon, people, line art, sketch, outline drawing, hatching, white interior, perspective, three-quarter view, scenery, multiple objects"
+ },
+ {
+  "name": "w_dummy_a",
+  "size": "928*1664",
+  "prompt": "One straw training dummy for sword practice: a thick bundle of straw tied with rope around a wooden post, a round straw head, one horizontal stick for arms with straw tufts at the ends, a few loose straws sticking out. Rendered as one SOLID BLACK SILHOUETTE like a black paper cut-out or a shadow puppet: every part of the shape is filled flat solid pure black (#000000) with NO interior lines, NO outlines, NO hatching and NO white details inside, set on a completely flat pure white (#FFFFFF) background. Exact side view, flat orthographic, isolated, nothing else in the image. Crisp clean edges, detail only in the outline. No ground, no text, no border.",
+  "negative": "text, letters, words, signature, watermark, frame, border, colour, color, grey, gray, gradient, shading, texture, 3d, photo, horizon, people, line art, sketch, outline drawing, hatching, white interior, perspective, three-quarter view, scenery, multiple objects"
+ },
+ {
+  "name": "w_dummy_b",
+  "size": "928*1664",
+  "prompt": "One straw training dummy for sword practice: a thick bundle of straw tied with rope around a wooden post, a round straw head, one horizontal stick for arms with straw tufts at the ends, a few loose straws sticking out. Rendered as one SOLID BLACK SILHOUETTE like a black paper cut-out or a shadow puppet: every part of the shape is filled flat solid pure black (#000000) with NO interior lines, NO outlines, NO hatching and NO white details inside, set on a completely flat pure white (#FFFFFF) background. Exact side view, flat orthographic, isolated, nothing else in the image. Crisp clean edges, detail only in the outline. No ground, no text, no border.",
+  "negative": "text, letters, words, signature, watermark, frame, border, colour, color, grey, gray, gradient, shading, texture, 3d, photo, horizon, people, line art, sketch, outline drawing, hatching, white interior, perspective, three-quarter view, scenery, multiple objects"
+ },
+ {
+  "name": "w_dummy_c",
+  "size": "928*1664",
+  "prompt": "One straw training dummy for sword practice: a thick bundle of straw tied with rope around a wooden post, a round straw head, one horizontal stick for arms with straw tufts at the ends, a few loose straws sticking out. Rendered as one SOLID BLACK SILHOUETTE like a black paper cut-out or a shadow puppet: every part of the shape is filled flat solid pure black (#000000) with NO interior lines, NO outlines, NO hatching and NO white details inside, set on a completely flat pure white (#FFFFFF) background. Exact side view, flat orthographic, isolated, nothing else in the image. Crisp clean edges, detail only in the outline. No ground, no text, no border.",
+  "negative": "text, letters, words, signature, watermark, frame, border, colour, color, grey, gray, gradient, shading, texture, 3d, photo, horizon, people, line art, sketch, outline drawing, hatching, white interior, perspective, three-quarter view, scenery, multiple objects"
+ },
+ {
+  "name": "i_slash_a",
+  "size": "1024*1024",
+  "prompt": "A curved crescent sword slash arc sweeping from top left to bottom right with a short straight sword at the end of the arc. one single solid pure black (#000000) flat silhouette pictogram, centred on a completely plain pure white (#FFFFFF) background, bold angular faceted cut-paper style with sharp straight polygon edges and chunky simplified shapes, like a minimalist stencil icon, high contrast, no text.",
+  "negative": "text, letters, words, numbers, watermark, signature, frame, border, circle, colour, grey, gradient, shading, texture, ground line, floor, background scenery, multiple figures, realistic"
+ },
+ {
+  "name": "i_slash_b",
+  "size": "1024*1024",
+  "prompt": "A curved crescent sword slash arc sweeping from top left to bottom right with a short straight sword at the end of the arc. one single solid pure black (#000000) flat silhouette pictogram, centred on a completely plain pure white (#FFFFFF) background, bold angular faceted cut-paper style with sharp straight polygon edges and chunky simplified shapes, like a minimalist stencil icon, high contrast, no text.",
+  "negative": "text, letters, words, numbers, watermark, signature, frame, border, circle, colour, grey, gradient, shading, texture, ground line, floor, background scenery, multiple figures, realistic"
+ },
+ {
+  "name": "i_slash_c",
+  "size": "1024*1024",
+  "prompt": "A curved crescent sword slash arc sweeping from top left to bottom right with a short straight sword at the end of the arc. one single solid pure black (#000000) flat silhouette pictogram, centred on a completely plain pure white (#FFFFFF) background, bold angular faceted cut-paper style with sharp straight polygon edges and chunky simplified shapes, like a minimalist stencil icon, high contrast, no text.",
+  "negative": "text, letters, words, numbers, watermark, signature, frame, border, circle, colour, grey, gradient, shading, texture, ground line, floor, background scenery, multiple figures, realistic"
+ },
+ {
+  "name": "i_throw_a",
+  "size": "1024*1024",
+  "prompt": "A four-pointed ninja throwing star flying to the right with three short speed lines behind it. one single solid pure black (#000000) flat silhouette pictogram, centred on a completely plain pure white (#FFFFFF) background, bold angular faceted cut-paper style with sharp straight polygon edges and chunky simplified shapes, like a minimalist stencil icon, high contrast, no text.",
+  "negative": "text, letters, words, numbers, watermark, signature, frame, border, circle, colour, grey, gradient, shading, texture, ground line, floor, background scenery, multiple figures, realistic"
+ },
+ {
+  "name": "i_throw_b",
+  "size": "1024*1024",
+  "prompt": "A four-pointed ninja throwing star flying to the right with three short speed lines behind it. one single solid pure black (#000000) flat silhouette pictogram, centred on a completely plain pure white (#FFFFFF) background, bold angular faceted cut-paper style with sharp straight polygon edges and chunky simplified shapes, like a minimalist stencil icon, high contrast, no text.",
+  "negative": "text, letters, words, numbers, watermark, signature, frame, border, circle, colour, grey, gradient, shading, texture, ground line, floor, background scenery, multiple figures, realistic"
+ },
+ {
+  "name": "i_throw_c",
+  "size": "1024*1024",
+  "prompt": "A four-pointed ninja throwing star flying to the right with three short speed lines behind it. one single solid pure black (#000000) flat silhouette pictogram, centred on a completely plain pure white (#FFFFFF) background, bold angular faceted cut-paper style with sharp straight polygon edges and chunky simplified shapes, like a minimalist stencil icon, high contrast, no text.",
+  "negative": "text, letters, words, numbers, watermark, signature, frame, border, circle, colour, grey, gradient, shading, texture, ground line, floor, background scenery, multiple figures, realistic"
+ },
+ {
+  "name": "i_dash_a",
+  "size": "1024*1024",
+  "prompt": "A small running child silhouette leaning far forward in a fast dash to the right, three long horizontal speed streaks trailing behind him. one single solid pure black (#000000) flat silhouette pictogram, centred on a completely plain pure white (#FFFFFF) background, bold angular faceted cut-paper style with sharp straight polygon edges and chunky simplified shapes, like a minimalist stencil icon, high contrast, no text.",
+  "negative": "text, letters, words, numbers, watermark, signature, frame, border, circle, colour, grey, gradient, shading, texture, ground line, floor, background scenery, multiple figures, realistic"
+ },
+ {
+  "name": "i_dash_b",
+  "size": "1024*1024",
+  "prompt": "A small running child silhouette leaning far forward in a fast dash to the right, three long horizontal speed streaks trailing behind him. one single solid pure black (#000000) flat silhouette pictogram, centred on a completely plain pure white (#FFFFFF) background, bold angular faceted cut-paper style with sharp straight polygon edges and chunky simplified shapes, like a minimalist stencil icon, high contrast, no text.",
+  "negative": "text, letters, words, numbers, watermark, signature, frame, border, circle, colour, grey, gradient, shading, texture, ground line, floor, background scenery, multiple figures, realistic"
+ },
+ {
+  "name": "i_dash_c",
+  "size": "1024*1024",
+  "prompt": "A small running child silhouette leaning far forward in a fast dash to the right, three long horizontal speed streaks trailing behind him. one single solid pure black (#000000) flat silhouette pictogram, centred on a completely plain pure white (#FFFFFF) background, bold angular faceted cut-paper style with sharp straight polygon edges and chunky simplified shapes, like a minimalist stencil icon, high contrast, no text.",
+  "negative": "text, letters, words, numbers, watermark, signature, frame, border, circle, colour, grey, gradient, shading, texture, ground line, floor, background scenery, multiple figures, realistic"
+ },
+ {
+  "name": "i_grab_a",
+  "size": "1024*1024",
+  "prompt": "A small open hand gripping the edge of a wooden crate, pulling it. one single solid pure black (#000000) flat silhouette pictogram, centred on a completely plain pure white (#FFFFFF) background, bold angular faceted cut-paper style with sharp straight polygon edges and chunky simplified shapes, like a minimalist stencil icon, high contrast, no text.",
+  "negative": "text, letters, words, numbers, watermark, signature, frame, border, circle, colour, grey, gradient, shading, texture, ground line, floor, background scenery, multiple figures, realistic"
+ },
+ {
+  "name": "i_grab_b",
+  "size": "1024*1024",
+  "prompt": "A small open hand gripping the edge of a wooden crate, pulling it. one single solid pure black (#000000) flat silhouette pictogram, centred on a completely plain pure white (#FFFFFF) background, bold angular faceted cut-paper style with sharp straight polygon edges and chunky simplified shapes, like a minimalist stencil icon, high contrast, no text.",
+  "negative": "text, letters, words, numbers, watermark, signature, frame, border, circle, colour, grey, gradient, shading, texture, ground line, floor, background scenery, multiple figures, realistic"
+ },
+ {
+  "name": "i_grab_c",
+  "size": "1024*1024",
+  "prompt": "A small open hand gripping the edge of a wooden crate, pulling it. one single solid pure black (#000000) flat silhouette pictogram, centred on a completely plain pure white (#FFFFFF) background, bold angular faceted cut-paper style with sharp straight polygon edges and chunky simplified shapes, like a minimalist stencil icon, high contrast, no text.",
+  "negative": "text, letters, words, numbers, watermark, signature, frame, border, circle, colour, grey, gradient, shading, texture, ground line, floor, background scenery, multiple figures, realistic"
+ },
+ {
+  "name": "g_stones_a",
+  "size": "1664*928",
+  "prompt": "A small low cluster of three or four rounded field stones of different sizes lying together. Rendered as one SOLID BLACK SILHOUETTE like a black paper cut-out or a shadow puppet: every part of the shape is filled flat solid pure black (#000000) with NO interior lines, NO outlines, NO hatching and NO white details inside, set on a completely flat pure white (#FFFFFF) background. Exact side view, flat orthographic, isolated, nothing else in the image. Crisp clean edges, detail only in the outline. No ground, no text, no border.",
+  "negative": "text, letters, words, signature, watermark, frame, border, colour, color, grey, gray, gradient, shading, texture, 3d, photo, horizon, people, line art, sketch, outline drawing, hatching, white interior, perspective, three-quarter view, scenery, multiple objects"
+ },
+ {
+  "name": "g_stones_b",
+  "size": "1664*928",
+  "prompt": "A small low cluster of three or four rounded field stones of different sizes lying together. Rendered as one SOLID BLACK SILHOUETTE like a black paper cut-out or a shadow puppet: every part of the shape is filled flat solid pure black (#000000) with NO interior lines, NO outlines, NO hatching and NO white details inside, set on a completely flat pure white (#FFFFFF) background. Exact side view, flat orthographic, isolated, nothing else in the image. Crisp clean edges, detail only in the outline. No ground, no text, no border.",
+  "negative": "text, letters, words, signature, watermark, frame, border, colour, color, grey, gray, gradient, shading, texture, 3d, photo, horizon, people, line art, sketch, outline drawing, hatching, white interior, perspective, three-quarter view, scenery, multiple objects"
+ },
+ {
+  "name": "g_stones_c",
+  "size": "1664*928",
+  "prompt": "A small low cluster of three or four rounded field stones of different sizes lying together. Rendered as one SOLID BLACK SILHOUETTE like a black paper cut-out or a shadow puppet: every part of the shape is filled flat solid pure black (#000000) with NO interior lines, NO outlines, NO hatching and NO white details inside, set on a completely flat pure white (#FFFFFF) background. Exact side view, flat orthographic, isolated, nothing else in the image. Crisp clean edges, detail only in the outline. No ground, no text, no border.",
+  "negative": "text, letters, words, signature, watermark, frame, border, colour, color, grey, gray, gradient, shading, texture, 3d, photo, horizon, people, line art, sketch, outline drawing, hatching, white interior, perspective, three-quarter view, scenery, multiple objects"
+ },
+ {
+  "name": "g_roots_a",
+  "size": "1664*928",
+  "prompt": "A low tangle of gnarled tree roots and a broken root stump poking out of the ground. Rendered as one SOLID BLACK SILHOUETTE like a black paper cut-out or a shadow puppet: every part of the shape is filled flat solid pure black (#000000) with NO interior lines, NO outlines, NO hatching and NO white details inside, set on a completely flat pure white (#FFFFFF) background. Exact side view, flat orthographic, isolated, nothing else in the image. Crisp clean edges, detail only in the outline. No ground, no text, no border.",
+  "negative": "text, letters, words, signature, watermark, frame, border, colour, color, grey, gray, gradient, shading, texture, 3d, photo, horizon, people, line art, sketch, outline drawing, hatching, white interior, perspective, three-quarter view, scenery, multiple objects"
+ },
+ {
+  "name": "g_roots_b",
+  "size": "1664*928",
+  "prompt": "A low tangle of gnarled tree roots and a broken root stump poking out of the ground. Rendered as one SOLID BLACK SILHOUETTE like a black paper cut-out or a shadow puppet: every part of the shape is filled flat solid pure black (#000000) with NO interior lines, NO outlines, NO hatching and NO white details inside, set on a completely flat pure white (#FFFFFF) background. Exact side view, flat orthographic, isolated, nothing else in the image. Crisp clean edges, detail only in the outline. No ground, no text, no border.",
+  "negative": "text, letters, words, signature, watermark, frame, border, colour, color, grey, gray, gradient, shading, texture, 3d, photo, horizon, people, line art, sketch, outline drawing, hatching, white interior, perspective, three-quarter view, scenery, multiple objects"
+ },
+ {
+  "name": "g_roots_c",
+  "size": "1664*928",
+  "prompt": "A low tangle of gnarled tree roots and a broken root stump poking out of the ground. Rendered as one SOLID BLACK SILHOUETTE like a black paper cut-out or a shadow puppet: every part of the shape is filled flat solid pure black (#000000) with NO interior lines, NO outlines, NO hatching and NO white details inside, set on a completely flat pure white (#FFFFFF) background. Exact side view, flat orthographic, isolated, nothing else in the image. Crisp clean edges, detail only in the outline. No ground, no text, no border.",
+  "negative": "text, letters, words, signature, watermark, frame, border, colour, color, grey, gray, gradient, shading, texture, 3d, photo, horizon, people, line art, sketch, outline drawing, hatching, white interior, perspective, three-quarter view, scenery, multiple objects"
+ },
+ {
+  "name": "g_branch_a",
+  "size": "1664*928",
+  "prompt": "One fallen dead branch lying horizontally, crooked, with a few short broken twigs. Rendered as one SOLID BLACK SILHOUETTE like a black paper cut-out or a shadow puppet: every part of the shape is filled flat solid pure black (#000000) with NO interior lines, NO outlines, NO hatching and NO white details inside, set on a completely flat pure white (#FFFFFF) background. Exact side view, flat orthographic, isolated, nothing else in the image. Crisp clean edges, detail only in the outline. No ground, no text, no border.",
+  "negative": "text, letters, words, signature, watermark, frame, border, colour, color, grey, gray, gradient, shading, texture, 3d, photo, horizon, people, line art, sketch, outline drawing, hatching, white interior, perspective, three-quarter view, scenery, multiple objects"
+ },
+ {
+  "name": "g_branch_b",
+  "size": "1664*928",
+  "prompt": "One fallen dead branch lying horizontally, crooked, with a few short broken twigs. Rendered as one SOLID BLACK SILHOUETTE like a black paper cut-out or a shadow puppet: every part of the shape is filled flat solid pure black (#000000) with NO interior lines, NO outlines, NO hatching and NO white details inside, set on a completely flat pure white (#FFFFFF) background. Exact side view, flat orthographic, isolated, nothing else in the image. Crisp clean edges, detail only in the outline. No ground, no text, no border.",
+  "negative": "text, letters, words, signature, watermark, frame, border, colour, color, grey, gray, gradient, shading, texture, 3d, photo, horizon, people, line art, sketch, outline drawing, hatching, white interior, perspective, three-quarter view, scenery, multiple objects"
+ },
+ {
+  "name": "g_branch_c",
+  "size": "1664*928",
+  "prompt": "One fallen dead branch lying horizontally, crooked, with a few short broken twigs. Rendered as one SOLID BLACK SILHOUETTE like a black paper cut-out or a shadow puppet: every part of the shape is filled flat solid pure black (#000000) with NO interior lines, NO outlines, NO hatching and NO white details inside, set on a completely flat pure white (#FFFFFF) background. Exact side view, flat orthographic, isolated, nothing else in the image. Crisp clean edges, detail only in the outline. No ground, no text, no border.",
+  "negative": "text, letters, words, signature, watermark, frame, border, colour, color, grey, gray, gradient, shading, texture, 3d, photo, horizon, people, line art, sketch, outline drawing, hatching, white interior, perspective, three-quarter view, scenery, multiple objects"
+ },
+ {
+  "name": "g_mushrooms_a",
+  "size": "1664*928",
+  "prompt": "A small clump of five thin-stemmed forest mushrooms of different heights with round caps. Rendered as one SOLID BLACK SILHOUETTE like a black paper cut-out or a shadow puppet: every part of the shape is filled flat solid pure black (#000000) with NO interior lines, NO outlines, NO hatching and NO white details inside, set on a completely flat pure white (#FFFFFF) background. Exact side view, flat orthographic, isolated, nothing else in the image. Crisp clean edges, detail only in the outline. No ground, no text, no border.",
+  "negative": "text, letters, words, signature, watermark, frame, border, colour, color, grey, gray, gradient, shading, texture, 3d, photo, horizon, people, line art, sketch, outline drawing, hatching, white interior, perspective, three-quarter view, scenery, multiple objects"
+ },
+ {
+  "name": "g_mushrooms_b",
+  "size": "1664*928",
+  "prompt": "A small clump of five thin-stemmed forest mushrooms of different heights with round caps. Rendered as one SOLID BLACK SILHOUETTE like a black paper cut-out or a shadow puppet: every part of the shape is filled flat solid pure black (#000000) with NO interior lines, NO outlines, NO hatching and NO white details inside, set on a completely flat pure white (#FFFFFF) background. Exact side view, flat orthographic, isolated, nothing else in the image. Crisp clean edges, detail only in the outline. No ground, no text, no border.",
+  "negative": "text, letters, words, signature, watermark, frame, border, colour, color, grey, gray, gradient, shading, texture, 3d, photo, horizon, people, line art, sketch, outline drawing, hatching, white interior, perspective, three-quarter view, scenery, multiple objects"
+ },
+ {
+  "name": "g_mushrooms_c",
+  "size": "1664*928",
+  "prompt": "A small clump of five thin-stemmed forest mushrooms of different heights with round caps. Rendered as one SOLID BLACK SILHOUETTE like a black paper cut-out or a shadow puppet: every part of the shape is filled flat solid pure black (#000000) with NO interior lines, NO outlines, NO hatching and NO white details inside, set on a completely flat pure white (#FFFFFF) background. Exact side view, flat orthographic, isolated, nothing else in the image. Crisp clean edges, detail only in the outline. No ground, no text, no border.",
+  "negative": "text, letters, words, signature, watermark, frame, border, colour, color, grey, gray, gradient, shading, texture, 3d, photo, horizon, people, line art, sketch, outline drawing, hatching, white interior, perspective, three-quarter view, scenery, multiple objects"
+ },
+ {
+  "name": "g_weeds_a",
+  "size": "1664*928",
+  "prompt": "A clump of tall wild weeds and thistles with spiky leaves and two thistle heads. Rendered as one SOLID BLACK SILHOUETTE like a black paper cut-out or a shadow puppet: every part of the shape is filled flat solid pure black (#000000) with NO interior lines, NO outlines, NO hatching and NO white details inside, set on a completely flat pure white (#FFFFFF) background. Exact side view, flat orthographic, isolated, nothing else in the image. Crisp clean edges, detail only in the outline. No ground, no text, no border.",
+  "negative": "text, letters, words, signature, watermark, frame, border, colour, color, grey, gray, gradient, shading, texture, 3d, photo, horizon, people, line art, sketch, outline drawing, hatching, white interior, perspective, three-quarter view, scenery, multiple objects"
+ },
+ {
+  "name": "g_weeds_b",
+  "size": "1664*928",
+  "prompt": "A clump of tall wild weeds and thistles with spiky leaves and two thistle heads. Rendered as one SOLID BLACK SILHOUETTE like a black paper cut-out or a shadow puppet: every part of the shape is filled flat solid pure black (#000000) with NO interior lines, NO outlines, NO hatching and NO white details inside, set on a completely flat pure white (#FFFFFF) background. Exact side view, flat orthographic, isolated, nothing else in the image. Crisp clean edges, detail only in the outline. No ground, no text, no border.",
+  "negative": "text, letters, words, signature, watermark, frame, border, colour, color, grey, gray, gradient, shading, texture, 3d, photo, horizon, people, line art, sketch, outline drawing, hatching, white interior, perspective, three-quarter view, scenery, multiple objects"
+ },
+ {
+  "name": "g_weeds_c",
+  "size": "1664*928",
+  "prompt": "A clump of tall wild weeds and thistles with spiky leaves and two thistle heads. Rendered as one SOLID BLACK SILHOUETTE like a black paper cut-out or a shadow puppet: every part of the shape is filled flat solid pure black (#000000) with NO interior lines, NO outlines, NO hatching and NO white details inside, set on a completely flat pure white (#FFFFFF) background. Exact side view, flat orthographic, isolated, nothing else in the image. Crisp clean edges, detail only in the outline. No ground, no text, no border.",
+  "negative": "text, letters, words, signature, watermark, frame, border, colour, color, grey, gray, gradient, shading, texture, 3d, photo, horizon, people, line art, sketch, outline drawing, hatching, white interior, perspective, three-quarter view, scenery, multiple objects"
+ },
+ {
+  "name": "g_rubble_a",
+  "size": "1664*928",
+  "prompt": "A low pile of broken castle stone blocks and rubble chunks. Rendered as one SOLID BLACK SILHOUETTE like a black paper cut-out or a shadow puppet: every part of the shape is filled flat solid pure black (#000000) with NO interior lines, NO outlines, NO hatching and NO white details inside, set on a completely flat pure white (#FFFFFF) background. Exact side view, flat orthographic, isolated, nothing else in the image. Crisp clean edges, detail only in the outline. No ground, no text, no border.",
+  "negative": "text, letters, words, signature, watermark, frame, border, colour, color, grey, gray, gradient, shading, texture, 3d, photo, horizon, people, line art, sketch, outline drawing, hatching, white interior, perspective, three-quarter view, scenery, multiple objects"
+ },
+ {
+  "name": "g_rubble_b",
+  "size": "1664*928",
+  "prompt": "A low pile of broken castle stone blocks and rubble chunks. Rendered as one SOLID BLACK SILHOUETTE like a black paper cut-out or a shadow puppet: every part of the shape is filled flat solid pure black (#000000) with NO interior lines, NO outlines, NO hatching and NO white details inside, set on a completely flat pure white (#FFFFFF) background. Exact side view, flat orthographic, isolated, nothing else in the image. Crisp clean edges, detail only in the outline. No ground, no text, no border.",
+  "negative": "text, letters, words, signature, watermark, frame, border, colour, color, grey, gray, gradient, shading, texture, 3d, photo, horizon, people, line art, sketch, outline drawing, hatching, white interior, perspective, three-quarter view, scenery, multiple objects"
+ },
+ {
+  "name": "g_rubble_c",
+  "size": "1664*928",
+  "prompt": "A low pile of broken castle stone blocks and rubble chunks. Rendered as one SOLID BLACK SILHOUETTE like a black paper cut-out or a shadow puppet: every part of the shape is filled flat solid pure black (#000000) with NO interior lines, NO outlines, NO hatching and NO white details inside, set on a completely flat pure white (#FFFFFF) background. Exact side view, flat orthographic, isolated, nothing else in the image. Crisp clean edges, detail only in the outline. No ground, no text, no border.",
+  "negative": "text, letters, words, signature, watermark, frame, border, colour, color, grey, gray, gradient, shading, texture, 3d, photo, horizon, people, line art, sketch, outline drawing, hatching, white interior, perspective, three-quarter view, scenery, multiple objects"
+ },
+ {
+  "name": "h_haybale_a",
+  "size": "1664*928",
+  "prompt": "One round hay bale with loose straw tufts sticking out. Rendered as one SOLID BLACK SILHOUETTE like a black paper cut-out or a shadow puppet: every part of the shape is filled flat solid pure black (#000000) with NO interior lines, NO outlines, NO hatching and NO white details inside, set on a completely flat pure white (#FFFFFF) background. Exact side view, flat orthographic, isolated, nothing else in the image. Crisp clean edges, detail only in the outline. No ground, no text, no border.",
+  "negative": "text, letters, words, signature, watermark, frame, border, colour, color, grey, gray, gradient, shading, texture, 3d, photo, horizon, people, line art, sketch, outline drawing, hatching, white interior, perspective, three-quarter view, scenery, multiple objects"
+ },
+ {
+  "name": "h_haybale_b",
+  "size": "1664*928",
+  "prompt": "One round hay bale with loose straw tufts sticking out. Rendered as one SOLID BLACK SILHOUETTE like a black paper cut-out or a shadow puppet: every part of the shape is filled flat solid pure black (#000000) with NO interior lines, NO outlines, NO hatching and NO white details inside, set on a completely flat pure white (#FFFFFF) background. Exact side view, flat orthographic, isolated, nothing else in the image. Crisp clean edges, detail only in the outline. No ground, no text, no border.",
+  "negative": "text, letters, words, signature, watermark, frame, border, colour, color, grey, gray, gradient, shading, texture, 3d, photo, horizon, people, line art, sketch, outline drawing, hatching, white interior, perspective, three-quarter view, scenery, multiple objects"
+ },
+ {
+  "name": "h_barrel_a",
+  "size": "928*1664",
+  "prompt": "One old wooden barrel standing upright with iron hoops. Rendered as one SOLID BLACK SILHOUETTE like a black paper cut-out or a shadow puppet: every part of the shape is filled flat solid pure black (#000000) with NO interior lines, NO outlines, NO hatching and NO white details inside, set on a completely flat pure white (#FFFFFF) background. Exact side view, flat orthographic, isolated, nothing else in the image. Crisp clean edges, detail only in the outline. No ground, no text, no border.",
+  "negative": "text, letters, words, signature, watermark, frame, border, colour, color, grey, gray, gradient, shading, texture, 3d, photo, horizon, people, line art, sketch, outline drawing, hatching, white interior, perspective, three-quarter view, scenery, multiple objects"
+ },
+ {
+  "name": "h_barrel_b",
+  "size": "928*1664",
+  "prompt": "One old wooden barrel standing upright with iron hoops. Rendered as one SOLID BLACK SILHOUETTE like a black paper cut-out or a shadow puppet: every part of the shape is filled flat solid pure black (#000000) with NO interior lines, NO outlines, NO hatching and NO white details inside, set on a completely flat pure white (#FFFFFF) background. Exact side view, flat orthographic, isolated, nothing else in the image. Crisp clean edges, detail only in the outline. No ground, no text, no border.",
+  "negative": "text, letters, words, signature, watermark, frame, border, colour, color, grey, gray, gradient, shading, texture, 3d, photo, horizon, people, line art, sketch, outline drawing, hatching, white interior, perspective, three-quarter view, scenery, multiple objects"
+ },
+ {
+  "name": "h_wheelbarrow_a",
+  "size": "1664*928",
+  "prompt": "One old wooden wheelbarrow with a single spoked wheel at the front and two long handles. Rendered as one SOLID BLACK SILHOUETTE like a black paper cut-out or a shadow puppet: every part of the shape is filled flat solid pure black (#000000) with NO interior lines, NO outlines, NO hatching and NO white details inside, set on a completely flat pure white (#FFFFFF) background. Exact side view, flat orthographic, isolated, nothing else in the image. Crisp clean edges, detail only in the outline. No ground, no text, no border.",
+  "negative": "text, letters, words, signature, watermark, frame, border, colour, color, grey, gray, gradient, shading, texture, 3d, photo, horizon, people, line art, sketch, outline drawing, hatching, white interior, perspective, three-quarter view, scenery, multiple objects"
+ },
+ {
+  "name": "h_wheelbarrow_b",
+  "size": "1664*928",
+  "prompt": "One old wooden wheelbarrow with a single spoked wheel at the front and two long handles. Rendered as one SOLID BLACK SILHOUETTE like a black paper cut-out or a shadow puppet: every part of the shape is filled flat solid pure black (#000000) with NO interior lines, NO outlines, NO hatching and NO white details inside, set on a completely flat pure white (#FFFFFF) background. Exact side view, flat orthographic, isolated, nothing else in the image. Crisp clean edges, detail only in the outline. No ground, no text, no border.",
+  "negative": "text, letters, words, signature, watermark, frame, border, colour, color, grey, gray, gradient, shading, texture, 3d, photo, horizon, people, line art, sketch, outline drawing, hatching, white interior, perspective, three-quarter view, scenery, multiple objects"
+ },
+ {
+  "name": "h_gate_a",
+  "size": "1664*928",
+  "prompt": "One small rustic wooden garden gate between two posts, slightly ajar, crooked planks. Rendered as one SOLID BLACK SILHOUETTE like a black paper cut-out or a shadow puppet: every part of the shape is filled flat solid pure black (#000000) with NO interior lines, NO outlines, NO hatching and NO white details inside, set on a completely flat pure white (#FFFFFF) background. Exact side view, flat orthographic, isolated, nothing else in the image. Crisp clean edges, detail only in the outline. No ground, no text, no border.",
+  "negative": "text, letters, words, signature, watermark, frame, border, colour, color, grey, gray, gradient, shading, texture, 3d, photo, horizon, people, line art, sketch, outline drawing, hatching, white interior, perspective, three-quarter view, scenery, multiple objects"
+ },
+ {
+  "name": "h_gate_b",
+  "size": "1664*928",
+  "prompt": "One small rustic wooden garden gate between two posts, slightly ajar, crooked planks. Rendered as one SOLID BLACK SILHOUETTE like a black paper cut-out or a shadow puppet: every part of the shape is filled flat solid pure black (#000000) with NO interior lines, NO outlines, NO hatching and NO white details inside, set on a completely flat pure white (#FFFFFF) background. Exact side view, flat orthographic, isolated, nothing else in the image. Crisp clean edges, detail only in the outline. No ground, no text, no border.",
+  "negative": "text, letters, words, signature, watermark, frame, border, colour, color, grey, gray, gradient, shading, texture, 3d, photo, horizon, people, line art, sketch, outline drawing, hatching, white interior, perspective, three-quarter view, scenery, multiple objects"
+ },
+ {
+  "name": "h_lantern_a",
+  "size": "928*1664",
+  "prompt": "One tall wooden lantern post with an old iron oil lantern hanging from a short arm at the top. Rendered as one SOLID BLACK SILHOUETTE like a black paper cut-out or a shadow puppet: every part of the shape is filled flat solid pure black (#000000) with NO interior lines, NO outlines, NO hatching and NO white details inside, set on a completely flat pure white (#FFFFFF) background. Exact side view, flat orthographic, isolated, nothing else in the image. Crisp clean edges, detail only in the outline. No ground, no text, no border.",
+  "negative": "text, letters, words, signature, watermark, frame, border, colour, color, grey, gray, gradient, shading, texture, 3d, photo, horizon, people, line art, sketch, outline drawing, hatching, white interior, perspective, three-quarter view, scenery, multiple objects"
+ },
+ {
+  "name": "h_lantern_b",
+  "size": "928*1664",
+  "prompt": "One tall wooden lantern post with an old iron oil lantern hanging from a short arm at the top. Rendered as one SOLID BLACK SILHOUETTE like a black paper cut-out or a shadow puppet: every part of the shape is filled flat solid pure black (#000000) with NO interior lines, NO outlines, NO hatching and NO white details inside, set on a completely flat pure white (#FFFFFF) background. Exact side view, flat orthographic, isolated, nothing else in the image. Crisp clean edges, detail only in the outline. No ground, no text, no border.",
+  "negative": "text, letters, words, signature, watermark, frame, border, colour, color, grey, gray, gradient, shading, texture, 3d, photo, horizon, people, line art, sketch, outline drawing, hatching, white interior, perspective, three-quarter view, scenery, multiple objects"
+ }
+]

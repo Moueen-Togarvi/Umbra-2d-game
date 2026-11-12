@@ -55,7 +55,17 @@ class KeyboardInput extends Component with KeyboardHandler {
     LogicalKeyboardKey.arrowDown,
   };
 
-  static final Set<LogicalKeyboardKey> _attackKeys = {LogicalKeyboardKey.keyF};
+  /// Slash, throw and dash.
+  static final Set<LogicalKeyboardKey> _attackKeys = {
+    LogicalKeyboardKey.keyJ,
+    LogicalKeyboardKey.keyF,
+  };
+  static final Set<LogicalKeyboardKey> _throwKeys = {LogicalKeyboardKey.keyK};
+  static final Set<LogicalKeyboardKey> _dashKeys = {
+    LogicalKeyboardKey.keyL,
+    LogicalKeyboardKey.shiftLeft,
+    LogicalKeyboardKey.shiftRight,
+  };
 
   @override
   bool onKeyEvent(KeyEvent event, Set<LogicalKeyboardKey> keysPressed) {
@@ -84,6 +94,12 @@ class KeyboardInput extends Component with KeyboardHandler {
     if (event is KeyDownEvent && _attackKeys.contains(event.logicalKey)) {
       _intent.requestAttack();
     }
+    if (event is KeyDownEvent && _throwKeys.contains(event.logicalKey)) {
+      _intent.requestThrow();
+    }
+    if (event is KeyDownEvent && _dashKeys.contains(event.logicalKey)) {
+      _intent.requestDash();
+    }
     if (event is KeyDownEvent) {
       onActivity?.call();
       switch (event.logicalKey) {
@@ -91,18 +107,10 @@ class KeyboardInput extends Component with KeyboardHandler {
           _intent.requestReset();
         case LogicalKeyboardKey.f1:
           _intent.requestDebugToggle();
-        case LogicalKeyboardKey.keyK:
+        case LogicalKeyboardKey.keyN:
           _intent.requestKnockdown();
         case LogicalKeyboardKey.keyM:
           _intent.requestAudioToggle();
-        case LogicalKeyboardKey.keyQ:
-          _intent.requestCycleWeapon();
-        case LogicalKeyboardKey.digit1:
-          _intent.requestWeaponSlot(0);
-        case LogicalKeyboardKey.digit2:
-          _intent.requestWeaponSlot(1);
-        case LogicalKeyboardKey.digit3:
-          _intent.requestWeaponSlot(2);
         case LogicalKeyboardKey.escape:
           onPause?.call();
       }

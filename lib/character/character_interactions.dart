@@ -322,6 +322,14 @@ class CharacterInteractions {
     return closest;
   }
 
+  /// Whether holding the action now would take hold of a crate (or one is
+  /// held): the touch screen shows its grab button only then.
+  bool canGrabCrate(double facing) =>
+      mode == InteractionMode.pulling ||
+      (playerBody.isValid &&
+          _crateInReach(facing, width / 2 + GameConfig.pushBraceMeters + 0.06) !=
+              null);
+
   RayHit? _crateInReach(double direction, double reach) {
     final hit = _solidRay(
       playerBody.position + Vector2(0, height * 0.03),

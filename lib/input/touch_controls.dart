@@ -42,7 +42,9 @@ class TouchControls {
     'jump',
     'sit',
     'attack',
-    'weaponSlot',
+    'throw',
+    'dash',
+    'grab',
     'climbUp',
     'climbDown',
     'pause',
@@ -80,7 +82,19 @@ class TouchControls {
         viewport.width - edge - attack / 2,
         viewport.height - edge - attack / 2,
       ),
-      'weaponSlot': Offset(edge + 29, edge + 29),
+      // Dash diagonally inside jump; throw above jump; grab inside sit.
+      'dash': Offset(
+        viewport.width - edge - attack - gap - diameter / 2,
+        viewport.height - edge - attack - gap - diameter / 2,
+      ),
+      'throw': Offset(
+        viewport.width - edge - diameter / 2,
+        viewport.height - edge - attack - 2 * gap - diameter * 1.5,
+      ),
+      'grab': Offset(
+        viewport.width - edge - attack - 2 * gap - diameter * 1.5,
+        viewport.height - edge - attack / 2,
+      ),
       'climbUp': Offset(
         edge + diameter / 2,
         viewport.height - edge - diameter - gap - climb / 2,
@@ -112,13 +126,22 @@ class TouchControls {
     bool Function()? onRope,
     bool Function()? hidden,
     this.onPause,
-    this.onWeaponMenu,
+    bool Function()? hasSword,
+    bool Function()? hasShuriken,
+    this.stars,
     this.attackReadiness,
+    this.dashReadiness,
+    bool Function()? nearCrate,
+    String? Function()? prompt,
     this.debugTools = false,
     GameSettings? settings,
   }) : _debugVisible = debugVisible ?? (() => false),
        settings = settings ?? GameSettings(),
        _onRope = onRope ?? (() => false),
+       _hasSword = hasSword ?? (() => true),
+       _hasShuriken = hasShuriken ?? (() => true),
+       _nearCrate = nearCrate ?? (() => false),
+       _prompt = prompt ?? (() => null),
        _hidden = hidden ?? (() => false);
 
   /// The icons the buttons draw, under `assets/images/`, to load before
@@ -137,8 +160,13 @@ class TouchControls {
   final bool debugTools;
   final GameSettings settings;
   final VoidCallback? onPause;
-  final VoidCallback? onWeaponMenu;
+  final bool Function() _hasSword, _hasShuriken, _nearCrate;
+
+  /// The button a lesson is pointing at, by layout id, or null.
+  final String? Function() _prompt;
+  final int Function()? stars;
   final double Function()? attackReadiness;
+  final double Function()? dashReadiness;
 
   // Which walk buttons are currently held. Tracked as two booleans rather than
   // writing the axis directly on each press, for the same reason
@@ -220,9 +248,12 @@ class TouchControls {
         onRelease: () => _intent.setTouchState(sit: false),
       ),
 
+      // Slash: the largest, in the corner under the thumb.
       _controlButton(
+        id: 'attack',
         glyph: _Glyph.attack,
         diameter: attack,
+        visible: _hasSword,
         position: at('attack'),
         progress: attackReadiness,
         onPress: () {
@@ -233,11 +264,34 @@ class TouchControls {
       ),
 
       _controlButton(
-        glyph: _Glyph.weapon,
-        diameter: 58,
-        position: at('weaponSlot'),
-        onPress: () => onWeaponMenu?.call(),
+        id: 'throw',
+        glyph: _Glyph.throwStar,
+        visible: _hasShuriken,
+        position: at('throw'),
+        count: stars,
+        onPress: _intent.requestThrow,
         onRelease: () {},
+      ),
+
+      _controlButton(
+        id: 'dash',
+        glyph: _Glyph.dash,
+        visible: _hasSword,
+        position: at('dash'),
+        progress: dashReadiness,
+        onPress: _intent.requestDash,
+        onRelease: () {},
+      ),
+
+      // Grab: only beside a crate he could take hold of, and while he holds
+      // one, so it never sits on screen doing nothing.
+      _controlButton(
+        id: 'grab',
+        glyph: _Glyph.grab,
+        visible: _nearCrate,
+        position: at('grab'),
+        onPress: () => _intent.setTouchState(interact: true),
+        onRelease: () => _intent.setTouchState(interact: false),
       ),
 
       // Climb up and down a rope: only there while he holds one, above the
@@ -304,11 +358,13 @@ class TouchControls {
   }
 
   HudButtonComponent _controlButton({
+    String? id,
     _Glyph? glyph,
     String? label,
     bool Function()? visible,
     double? diameter,
     double Function()? progress,
+    int Function()? count,
     required Vector2 position,
     required void Function() onPress,
     required void Function() onRelease,
@@ -330,6 +386,8 @@ class TouchControls {
         opacity: () => settings.controlsOpacity,
         size: size,
         progress: progress,
+        count: count,
+        prompted: id == null ? null : () => _prompt() == id,
       ),
       buttonDown: _ControlFace(
         glyph: glyph,
@@ -338,6 +396,7 @@ class TouchControls {
         opacity: () => settings.controlsOpacity,
         size: size,
         progress: progress,
+        count: count,
       ),
       onPressed: () {
         if (settings.vibration) {
@@ -400,7 +459,7 @@ class TouchControls {
   }
 }
 
-enum _Glyph { left, right, jump, sit, attack, weapon, up, down, pause }
+enum _Glyph { left, right, jump, sit, attack, throwStar, dash, grab, up, down, pause }
 
 /// A hidden development action neither draws nor receives a stray tap.
 class _VisibilityButton extends HudButtonComponent {
@@ -439,9 +498,16 @@ class _ControlFace extends PositionComponent {
     required this.opacity,
     required Vector2 size,
     this.progress,
+    this.count,
+    this.prompted,
   }) : super(size: size);
 
   final _Glyph? glyph;
+  final int Function()? count;
+
+  /// Whether a lesson is pointing at this button: a slow ring pulses out.
+  final bool Function()? prompted;
+  double _clock = 0;
   final String? label;
   TextPainter? _labelPainter;
   TextPainter? _actionPainter;
@@ -458,6 +524,10 @@ class _ControlFace extends PositionComponent {
     _Glyph.right: 'ui/ui_arrow.png',
     _Glyph.jump: 'ui/ui_jump.png',
     _Glyph.sit: 'ui/ui_sit.png',
+    _Glyph.attack: 'ui/ui_slash.png',
+    _Glyph.throwStar: 'ui/ui_throw.png',
+    _Glyph.dash: 'ui/ui_dash.png',
+    _Glyph.grab: 'ui/ui_hand.png',
     _Glyph.up: 'ui/ui_arrow.png',
     _Glyph.down: 'ui/ui_arrow.png',
     _Glyph.pause: 'ui/ui_pause.png',
@@ -481,6 +551,12 @@ class _ControlFace extends PositionComponent {
     ..style = PaintingStyle.stroke
     ..strokeCap = StrokeCap.round
     ..strokeJoin = StrokeJoin.round;
+
+  @override
+  void update(double dt) {
+    super.update(dt);
+    _clock += dt;
+  }
 
   @override
   void render(Canvas canvas) {
@@ -516,7 +592,20 @@ class _ControlFace extends PositionComponent {
         glyph == _Glyph.jump ||
         glyph == _Glyph.sit ||
         glyph == _Glyph.attack ||
-        glyph == _Glyph.weapon;
+        glyph == _Glyph.throwStar ||
+        glyph == _Glyph.dash ||
+        glyph == _Glyph.grab;
+    if (prompted?.call() ?? false) {
+      // Two rings breathing outwards from the button.
+      for (final phase in const [0.0, .5]) {
+        final t = (_clock * .9 + phase) % 1;
+        _ring
+          ..strokeWidth = 2.2 * (1 - t)
+          ..color = Palette.controlGlyph.withValues(alpha: .9 * (1 - t));
+        canvas.drawCircle(center, radius * (1 + .45 * t), _ring);
+      }
+      _ring.strokeWidth = 1.2;
+    }
     if (labeled) {
       final fill = isPressed ? Palette.controlPressed : Palette.control;
       _fill.color = fill.withValues(alpha: fill.a * alpha);
@@ -526,7 +615,7 @@ class _ControlFace extends PositionComponent {
       canvas
         ..drawCircle(center, radius - 1, _fill)
         ..drawCircle(center, radius - 1, _ring);
-      if (glyph == _Glyph.attack && progress != null) {
+      if (progress != null) {
         final ready = progress!().clamp(0.0, 1.0);
         canvas.drawArc(
           Rect.fromCircle(center: center, radius: radius - 3),
@@ -584,15 +673,17 @@ class _ControlFace extends PositionComponent {
             text: switch (glyph) {
               _Glyph.jump => 'JUMP',
               _Glyph.sit => 'SIT',
-              _Glyph.attack => 'ATTACK',
-              _Glyph.weapon => 'WEAPON',
+              _Glyph.attack => 'SLASH',
+              _Glyph.throwStar => 'THROW',
+              _Glyph.dash => 'DASH',
+              _Glyph.grab => 'GRAB',
               _ => '',
             },
             style: TextStyle(
               fontFamily: 'Roboto',
               fontWeight: FontWeight.w700,
               color: Palette.controlGlyph.withValues(alpha: actionAlpha),
-              fontSize: 10,
+              fontSize: 11,
               letterSpacing: 1,
             ),
           ),
@@ -604,6 +695,17 @@ class _ControlFace extends PositionComponent {
         canvas,
         Offset(center.dx - painter.width / 2, center.dy + radius * .58),
       );
+    }
+    final left = count?.call();
+    if (left != null) {
+      // One small mark per star left, along the top of the button.
+      for (var i = 0; i < 3; i++) {
+        final at = center + Offset((i - 1) * radius * .26, -radius * .74);
+        _glyphPaint.color = Palette.controlGlyph.withValues(
+          alpha: alpha * (i < left ? 1 : .25),
+        );
+        canvas.drawCircle(at, radius * .07, _glyphPaint);
+      }
     }
     canvas.restore();
   }
@@ -681,15 +783,31 @@ class _ControlFace extends PositionComponent {
           _strokeGlyph..strokeWidth = r * .32,
         );
         _triangle(canvas, center + Offset(r * .62, -r * .62), r * .32, -.8);
-      case _Glyph.weapon:
-        canvas.drawPath(
-          Path()
-            ..moveTo(center.dx, center.dy - r)
-            ..lineTo(center.dx + r, center.dy)
-            ..lineTo(center.dx, center.dy + r)
-            ..lineTo(center.dx - r, center.dy)
-            ..close(),
-          _strokeGlyph..strokeWidth = r * .2,
+      case _Glyph.throwStar:
+        final star = Path();
+        for (var i = 0; i < 8; i++) {
+          final a = i * math.pi / 4;
+          final d = i.isEven ? r * .9 : r * .3;
+          final p = center + Offset(math.cos(a) * d, math.sin(a) * d);
+          i == 0 ? star.moveTo(p.dx, p.dy) : star.lineTo(p.dx, p.dy);
+        }
+        canvas.drawPath(star..close(), _glyphPaint);
+      case _Glyph.dash:
+        _triangle(canvas, center + Offset(r * .25, 0), r * .7, 0);
+        for (final dy in [-.4, 0.0, .4]) {
+          canvas.drawLine(
+            center + Offset(-r, r * dy),
+            center + Offset(-r * .3, r * dy),
+            _strokeGlyph..strokeWidth = r * .16,
+          );
+        }
+      case _Glyph.grab:
+        canvas.drawRRect(
+          RRect.fromRectAndRadius(
+            Rect.fromCenter(center: center, width: r * 1.2, height: r * 1.4),
+            Radius.circular(r * .3),
+          ),
+          _glyphPaint,
         );
       case _Glyph.up:
         _chevron(canvas, center, r, -1);

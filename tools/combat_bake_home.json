@@ -1,0 +1,22 @@
+{
+ "barrel": {
+  "source": "h_barrel_b",
+  "max_h": 420,
+  "despeckle": 3
+ },
+ "gate": {
+  "source": "h_gate_a",
+  "max_h": 360,
+  "despeckle": 3
+ },
+ "haybale": {
+  "source": "h_haybale_b",
+  "max_h": 320,
+  "despeckle": 3
+ },
+ "wheelbarrow": {
+  "source": "h_wheelbarrow_a",
+  "max_h": 320,
+  "despeckle": 3
+ }
+}

@@ -1,0 +1,22 @@
+{
+ "stones": {
+  "source": "g_stones_a",
+  "max_h": 220,
+  "despeckle": 3
+ },
+ "branch": {
+  "source": "g_branch_c",
+  "max_h": 200,
+  "despeckle": 3
+ },
+ "mushrooms": {
+  "source": "g_mushrooms_c",
+  "max_h": 260,
+  "despeckle": 3
+ },
+ "weeds": {
+  "source": "g_weeds_c",
+  "max_h": 280,
+  "despeckle": 3
+ }
+}

@@ -4,7 +4,6 @@ import 'package:flame/components.dart' show Component;
 import 'package:flame_forge2d/flame_forge2d.dart';
 
 import '../config/game_config.dart';
-import '../combat/combat_target.dart';
 import '../entities/player.dart';
 import '../physics/collision_layers.dart';
 import '../world/stage.dart';
@@ -112,7 +111,6 @@ class Pursuer {
 
   void update(double dt) {
     if (!active || vampire.gone || dt <= 0) return;
-    if (stage.combatThreatLocked) return;
     if (vampire.isCombatStunned) {
       vampire.combatTelegraph = false;
       _attackWindup = 0;
@@ -236,15 +234,7 @@ class Pursuer {
         _attackWindup += dt;
         vampire.combatTelegraph = true;
         vampire.reachGoal = 1;
-        if (_attackWindup >= .24 &&
-            !boy.isRagdoll &&
-            (boy.isLow || !boy.isOnGround)) {
-          vampire.receiveCombatHit(
-            CombatHit(posture: 1.1, direction: -dir, stunSeconds: 1.05),
-          );
-          _attackWindup = -.6;
-          stage.cue('parry', weight: .45, at: boy.body.position);
-        } else if (_attackWindup >= .42) {
+        if (_attackWindup >= .42) {
           vampire.seize();
           final hit = boy.receiveEnemyHit(direction: dir);
           _attackWindup = -.9;
@@ -354,7 +344,10 @@ class Stalker {
     this.wake = 7,
     this.patrolA,
     this.patrolB,
-  });
+  }) {
+    // A hunter on his own ground can be cut down; a chaser cannot.
+    vampire.killable = true;
+  }
 
   final Vampire vampire;
   final Stage stage;
@@ -505,14 +498,7 @@ class Stalker {
         (boyFeet - vampire.groundY).abs() < 1.3) {
       _attackWindup += dt;
       vampire.combatTelegraph = true;
-      if (_attackWindup >= .24 &&
-          !boy.isRagdoll &&
-          (boy.isLow || !boy.isOnGround)) {
-        vampire.receiveCombatHit(
-          CombatHit(posture: 1, direction: -vampire.facing, stunSeconds: 1),
-        );
-        _attackWindup = 0;
-      } else if (_attackWindup >= .42) {
+      if (_attackWindup >= .42) {
         vampire.seize();
         final hit = boy.receiveEnemyHit(direction: vampire.facing);
         _attackWindup = -.9;
